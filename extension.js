@@ -6,9 +6,10 @@ const {
     GObject,
     Shell,
     Gio,
-    St, 
+    St,
     UPowerGlib: UPower
 } = imports.gi;
+const Config = imports.misc.config;
 
 const PanelMenu = imports.ui.panelMenu;
 const BAT0 = "/sys/class/power_supply/BAT0/"
@@ -53,8 +54,8 @@ function readFileSafely(filePath, defaultValue) {
  * Indicator
  */
 var BatIndicator = GObject.registerClass({
-        GTypeName: 'BatIndicator',
-    },
+    GTypeName: 'BatIndicator',
+},
     // BaseIndicator is the Indicator class here -- https://gitlab.gnome.org/GNOME/gnome-shell/-/blob/gnome-42/js/ui/status/power.js?ref_type=heads
     // The this._proxy object is from the parent class, and is a DBus Proxy to org.freedesktop.UPower.Device
     // org.freedesktop.UPower.Device is documented here https://upower.freedesktop.org/docs/Device.html
@@ -181,14 +182,25 @@ class BatConsumptionWattmeter {
     constructor() {
         this.customIndicator = new BatIndicator();
         this.customIndicator._spawn();
-        this.aggregateMenu = Panel.statusArea['aggregateMenu'];
-        this.originalIndicator = this.aggregateMenu._power;
-        this.aggregateMenu._indicators.replace_child(this.originalIndicator.indicators, this.customIndicator.indicators);
+
+        // Check GNOME Shell version to use the right menu
+        const shellVersion = parseInt(Config.PACKAGE_VERSION.split('.')[0]);
+
+        if (shellVersion >= 43) {
+            // GNOME 43+ uses quickSettings
+            this.statusArea = Panel.statusArea['quickSettings'];
+        } else {
+            // GNOME 42 and earlier uses aggregateMenu
+            this.statusArea = Panel.statusArea['aggregateMenu'];
+        }
+
+        this.originalIndicator = this.statusArea._power;
+        this.statusArea._indicators.replace_child(this.originalIndicator.indicators, this.customIndicator.indicators);
     }
 
     destroy(arg) {
         this.customIndicator._stop();
-        this.aggregateMenu._indicators.replace_child(this.customIndicator.indicators, this.originalIndicator.indicators);
+        this.statusArea._indicators.replace_child(this.customIndicator.indicators, this.originalIndicator.indicators);
         this.customIndicator = null;
     }
 }
