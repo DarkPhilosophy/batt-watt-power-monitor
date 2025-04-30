@@ -73,6 +73,16 @@ const BatIndicator = GObject.registerClass({
                 console.error('Correction was undefined after super._init(), reinitializing');
                 this.correction = getAutopath();
             }
+
+            this._proxy = new PowerManagerProxy(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
+                (proxy, error) => {
+                    if (error)
+                        console.error(error.message);
+                    else
+                        this._proxy.connect('g-properties-changed', () => this._sync());
+                    this._sync();
+                });
+
         }
 
         // Make sure the extension is set after initialization
