@@ -6,6 +6,8 @@ import UPower from 'gi://UPowerGlib';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+import * as QuickSettings from 'resource:///org/gnome/shell/ui/quickSettings.js';
+import * as SystemModule from 'resource:///org/gnome/shell/ui/status/system.js';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
@@ -51,7 +53,8 @@ function readFileSafely(filePath, defaultValue) {
 /**
  * Indicator
  */
-const BaseIndicator = Main.panel.statusArea.quickSettings._power.constructor;
+// In GNOME 45, the power indicator is part of the system indicator
+const BaseIndicator = SystemModule.Indicator;
 
 const BatIndicator = GObject.registerClass({
     GTypeName: 'BatIndicator',
@@ -176,14 +179,47 @@ export default class BatConsumptionWattmeter extends Extension {
         this.customIndicator._extension = this;
         this.customIndicator._spawn();
 
+        // Find the power indicator in the quick settings
         this.statusArea = Main.panel.statusArea.quickSettings;
-        this.originalIndicator = this.statusArea._power;
-        this.statusArea._indicators.replace_child(this.originalIndicator.indicators, this.customIndicator.indicators);
+
+        // In GNOME 45, the system indicator contains the power functionality
+        // We need to find the power indicator in the system indicator
+        const systemIndicator = this.statusArea._system;
+
+        if (systemIndicator) {
+            // Store the original indicators container for later restoration
+            this.originalParent = systemIndicator;
+
+            // Create our indicator container
+            this.indicators = this.customIndicator.indicators;
+
+            // Add our indicator to the panel
+            this.statusArea._indicators.add_child(this.indicators);
+
+            // Hide the original power indicator
+            systemIndicator.hide();
+        } else {
+            console.error('Could not find the system indicator in GNOME 45');
+        }
     }
 
     disable() {
-        this.customIndicator._stop();
-        this.statusArea._indicators.replace_child(this.customIndicator.indicators, this.originalIndicator.indicators);
-        this.customIndicator = null;
+        if (this.customIndicator) {
+            this.customIndicator._stop();
+
+            // Remove our indicator
+            if (this.indicators && this.indicators.get_parent()) {
+                this.indicators.get_parent().remove_child(this.indicators);
+            }
+
+            // Show the original system indicator
+            if (this.originalParent) {
+                this.originalParent.show();
+            }
+
+            this.customIndicator = null;
+            this.indicators = null;
+            this.originalParent = null;
+        }
     }
 }
