@@ -286,38 +286,75 @@ export default class BatConsumptionWattmeter extends Extension {
     enable() {
         console.log('Enabling battery consumption wattmeter extension...');
 
+        // Find and hide the default system battery indicator
+        this._hideDefaultBatteryIndicator();
+
         // Create our indicator with the extension passed to the constructor
         this.indicator = new CustomBatteryIndicator(this);
         this.indicator._spawn();
 
-        // Add the indicator to the status area
-        Main.panel.addToStatusArea('batteryConsumptionWattmeter', this.indicator, 1, 'right');
-
-        // Optionally hide the original power indicator if needed
-        const systemIndicator = Main.panel.statusArea.quickSettings?._system;
-        if (systemIndicator) {
-            // Store it for restoration later
-            this.originalIndicator = systemIndicator;
-            // Hide the original indicator (optional)
-            // systemIndicator.hide();
-        }
+        // Add the indicator at the same position where the battery indicator is
+        Main.panel.addToStatusArea('batteryConsumptionWattmeter', this.indicator, 0, 'right');
 
         console.log('Extension enabled successfully');
+    }
+
+    _hideDefaultBatteryIndicator() {
+        // In GNOME 45, the battery indicator is part of the system indicator
+        // We need to find it and hide it
+
+        this.originalIndicators = [];
+
+        // First, try to access the system indicator in quick settings
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        if (quickSettings && quickSettings._system) {
+            // Find the battery icon in the system indicator
+            const systemIndicator = quickSettings._system;
+
+            // Try to find battery-related icons
+            const iconChildren = systemIndicator.indicators.get_children();
+            for (const child of iconChildren) {
+                // Save a reference to the child and its original parent
+                if (child.has_style_class_name &&
+                    (child.has_style_class_name('power-status') ||
+                        child.has_style_class_name('battery-status'))) {
+                    this.originalIndicators.push({
+                        indicator: child,
+                        parent: systemIndicator.indicators,
+                        wasVisible: child.visible
+                    });
+
+                    // Hide it
+                    child.hide();
+                    console.log('Default battery indicator hidden');
+                }
+            }
+        }
+
+        // If we couldn't find and hide the indicator, log a warning
+        if (this.originalIndicators.length === 0) {
+            console.log('Could not find the default battery indicator to hide');
+        }
     }
 
     disable() {
         console.log('Disabling battery consumption wattmeter extension...');
 
+        // Remove our custom indicator
         if (this.indicator) {
             this.indicator._stop();
             this.indicator.destroy();
             this.indicator = null;
         }
 
-        // Restore the original power indicator if we hid it
-        if (this.originalIndicator) {
-            // this.originalIndicator.show();
-            this.originalIndicator = null;
+        // Restore any hidden indicators
+        if (this.originalIndicators && this.originalIndicators.length > 0) {
+            for (const original of this.originalIndicators) {
+                if (original.indicator && original.wasVisible) {
+                    original.indicator.show();
+                }
+            }
+            this.originalIndicators = [];
         }
 
         console.log('Extension disabled successfully');
