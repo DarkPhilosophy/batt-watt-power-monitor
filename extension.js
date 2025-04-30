@@ -66,31 +66,24 @@ function readFileSafely(filePath, defaultValue) {
  * Custom Battery Indicator
  */
 const CustomBatteryIndicator = GObject.registerClass(
-    class CustomBatteryIndicator extends PanelMenu.Button {
+    class CustomBatteryIndicator extends QuickSettings.SystemIndicator {
         _init(extension) {
-            super._init(0.0, 'Custom Battery Indicator');
+            super._init();
 
             this._extension = extension;
             this.settings = extension ? extension.getSettings() : null;
             this.correction = getAutopath();
             this.bi_force_sync = null;
 
-            // Create the UI components
-            this.mainBox = new St.BoxLayout({
-                style_class: 'battery-status',
-                y_align: Clutter.ActorAlign.CENTER
-            });
-
-            // Create the percentage label
+            // Create the percentage label for the indicator
             this._percentageLabel = new St.Label({
                 text: '...',
                 y_align: Clutter.ActorAlign.CENTER,
                 style_class: 'system-status-label'
             });
 
-            // Add the label to the main box
-            this.mainBox.add_child(this._percentageLabel);
-            this.add_child(this.mainBox);
+            // Add the label to the indicator
+            this.indicators.add_child(this._percentageLabel);
 
             // Initialize the proxy
             console.log('Initializing power proxy...');
@@ -293,8 +286,21 @@ export default class BatConsumptionWattmeter extends Extension {
         this.indicator = new CustomBatteryIndicator(this);
         this.indicator._spawn();
 
-        // Add the indicator at the same position where the battery indicator is
-        Main.panel.addToStatusArea('batteryConsumptionWattmeter', this.indicator, 0, 'right');
+        // Add the indicator to the quick settings directly
+        const quickSettings = Main.panel.statusArea.quickSettings;
+        if (quickSettings) {
+            quickSettings._indicators.add_child(this.indicator.indicators);
+            console.log('Added indicator to quick settings indicators');
+        } else {
+            // Fallback for older GNOME versions
+            const aggregateMenu = Main.panel.statusArea.aggregateMenu;
+            if (aggregateMenu) {
+                aggregateMenu._indicators.add_child(this.indicator.indicators);
+                console.log('Added indicator to aggregate menu indicators (fallback)');
+            } else {
+                console.error('Could not find appropriate location to add indicator');
+            }
+        }
 
         console.log('Extension enabled successfully');
     }
@@ -328,23 +334,20 @@ export default class BatConsumptionWattmeter extends Extension {
                     for (let j = 0; j < subChildren.length; j++) {
                         const subChild = subChildren[j];
 
-                        // Check if this is the battery indicator
-                        if (subChild.has_style_class_name &&
-                            (subChild.has_style_class_name('power-status') ||
-                                subChild.has_style_class_name('battery-status'))) {
-                            console.log(`Found battery indicator at child ${i}, subchild ${j}`);
 
-                            // Add it to our original indicators list
-                            this.originalIndicators.push({
-                                indicator: subChild,
-                                parent: child,
-                                wasVisible: subChild.visible
-                            });
+                        console.log(`Found battery indicator at child ${i}, subchild ${j}`);
 
-                            // Hide it
-                            subChild.hide();
-                            console.log('Default battery indicator hidden');
-                        }
+                        // Add it to our original indicators list
+                        this.originalIndicators.push({
+                            indicator: subChild,
+                            parent: child,
+                            wasVisible: subChild.visible
+                        });
+
+                        // Hide it
+                        subChild.hide();
+                        console.log('Default battery indicator hidden');
+
                     }
                 }
             }
@@ -434,7 +437,12 @@ export default class BatConsumptionWattmeter extends Extension {
         // Remove our custom indicator
         if (this.indicator) {
             this.indicator._stop();
-            this.indicator.destroy();
+
+            // Remove the indicator if it has a parent
+            if (this.indicator.indicators.get_parent()) {
+                this.indicator.indicators.get_parent().remove_child(this.indicator.indicators);
+            }
+
             this.indicator = null;
         }
 
