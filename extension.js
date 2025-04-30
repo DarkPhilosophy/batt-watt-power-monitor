@@ -19,6 +19,8 @@ import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js'
 const DisplayDeviceInterface = loadInterfaceXML('org.freedesktop.UPower.Device');
 const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(DisplayDeviceInterface);
 
+const BUS_NAME = 'org.freedesktop.UPower';
+const OBJECT_PATH = '/org/freedesktop/UPower/devices/DisplayDevice';
 
 const BAT0 = "/sys/class/power_supply/BAT0/";
 const BAT1 = "/sys/class/power_supply/BAT1/";
