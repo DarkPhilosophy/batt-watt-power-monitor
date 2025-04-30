@@ -61,16 +61,31 @@ const BatIndicator = GObject.registerClass({
 },
     class BatIndicator extends BaseIndicator {
         _init() {
-            super._init();
+            // Initialize correction before calling super to ensure it's available
             this.correction = getAutopath();
             this.bi_force_sync = null;
-            this.settings = this._extension.getSettings();
+
+            // Call super after our initialization
+            super._init();
+
+            // Ensure correction is still defined after super._init()
+            if (!this.correction) {
+                console.error('Correction was undefined after super._init(), reinitializing');
+                this.correction = getAutopath();
+            }
+        }
+
+        // Make sure the extension is set after initialization
+        setExtension(extension) {
+            this._extension = extension;
+            this.settings = extension.getSettings();
+            console.log('Extension and settings initialized');
         }
 
         // From https://github.com/mzur/gnome-shell-batime/blob/master/batime%40martin.zurowietz.de/extension.js
         _calculateTimeRemaining() {
             // Do we have batteries or a UPS?
-            if (!this._proxy.IsPresent) {
+            if (!this._proxy || !this._proxy.IsPresent) {
                 return "";
             }
 
@@ -95,21 +110,59 @@ const BatIndicator = GObject.registerClass({
         }
 
         _getStatus() {
+            // Ensure correction is defined
+            if (!this.correction || !this.correction["path"]) {
+                console.error('Correction is undefined in _getStatus, reinitializing');
+                this.correction = getAutopath();
+                if (!this.correction || !this.correction["path"]) {
+                    return "Unknown";
+                }
+            }
             return readFileSafely(this.correction["path"] + "status", "Unknown");
         }
 
         _getPower() {
+            // Ensure correction is defined
+            if (!this.correction || !this.correction["path"]) {
+                console.error('Correction is undefined in _getPower, reinitializing');
+                this.correction = getAutopath();
+                if (!this.correction || !this.correction["path"]) {
+                    return 0;
+                }
+            }
+
             const path = this.correction["path"];
             return this.correction['isTP'] === false ? _getValue(path + "current_now") * _getValue(path + "voltage_now") : _getValue(path + "power_now");
         }
 
         _getBatteryStatus() {
+            // Ensure settings is defined
+            if (!this.settings) {
+                console.error('Settings is undefined in _getBatteryStatus');
+                return "";
+            }
+
+            // Ensure proxy is defined
+            if (!this._proxy) {
+                console.error('Proxy is undefined in _getBatteryStatus');
+                return "";
+            }
+
             const pct = this.settings.get_boolean("percentage") === true ? this._proxy.Percentage + "%" : "";
             const timeRemaining = this.settings.get_boolean("timeremaining") === true ? this._calculateTimeRemaining() : "";
 
             let batteryType = this.settings.get_int("battery");
             if (batteryType != 0) {
                 this.correction = getManualPath(batteryType);
+            }
+
+            // Ensure correction is defined after potential manual update
+            if (!this.correction) {
+                console.error('Correction is undefined after batteryType check, reinitializing');
+                this.correction = getAutopath();
+                if (!this.correction) {
+                    return "";
+                }
             }
 
             const status = this._getStatus();
@@ -130,14 +183,26 @@ const BatIndicator = GObject.registerClass({
         }
 
         _sync() {
+            // Ensure correction is defined before calling super
+            if (!this.correction) {
+                console.error('Correction is undefined in _sync, reinitializing');
+                this.correction = getAutopath();
+            }
+
             super._sync();
+
+            // Ensure percentageLabel exists
+            if (!this._percentageLabel) {
+                console.error('_percentageLabel is undefined in _sync');
+                return false;
+            }
 
             //enabling battery percentage
             if (!this._percentageLabel.visible) {
                 this._percentageLabel.show();
             }
 
-            if (this.correction["path"] != -1) {
+            if (this.correction && this.correction["path"] != -1) {
                 this._percentageLabel.clutter_text.set_text(this._getBatteryStatus());
             } else {
                 console.log(`Error - Extension BATT_CONSUMPTION_WATTMETTER can't find battery!!!`);
@@ -158,6 +223,12 @@ const BatIndicator = GObject.registerClass({
         }
 
         _spawn() {
+            // Ensure settings is defined
+            if (!this.settings) {
+                console.error('Settings is undefined in _spawn');
+                return;
+            }
+
             this.bi_force_sync = GLib.timeout_add(
                 GLib.PRIORITY_DEFAULT,
                 this.settings.get_string("interval") + "000",
@@ -165,7 +236,10 @@ const BatIndicator = GObject.registerClass({
         }
 
         _stop() {
-            GLib.source_remove(this.bi_force_sync);
+            if (this.bi_force_sync) {
+                GLib.source_remove(this.bi_force_sync);
+                this.bi_force_sync = null;
+            }
         }
     }
 );
@@ -176,7 +250,9 @@ const BatIndicator = GObject.registerClass({
 export default class BatConsumptionWattmeter extends Extension {
     enable() {
         this.customIndicator = new BatIndicator();
-        this.customIndicator._extension = this;
+
+        // Set extension and settings separately after initialization
+        this.customIndicator.setExtension(this);
         this.customIndicator._spawn();
 
         // Find the power indicator in the quick settings
