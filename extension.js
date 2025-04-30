@@ -308,32 +308,123 @@ export default class BatConsumptionWattmeter extends Extension {
         // First, try to access the system indicator in quick settings
         const quickSettings = Main.panel.statusArea.quickSettings;
         if (quickSettings && quickSettings._system) {
-            // Find the battery icon in the system indicator
+            console.log('Found system quick settings, trying to hide battery indicator');
+
+            // The system indicator itself
             const systemIndicator = quickSettings._system;
 
-            // Try to find battery-related icons
-            const iconChildren = systemIndicator.indicators.get_children();
-            for (const child of iconChildren) {
-                // Save a reference to the child and its original parent
-                if (child.has_style_class_name &&
-                    (child.has_style_class_name('power-status') ||
-                        child.has_style_class_name('battery-status'))) {
+            // In GNOME 45, we need to look at the direct children of the systemIndicator
+            const children = systemIndicator.get_children();
+            console.log(`System indicator has ${children.length} children`);
+
+            // The battery indicator might be one of these children
+            for (let i = 0; i < children.length; i++) {
+                const child = children[i];
+                console.log(`Checking child ${i}: ${child.constructor.name}`);
+
+                // Try to get child elements
+                if (child.get_children) {
+                    const subChildren = child.get_children();
+                    for (let j = 0; j < subChildren.length; j++) {
+                        const subChild = subChildren[j];
+
+                        // Check if this is the battery indicator
+                        if (subChild.has_style_class_name &&
+                            (subChild.has_style_class_name('power-status') ||
+                                subChild.has_style_class_name('battery-status'))) {
+                            console.log(`Found battery indicator at child ${i}, subchild ${j}`);
+
+                            // Add it to our original indicators list
+                            this.originalIndicators.push({
+                                indicator: subChild,
+                                parent: child,
+                                wasVisible: subChild.visible
+                            });
+
+                            // Hide it
+                            subChild.hide();
+                            console.log('Default battery indicator hidden');
+                        }
+                    }
+                }
+            }
+
+            // Try a different approach - directly look for the power indicator
+            if (systemIndicator._powerToggle) {
+                console.log('Found power toggle, trying to hide it');
+
+                // Get the UI element
+                const powerToggle = systemIndicator._powerToggle;
+
+                // Check if it's visible
+                if (powerToggle.visible) {
+                    // Add it to our original indicators list
                     this.originalIndicators.push({
-                        indicator: child,
-                        parent: systemIndicator.indicators,
-                        wasVisible: child.visible
+                        indicator: powerToggle,
+                        parent: systemIndicator,
+                        wasVisible: powerToggle.visible
                     });
 
                     // Hide it
-                    child.hide();
-                    console.log('Default battery indicator hidden');
+                    powerToggle.hide();
+                    console.log('Default power toggle hidden');
                 }
             }
         }
 
-        // If we couldn't find and hide the indicator, log a warning
+        // If we still couldn't find any indicators, try the status area
         if (this.originalIndicators.length === 0) {
-            console.log('Could not find the default battery indicator to hide');
+            // Look for any power/battery indicators in the status area
+            for (const key in Main.panel.statusArea) {
+                const indicator = Main.panel.statusArea[key];
+
+                // Skip our own indicator
+                if (key === 'batteryConsumptionWattmeter') {
+                    continue;
+                }
+
+                // Check if this is a power/battery indicator
+                if (indicator &&
+                    (key.includes('power') || key.includes('battery') ||
+                        (indicator.has_style_class_name &&
+                            (indicator.has_style_class_name('power-status') ||
+                                indicator.has_style_class_name('battery-status'))))) {
+
+                    console.log(`Found battery indicator in status area: ${key}`);
+
+                    // Add it to our original indicators list
+                    this.originalIndicators.push({
+                        indicator: indicator,
+                        parent: Main.panel.statusArea,
+                        wasVisible: indicator.visible
+                    });
+
+                    // Hide it
+                    indicator.hide();
+                    console.log(`Default battery indicator hidden: ${key}`);
+                }
+            }
+        }
+
+        // If we couldn't find and hide the indicator, just hide the entire system indicator
+        if (this.originalIndicators.length === 0) {
+            console.log('Could not find specific battery indicators, hiding entire system indicator');
+            const systemIndicator = quickSettings?._system;
+            if (systemIndicator) {
+                // Store a reference to it
+                this.originalIndicators.push({
+                    indicator: systemIndicator,
+                    parent: quickSettings,
+                    wasVisible: systemIndicator.visible,
+                    isSystemIndicator: true
+                });
+
+                // Hide it - comment this out if you want to keep the system indicator visible
+                // systemIndicator.hide();
+                // console.log('Entire system indicator hidden');
+            } else {
+                console.log('Could not find any system indicator to hide');
+            }
         }
     }
 
@@ -352,6 +443,7 @@ export default class BatConsumptionWattmeter extends Extension {
             for (const original of this.originalIndicators) {
                 if (original.indicator && original.wasVisible) {
                     original.indicator.show();
+                    console.log('Restored a hidden indicator');
                 }
             }
             this.originalIndicators = [];
