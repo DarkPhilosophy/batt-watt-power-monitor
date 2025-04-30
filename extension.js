@@ -1,5 +1,8 @@
 import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
+import Gio from 'gi://Gio';
+
+
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import UPower from 'gi://UPowerGlib';
