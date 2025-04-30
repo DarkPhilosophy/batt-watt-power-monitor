@@ -201,7 +201,6 @@ const CustomBatteryIndicator = GObject.registerClass(
         }
 
         _sync() {
-            console.log('Syncing battery status...');
             // Ensure correction is defined
             if (!this.correction) {
                 console.error('Correction is undefined in _sync, reinitializing');
@@ -216,7 +215,6 @@ const CustomBatteryIndicator = GObject.registerClass(
 
             if (this.correction && this.correction["path"] != -1) {
                 const batteryStatus = this._getBatteryStatus();
-                console.log('Setting battery status text:', batteryStatus, this._percentageLabel);
                 this._percentageLabel.set_text(batteryStatus);
             } else {
                 console.log(`Error - Extension BATT_CONSUMPTION_WATTMETTER can't find battery!!!`);
