@@ -86,7 +86,7 @@ const CustomBatteryIndicator = GObject.registerClass(
                         console.error("Failed to initialize power proxy:", error.message);
                     } else {
                         console.log('Power proxy initialized successfully');
-                        this._proxy.connect('g-properties-changed', () => this._sync());
+                        this._powerManagerWatcher = this._proxy.connect('g-properties-changed', () => this._sync());
                         this._sync();
                     }
                 });
@@ -201,6 +201,7 @@ const CustomBatteryIndicator = GObject.registerClass(
         }
 
         _sync() {
+            console.log('Syncing battery status...');
             // Ensure correction is defined
             if (!this.correction) {
                 console.error('Correction is undefined in _sync, reinitializing');
@@ -215,7 +216,7 @@ const CustomBatteryIndicator = GObject.registerClass(
 
             if (this.correction && this.correction["path"] != -1) {
                 const batteryStatus = this._getBatteryStatus();
-                console.log('Setting battery status text:', batteryStatus);
+                console.log('Setting battery status text:', batteryStatus, this._percentageLabel);
                 this._percentageLabel.set_text(batteryStatus);
             } else {
                 console.log(`Error - Extension BATT_CONSUMPTION_WATTMETTER can't find battery!!!`);
@@ -261,6 +262,11 @@ const CustomBatteryIndicator = GObject.registerClass(
                 GLib.source_remove(this.bi_force_sync);
                 this.bi_force_sync = null;
             }
+            if (this._proxy && this._powerManagerWatcher) {
+                this._proxy.disconnect(this._powerManagerWatcher);
+                this._proxy = null;
+                this._powerManagerWatcher = null;
+            }
         }
     }
 );
@@ -273,18 +279,22 @@ export default class BatConsumptionWattmeter extends Extension {
         console.log('Enabling battery consumption wattmeter extension...');
 
         // Find and hide the default system battery indicator
-        this.label = this._hideDefaultBatteryIndicator();
+        this.label = new St.Label({
+            y_expand: true,
+            y_align: Clutter.ActorAlign.CENTER,
+
+        })
+        this._systemLabel = this._replaceBatteryIndicator(this.label);
 
         // Create our indicator with the extension passed to the constructor
         this.indicator = new CustomBatteryIndicator(this);
         this.indicator._spawn();
 
 
-
         console.log('Extension enabled successfully');
     }
 
-    _hideDefaultBatteryIndicator() {
+    _replaceBatteryIndicator(label) {
         // In GNOME 45, the battery indicator is part of the system indicator
         // We need to find it and hide it
 
@@ -300,7 +310,7 @@ export default class BatConsumptionWattmeter extends Extension {
 
             // In GNOME 45, we need to look at the direct children of the systemIndicator
             const children = systemIndicator.get_children();
-            console.log(`System indicator has ${children.length} children`);
+            console.log(`System indicatoradd_actor has ${children.length} children`);
 
             // The battery indicator might be one of these children
             for (let i = 0; i < children.length; i++) {
@@ -312,99 +322,19 @@ export default class BatConsumptionWattmeter extends Extension {
                     const subChildren = child.get_children();
                     for (let j = 0; j < subChildren.length; j++) {
                         const subChild = subChildren[j];
+                        console.log(`Checking subchild ${j}: ${subChild.constructor.name}`);
+                        if (subChild.constructor.name === "Clutter_Text") {
+                            console.log('Default battery label found:', subChild);
 
-                        // Add it to our original indicators list
-                        this.originalIndicators.push({
-                            indicator: subChild,
-                            parent: child,
-                            wasVisible: subChild.visible
-                        });
-
-                        return subChild
-                        // Hide it
-                        subChild.hide();
-                        console.log('Default battery indicator hidden');
-
+                            // Hide the prior label
+                            systemIndicator.remove_child(child);
+                            systemIndicator.add_child(label);
+                            return child;
+                        }
                     }
                 }
             }
 
-            // Try a different approach - directly look for the power indicator
-            if (systemIndicator._powerToggle) {
-                console.log('Found power toggle, trying to hide it');
-
-                // Get the UI element
-                const powerToggle = systemIndicator._powerToggle;
-
-                // Check if it's visible
-                if (powerToggle.visible) {
-                    // Add it to our original indicators list
-                    this.originalIndicators.push({
-                        indicator: powerToggle,
-                        parent: systemIndicator,
-                        wasVisible: powerToggle.visible
-                    });
-
-                    // Hide it
-                    powerToggle.hide();
-                    console.log('Default power toggle hidden');
-                }
-            }
-        }
-
-        // If we still couldn't find any indicators, try the status area
-        if (this.originalIndicators.length === 0) {
-            // Look for any power/battery indicators in the status area
-            for (const key in Main.panel.statusArea) {
-                const indicator = Main.panel.statusArea[key];
-
-                // Skip our own indicator
-                if (key === 'batteryConsumptionWattmeter') {
-                    continue;
-                }
-
-                // Check if this is a power/battery indicator
-                if (indicator &&
-                    (key.includes('power') || key.includes('battery') ||
-                        (indicator.has_style_class_name &&
-                            (indicator.has_style_class_name('power-status') ||
-                                indicator.has_style_class_name('battery-status'))))) {
-
-                    console.log(`Found battery indicator in status area: ${key}`);
-
-                    // Add it to our original indicators list
-                    this.originalIndicators.push({
-                        indicator: indicator,
-                        parent: Main.panel.statusArea,
-                        wasVisible: indicator.visible
-                    });
-
-                    // Hide it
-                    indicator.hide();
-                    console.log(`Default battery indicator hidden: ${key}`);
-                }
-            }
-        }
-
-        // If we couldn't find and hide the indicator, just hide the entire system indicator
-        if (this.originalIndicators.length === 0) {
-            console.log('Could not find specific battery indicators, hiding entire system indicator');
-            const systemIndicator = quickSettings?._system;
-            if (systemIndicator) {
-                // Store a reference to it
-                this.originalIndicators.push({
-                    indicator: systemIndicator,
-                    parent: quickSettings,
-                    wasVisible: systemIndicator.visible,
-                    isSystemIndicator: true
-                });
-
-                // Hide it - comment this out if you want to keep the system indicator visible
-                // systemIndicator.hide();
-                // console.log('Entire system indicator hidden');
-            } else {
-                console.log('Could not find any system indicator to hide');
-            }
         }
     }
 
@@ -418,17 +348,7 @@ export default class BatConsumptionWattmeter extends Extension {
             this.indicator = null;
         }
 
-        // Restore any hidden indicators
-        if (this.originalIndicators && this.originalIndicators.length > 0) {
-            for (const original of this.originalIndicators) {
-                if (original.indicator && original.wasVisible) {
-                    original.indicator.show();
-                    console.log('Restored a hidden indicator');
-                }
-            }
-            this.originalIndicators = [];
-        }
-
+        this._replaceBatteryIndicator(this._systemLabel);
         console.log('Extension disabled successfully');
     }
 }
