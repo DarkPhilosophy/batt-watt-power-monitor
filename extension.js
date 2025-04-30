@@ -60,10 +60,12 @@ const BatIndicator = GObject.registerClass({
     GTypeName: 'BatIndicator',
 },
     class BatIndicator extends BaseIndicator {
-        _init() {
+        _init(extension) {
             // Initialize correction before calling super to ensure it's available
             this.correction = getAutopath();
             this.bi_force_sync = null;
+            this._extension = extension;
+            this.settings = extension ? extension.getSettings() : null;
 
             // Call super after our initialization
             super._init();
@@ -82,14 +84,6 @@ const BatIndicator = GObject.registerClass({
                         this._proxy.connect('g-properties-changed', () => this._sync());
                     this._sync();
                 });
-
-        }
-
-        // Make sure the extension is set after initialization
-        setExtension(extension) {
-            this._extension = extension;
-            this.settings = extension.getSettings();
-            console.log('Extension and settings initialized');
         }
 
         // From https://github.com/mzur/gnome-shell-batime/blob/master/batime%40martin.zurowietz.de/extension.js
@@ -149,7 +143,15 @@ const BatIndicator = GObject.registerClass({
             // Ensure settings is defined
             if (!this.settings) {
                 console.error('Settings is undefined in _getBatteryStatus');
-                return "";
+                // Try to get settings if extension is available
+                if (this._extension) {
+                    this.settings = this._extension.getSettings();
+                }
+                // If still undefined, use default values
+                if (!this.settings) {
+                    const pct = this._proxy && this._proxy.Percentage ? this._proxy.Percentage + "%" : "";
+                    return pct;
+                }
             }
 
             // Ensure proxy is defined
@@ -236,7 +238,14 @@ const BatIndicator = GObject.registerClass({
             // Ensure settings is defined
             if (!this.settings) {
                 console.error('Settings is undefined in _spawn');
-                return;
+                // Try to get settings if extension is available
+                if (this._extension) {
+                    this.settings = this._extension.getSettings();
+                }
+                // If still undefined, use default value
+                if (!this.settings) {
+                    return;
+                }
             }
 
             this.bi_force_sync = GLib.timeout_add(
@@ -259,10 +268,8 @@ const BatIndicator = GObject.registerClass({
  */
 export default class BatConsumptionWattmeter extends Extension {
     enable() {
-        this.customIndicator = new BatIndicator();
-
-        // Set extension and settings separately after initialization
-        this.customIndicator.setExtension(this);
+        // Create our indicator with the extension passed to the constructor
+        this.customIndicator = new BatIndicator(this);
         this.customIndicator._spawn();
 
         // Find the power indicator in the quick settings
