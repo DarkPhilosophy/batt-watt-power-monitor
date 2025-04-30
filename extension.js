@@ -11,6 +11,12 @@ import * as SystemModule from 'resource:///org/gnome/shell/ui/status/system.js';
 
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
+import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
+
+const DisplayDeviceInterface = loadInterfaceXML('org.freedesktop.UPower.Device');
+const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(DisplayDeviceInterface);
+
+
 const BAT0 = "/sys/class/power_supply/BAT0/";
 const BAT1 = "/sys/class/power_supply/BAT1/";
 const BAT2 = "/sys/class/power_supply/BAT2/";
