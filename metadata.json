@@ -8,7 +8,7 @@
     "47"
   ],
   "url": "https://github.com/zachgoldberg/batt_consumption_wattmetter",
-  "settings-schema": "org.gnome.shell.extensions.batt_consumption_wattmetter@zachgoldberg",
+  "settings-schema": "org.gnome.shell.extensions.batt_consumption_wattmetter",
   "uuid": "batt_consumption_wattmetter@zachgoldberg",
   "version": 11
 }
