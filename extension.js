@@ -6,6 +6,7 @@ import Gio from 'gi://Gio';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
 import UPower from 'gi://UPowerGlib';
+import Clutter from 'gi://Clutter';
 
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
@@ -87,13 +88,15 @@ const BatIndicator = GObject.registerClass({
                 this.correction = getAutopath();
             }
 
+            // Initialize the proxy
             this._proxy = new PowerManagerProxy(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
                 (proxy, error) => {
-                    if (error)
-                        console.error(error.message);
-                    else
+                    if (error) {
+                        console.error("Failed to initialize power proxy:", error.message);
+                    } else {
                         this._proxy.connect('g-properties-changed', () => this._sync());
-                    this._sync();
+                        this._sync();
+                    }
                 });
         }
 
@@ -294,11 +297,20 @@ export default class BatConsumptionWattmeter extends Extension {
             // Store the original indicators container for later restoration
             this.originalParent = systemIndicator;
 
-            // Create our indicator container
-            this.indicators = this.customIndicator.indicators;
+            // Create our custom indicator container
+            this.container = new St.BoxLayout({
+                style_class: 'panel-status-indicators-box'
+            });
 
-            // Add our indicator to the panel
-            this.statusArea._indicators.add_child(this.indicators);
+            // Add our percentage label to our container
+            if (this.customIndicator._percentageLabel) {
+                this.container.add_child(this.customIndicator._percentageLabel);
+            } else {
+                console.error('Custom indicator does not have a percentage label');
+            }
+
+            // Add our container to the panel
+            this.statusArea._indicators.add_child(this.container);
 
             // Hide the original power indicator
             systemIndicator.hide();
@@ -311,9 +323,9 @@ export default class BatConsumptionWattmeter extends Extension {
         if (this.customIndicator) {
             this.customIndicator._stop();
 
-            // Remove our indicator
-            if (this.indicators && this.indicators.get_parent()) {
-                this.indicators.get_parent().remove_child(this.indicators);
+            // Remove our container
+            if (this.container && this.container.get_parent()) {
+                this.container.get_parent().remove_child(this.container);
             }
 
             // Show the original system indicator
@@ -322,7 +334,7 @@ export default class BatConsumptionWattmeter extends Extension {
             }
 
             this.customIndicator = null;
-            this.indicators = null;
+            this.container = null;
             this.originalParent = null;
         }
     }
