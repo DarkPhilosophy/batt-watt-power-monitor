@@ -3,11 +3,9 @@
   "description": "Shows actual charging/discharging consumption (+/-) in Watts next to battery percentage level and/or battery time remaining.\nEnable percentage label when disabled.\nDefault sync reload set to 4 seconds.\nNo consumption info when battery is full.\nSettings: interval, percentage label (also when full), time remaining on/off, battery selection.\n Fork of https://github.com/wennaspeedy/batt_consumption_wattmetter",
   "name": "Battery Time Remaining, Percentage, Watt Meter in Panel",
   "shell-version": [
-    "40",
-    "41",
-    "42",
-    "43",
-    "44"
+    "45",
+    "46",
+    "47"
   ],
   "url": "https://github.com/zachgoldberg/batt_consumption_wattmetter",
   "uuid": "batt_consumption_wattmetter@zachgoldberg",
