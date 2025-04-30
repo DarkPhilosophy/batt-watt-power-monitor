@@ -1,155 +1,119 @@
 'use strict';
 
-const { Gio, Gtk } = imports.gi;
+import Gio from 'gi://Gio';
+import Gtk from 'gi://Gtk';
+import Adw from 'gi://Adw';
 
-const ExtensionUtils = imports.misc.extensionUtils;
-const Me = ExtensionUtils.getCurrentExtension();
-const Utils = Me.imports.utils;
+import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-function init() {
-}
-class Preferences {
-    constructor() {
-        this.main = new Gtk.Grid({
-            margin_top: 10,
-            margin_bottom: 10,
-            margin_start: 10,
-            margin_end: 10,
-            row_spacing: 12,
-            column_spacing: 18,
-            column_homogeneous: false,
-            row_homogeneous: false
+// Version constant
+const VERSION = '11'; // Update this to match your actual version
+
+export default class BattConsumptionPreferences extends ExtensionPreferences {
+    fillPreferencesWindow(window) {
+        const settings = this.getSettings();
+
+        // Create a preferences page
+        const page = new Adw.PreferencesPage();
+
+        // Main settings group
+        const mainGroup = new Adw.PreferencesGroup({
+            title: _('BATTERY CONSUMPTION WATT METER'),
+            description: _('Version ') + VERSION,
         });
+        page.add(mainGroup);
 
-        const addRow = ((main) => {
-            let row = 0;
-            return (label, input) => {
-                let inputWidget = input;
-
-                if (input instanceof Gtk.Switch) {
-                    inputWidget = new Gtk.Box({orientation: Gtk.Orientation.HORIZONTAL,});
-                    inputWidget.append(input);
-                }
-
-                if (label) {
-                    main.attach(label, 0, row, 1, 1);
-                    if (inputWidget)
-                        main.attach(inputWidget, 1, row, 1, 1);
-                }
-                else {
-                    main.attach(inputWidget, 0, row, 2, 1);
-                }
-
-                row++;
-            };
-        })(this.main);
-
-        const createLabel = (label) => {
-            return new Gtk.Label({
-                label: label,
-                hexpand: true,
-                halign: Gtk.Align.START
-            })
-        }
-
-         const title_label = new Gtk.Label({
-            use_markup: true,
-            label: '<span size="large" weight="heavy">'
-            +'BATTERY CONSUMPTION WATT METER'+'</span>',
-            hexpand: true,
-            halign: Gtk.Align.CENTER
+        // Link to repository
+        const linkRow = new Adw.ActionRow({
+            title: _('Project Homepage'),
+            subtitle: 'https://github.com/zachgoldberg/batt_consumption_wattmetter',
         });
-        addRow(null, title_label)
-
-        const title_label2 = new Gtk.Label({
-            use_markup: true,
-            label: '<span size="small">'+'Version'
-            + ' ' + Utils.PrefFields.VERSION + '</span>',
-            hexpand: true,
-            halign: Gtk.Align.CENTER
+        const linkButton = new Gtk.LinkButton({
+            uri: 'https://github.com/zachgoldberg/batt_consumption_wattmetter',
+            icon_name: 'go-next-symbolic',
+            valign: Gtk.Align.CENTER,
         });
-        addRow(null, title_label2)
+        linkRow.add_suffix(linkButton);
+        mainGroup.add(linkRow);
 
-        const link_label = new Gtk.Label({
-            use_markup: true,
-            label: '<span size="small"><a href="https://github.com/zachgoldberg/batt_consumption_wattmetter">'
-            + 'https://github.com/zachgoldberg/batt_consumption_wattmetter' + '</a></span>',
-            hexpand: true,
-            halign: Gtk.Align.CENTER,
-            margin_bottom: 10
+        // Settings group
+        const settingsGroup = new Adw.PreferencesGroup({
+            title: _('Display Settings'),
         });
-        addRow(null, link_label)
+        page.add(settingsGroup);
 
-        addRow(null, new Gtk.Separator())
+        // Interval setting
+        const intervalRow = new Adw.ActionRow({
+            title: _('Interval (seconds)'),
+        });
+        const intervalAdjustment = new Gtk.Adjustment({
+            lower: 1,
+            upper: 15,
+            step_increment: 1,
+        });
+        const intervalSpinButton = new Gtk.SpinButton({
+            adjustment: intervalAdjustment,
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('interval', intervalSpinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
+        intervalRow.add_suffix(intervalSpinButton);
+        settingsGroup.add(intervalRow);
 
-        //INTERVAL BOX
-        const intervalBox = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL, spacing: 30 })
-        const intervalEdit = new Gtk.SpinButton({
-            adjustment: new Gtk.Adjustment({
-                lower: 1,
-                upper: 15,
-                step_increment: 1
-            })
-        })
+        // Show percentage switch
+        const percentageRow = new Adw.ActionRow({
+            title: _('Show percentage'),
+        });
+        const percentageSwitch = new Gtk.Switch({
+            active: settings.get_boolean('percentage'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('percentage', percentageSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        percentageRow.add_suffix(percentageSwitch);
+        settingsGroup.add(percentageRow);
 
-        intervalBox.append(intervalEdit);
-        const intervalLabel = createLabel("Interval (seconds)")
-        addRow(intervalLabel, intervalBox)
+        // Show time remaining switch
+        const timeRemainingRow = new Adw.ActionRow({
+            title: _('Show time remaining'),
+        });
+        const timeRemainingSwitch = new Gtk.Switch({
+            active: settings.get_boolean('timeremaining'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        timeRemainingRow.add_suffix(timeRemainingSwitch);
+        settingsGroup.add(timeRemainingRow);
 
-        intervalEdit.value = Utils.PrefFields.INTERVAL
+        // Show percentage when full switch
+        const percentageFullRow = new Adw.ActionRow({
+            title: _('Show percentage when battery is full'),
+        });
+        const percentageFullSwitch = new Gtk.Switch({
+            active: settings.get_boolean('percentagefull'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('percentagefull', percentageFullSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        percentageFullRow.add_suffix(percentageFullSwitch);
+        settingsGroup.add(percentageFullRow);
 
-        addRow(null, new Gtk.Separator())
+        // Battery selection
+        const batteryRow = new Adw.ActionRow({
+            title: _('Choose battery'),
+        });
+        const batteryCombo = new Gtk.DropDown({
+            valign: Gtk.Align.CENTER,
+            model: Gtk.StringList.new(['AUTOMATIC', 'BAT0', 'BAT1', 'BAT2']),
+        });
+        batteryCombo.set_selected(settings.get_int('battery'));
+        batteryCombo.connect('notify::selected', (widget) => {
+            settings.set_int('battery', widget.get_selected());
+        });
+        settings.connect('changed::battery', () => {
+            batteryCombo.set_selected(settings.get_int('battery'));
+        });
+        batteryRow.add_suffix(batteryCombo);
+        settingsGroup.add(batteryRow);
 
-        //PERCENTAGE SWITCH
-        const percentageLabel = createLabel("Show percentage")
-        const percentageEdit = new Gtk.Switch()
-        addRow(percentageLabel, percentageEdit)
-        percentageEdit.active = Utils.PrefFields.PERCENTAGE
-        addRow(null, new Gtk.Separator())
-
-        //TIME REMAINING SWITCH
-        const timeremainingLabel = createLabel("Show time remaining")
-        const timeremainingEdit = new Gtk.Switch()
-        addRow(timeremainingLabel, timeremainingEdit)
-        timeremainingEdit.active = Utils.PrefFields.TIMEREMAINING
-        addRow(null, new Gtk.Separator())
-
-         //PERCENTAGEFULL SWITCH
-         const percentageFullLabel = createLabel("Show percentage when battery is full")
-         const percentageFullEdit = new Gtk.Switch()
-         addRow(percentageFullLabel, percentageFullEdit)
-         percentageFullEdit.active = Utils.PrefFields.PERCENTAGEFULL
-         addRow(null, new Gtk.Separator())
-
-
-         //BATTERY COMBOBOX
-         let combo = new Gtk.ComboBoxText ();
-         combo.tooltip_text = "Choose battery to use for metric";
-         combo.append_text ("AUTOMATIC");
-         combo.append_text ("BAT0");
-         combo.append_text ("BAT1");
-         combo.append_text ("BAT2");
-         combo.active = Utils.PrefFields.BATTERY
-
-         addRow(createLabel("Choose battery"), combo)
-
-         addRow(null, new Gtk.Separator())
-
-        //bind SETTINGS
-        const settings = ExtensionUtils.getSettings('org.gnome.shell.extensions.batt_consumption_wattmetter');
-        settings.bind("percentage", percentageEdit, 'active', Gio.SettingsBindFlags.DEFAULT);
-        settings.bind("percentagefull", percentageFullEdit, 'active', Gio.SettingsBindFlags.DEFAULT);
-        settings.bind("interval", intervalEdit, 'text', Gio.SettingsBindFlags.DEFAULT);
-        settings.bind("battery", combo, 'active', Gio.SettingsBindFlags.DEFAULT);
-        settings.bind("timeremaining", timeremainingEdit, 'active', Gio.SettingsBindFlags.DEFAULT);
+        // Add the page to the window
+        window.add(page);
+    }
 }
-
-}
-function buildPrefsWidget() {
-    let frame = new Gtk.Box();
-    let widget = new Preferences();
-    
-    frame.append(widget.main);
-    return frame;
-}
-
