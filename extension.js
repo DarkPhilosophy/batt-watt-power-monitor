@@ -63,37 +63,43 @@ function readFileSafely(filePath, defaultValue) {
 }
 
 /**
- * Indicator
+ * Custom Battery Indicator
  */
-// In GNOME 45, the power indicator is part of the system indicator
-const BaseIndicator = SystemModule.Indicator;
-
-const BatIndicator = GObject.registerClass({
-    GTypeName: 'BatIndicator',
-},
-    class BatIndicator extends BaseIndicator {
+const CustomBatteryIndicator = GObject.registerClass(
+    class CustomBatteryIndicator extends PanelMenu.Button {
         _init(extension) {
-            // Initialize correction before calling super to ensure it's available
-            this.correction = getAutopath();
-            this.bi_force_sync = null;
+            super._init(0.0, 'Custom Battery Indicator');
+
             this._extension = extension;
             this.settings = extension ? extension.getSettings() : null;
+            this.correction = getAutopath();
+            this.bi_force_sync = null;
 
-            // Call super after our initialization
-            super._init();
+            // Create the UI components
+            this.mainBox = new St.BoxLayout({
+                style_class: 'battery-status',
+                y_align: Clutter.ActorAlign.CENTER
+            });
 
-            // Ensure correction is still defined after super._init()
-            if (!this.correction) {
-                console.error('Correction was undefined after super._init(), reinitializing');
-                this.correction = getAutopath();
-            }
+            // Create the percentage label
+            this._percentageLabel = new St.Label({
+                text: '...',
+                y_align: Clutter.ActorAlign.CENTER,
+                style_class: 'system-status-label'
+            });
+
+            // Add the label to the main box
+            this.mainBox.add_child(this._percentageLabel);
+            this.add_child(this.mainBox);
 
             // Initialize the proxy
+            console.log('Initializing power proxy...');
             this._proxy = new PowerManagerProxy(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
                 (proxy, error) => {
                     if (error) {
                         console.error("Failed to initialize power proxy:", error.message);
                     } else {
+                        console.log('Power proxy initialized successfully');
                         this._proxy.connect('g-properties-changed', () => this._sync());
                         this._sync();
                     }
@@ -171,7 +177,7 @@ const BatIndicator = GObject.registerClass({
             // Ensure proxy is defined
             if (!this._proxy) {
                 console.error('Proxy is undefined in _getBatteryStatus');
-                return "";
+                return "...";
             }
 
             const pct = this.settings.get_boolean("percentage") === true ? this._proxy.Percentage + "%" : "";
@@ -209,13 +215,11 @@ const BatIndicator = GObject.registerClass({
         }
 
         _sync() {
-            // Ensure correction is defined before calling super
+            // Ensure correction is defined
             if (!this.correction) {
                 console.error('Correction is undefined in _sync, reinitializing');
                 this.correction = getAutopath();
             }
-
-            super._sync();
 
             // Ensure percentageLabel exists
             if (!this._percentageLabel) {
@@ -223,15 +227,13 @@ const BatIndicator = GObject.registerClass({
                 return false;
             }
 
-            //enabling battery percentage
-            if (!this._percentageLabel.visible) {
-                this._percentageLabel.show();
-            }
-
             if (this.correction && this.correction["path"] != -1) {
-                this._percentageLabel.clutter_text.set_text(this._getBatteryStatus());
+                const batteryStatus = this._getBatteryStatus();
+                console.log('Setting battery status text:', batteryStatus);
+                this._percentageLabel.set_text(batteryStatus);
             } else {
                 console.log(`Error - Extension BATT_CONSUMPTION_WATTMETTER can't find battery!!!`);
+                this._percentageLabel.set_text("No battery found");
                 return false;
             }
 
@@ -282,60 +284,42 @@ const BatIndicator = GObject.registerClass({
  */
 export default class BatConsumptionWattmeter extends Extension {
     enable() {
+        console.log('Enabling battery consumption wattmeter extension...');
+
         // Create our indicator with the extension passed to the constructor
-        this.customIndicator = new BatIndicator(this);
-        this.customIndicator._spawn();
+        this.indicator = new CustomBatteryIndicator(this);
+        this.indicator._spawn();
 
-        // Find the power indicator in the quick settings
-        this.statusArea = Main.panel.statusArea.quickSettings;
+        // Add the indicator to the status area
+        Main.panel.addToStatusArea('batteryConsumptionWattmeter', this.indicator, 1, 'right');
 
-        // In GNOME 45, the system indicator contains the power functionality
-        // We need to find the power indicator in the system indicator
-        const systemIndicator = this.statusArea._system;
-
+        // Optionally hide the original power indicator if needed
+        const systemIndicator = Main.panel.statusArea.quickSettings?._system;
         if (systemIndicator) {
-            // Store the original indicators container for later restoration
-            this.originalParent = systemIndicator;
-
-            // Create our custom indicator container
-            this.container = new St.BoxLayout({
-                style_class: 'panel-status-indicators-box'
-            });
-
-            // Add our percentage label to our container
-            if (this.customIndicator._percentageLabel) {
-                this.container.add_child(this.customIndicator._percentageLabel);
-            } else {
-                console.error('Custom indicator does not have a percentage label');
-            }
-
-            // Add our container to the panel
-            this.statusArea._indicators.add_child(this.container);
-
-            // Hide the original power indicator
-            systemIndicator.hide();
-        } else {
-            console.error('Could not find the system indicator in GNOME 45');
+            // Store it for restoration later
+            this.originalIndicator = systemIndicator;
+            // Hide the original indicator (optional)
+            // systemIndicator.hide();
         }
+
+        console.log('Extension enabled successfully');
     }
 
     disable() {
-        if (this.customIndicator) {
-            this.customIndicator._stop();
+        console.log('Disabling battery consumption wattmeter extension...');
 
-            // Remove our container
-            if (this.container && this.container.get_parent()) {
-                this.container.get_parent().remove_child(this.container);
-            }
-
-            // Show the original system indicator
-            if (this.originalParent) {
-                this.originalParent.show();
-            }
-
-            this.customIndicator = null;
-            this.container = null;
-            this.originalParent = null;
+        if (this.indicator) {
+            this.indicator._stop();
+            this.indicator.destroy();
+            this.indicator = null;
         }
+
+        // Restore the original power indicator if we hid it
+        if (this.originalIndicator) {
+            // this.originalIndicator.show();
+            this.originalIndicator = null;
+        }
+
+        console.log('Extension disabled successfully');
     }
 }
