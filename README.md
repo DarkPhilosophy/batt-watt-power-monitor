@@ -12,7 +12,7 @@ Simple extension to show battery power consumption (Watt) next to battery percen
  - Enable percentage when disabled
  - Sync reload set to 4 seconds (configurable)
  - No consumption info when battery is full
- - For Gnome 40-42 (will need updates for 43+)
+ - For Gnome 45+ (branch "gnome 43" is left open for supporting prior versions)
 
  !!! Settings (version 7 and up) - custom interval, percentage label (also when full), battery selection !!!
 
@@ -26,5 +26,3 @@ TO DO: <br>
 <strike>3. Settings - ON/OFF battery percent</strike> **DONE** <br>
 <strike>4. Settings - ON/OFF battery time remaining</strike> **DONE** <br>
 5. Color? warning when consumption exceeds certain value (f.e. -40W) <br>
-6. Gnome 43, 44, 45 support
-
