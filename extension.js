@@ -1,39 +1,37 @@
-const BaseIndicator = imports.ui.status.power.Indicator;
-const ExtensionUtils = imports.misc.extensionUtils;
-const Panel = imports.ui.main.panel;
-const {
-    GLib,
-    GObject,
-    Shell,
-    Gio,
-    St,
-    UPowerGlib: UPower
-} = imports.gi;
-const Config = imports.misc.config;
+import GLib from 'gi://GLib';
+import GObject from 'gi://GObject';
+import Shell from 'gi://Shell';
+import St from 'gi://St';
+import UPower from 'gi://UPowerGlib';
 
-const PanelMenu = imports.ui.panelMenu;
-const BAT0 = "/sys/class/power_supply/BAT0/"
-const BAT1 = "/sys/class/power_supply/BAT1/"
-const BAT2 = "/sys/class/power_supply/BAT2/"
+import * as Main from 'resource:///org/gnome/shell/ui/main.js';
+import * as PanelMenu from 'resource:///org/gnome/shell/ui/panelMenu.js';
+
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+
+const BAT0 = "/sys/class/power_supply/BAT0/";
+const BAT1 = "/sys/class/power_supply/BAT1/";
+const BAT2 = "/sys/class/power_supply/BAT2/";
 
 function getAutopath() {
     let path = readFileSafely(BAT0 + "status", "none") === "none" ? readFileSafely(BAT1 + "status", "none") === "none" ? -1 : BAT1 : BAT0;
-    let isTP = readFileSafely(path + "power_now", "none") === "none" ? false : true
+    let isTP = readFileSafely(path + "power_now", "none") === "none" ? false : true;
     return {
         'path': path,
         'isTP': isTP
-    }
+    };
 }
+
 function getManualPath(batteryType) {
-    log('GET MANUAL! ' + batteryType)
-    let path = batteryType === 1 ? BAT0 : batteryType === 2 ? BAT1 : batteryType === 3 ? BAT2 : BAT0
-    let finalpath = readFileSafely(path + "status", "none") === "none" ? -1 : path
-    log('GET MANUAL! ' + finalpath)
-    let isTP = readFileSafely(path + "power_now", "none") === "none" ? false : true
+    console.log('GET MANUAL! ' + batteryType);
+    let path = batteryType === 1 ? BAT0 : batteryType === 2 ? BAT1 : batteryType === 3 ? BAT2 : BAT0;
+    let finalpath = readFileSafely(path + "status", "none") === "none" ? -1 : path;
+    console.log('GET MANUAL! ' + finalpath);
+    let isTP = readFileSafely(path + "power_now", "none") === "none" ? false : true;
     return {
         'path': finalpath,
         'isTP': isTP
-    }
+    };
 }
 
 function _getValue(pathToFile) {
@@ -45,7 +43,7 @@ function readFileSafely(filePath, defaultValue) {
     try {
         return Shell.get_file_contents_utf8_sync(filePath);
     } catch (e) {
-        log(`Cannot read file ${filePath}`, e);
+        console.log(`Cannot read file ${filePath}`, e);
     }
     return defaultValue;
 }
@@ -53,24 +51,21 @@ function readFileSafely(filePath, defaultValue) {
 /**
  * Indicator
  */
-var BatIndicator = GObject.registerClass({
+const BaseIndicator = Main.panel.statusArea.quickSettings._power.constructor;
+
+const BatIndicator = GObject.registerClass({
     GTypeName: 'BatIndicator',
 },
-    // BaseIndicator is the Indicator class here -- https://gitlab.gnome.org/GNOME/gnome-shell/-/blob/gnome-42/js/ui/status/power.js?ref_type=heads
-    // The this._proxy object is from the parent class, and is a DBus Proxy to org.freedesktop.UPower.Device
-    // org.freedesktop.UPower.Device is documented here https://upower.freedesktop.org/docs/Device.html
     class BatIndicator extends BaseIndicator {
         _init() {
             super._init();
             this.correction = getAutopath();
-            // this.manual = "none"
             this.bi_force_sync = null;
-            // this.interval = this._settings.get_string("interval");
-            this.settings = ExtensionUtils.getSettings('org.gnome.shell.extensions.batt_consumption_wattmetter');
+            this.settings = this._extension.getSettings();
         }
 
         // From https://github.com/mzur/gnome-shell-batime/blob/master/batime%40martin.zurowietz.de/extension.js
-        _calculateTimeRemaining = function () {
+        _calculateTimeRemaining() {
             // Do we have batteries or a UPS?
             if (!this._proxy.IsPresent) {
                 return "";
@@ -93,30 +88,30 @@ var BatIndicator = GObject.registerClass({
             let minutes = time % 60;
             let hours = Math.floor(time / 60);
 
-            return _('%d\u2236%02d').format(hours, minutes)
-        };
+            return _('%d\u2236%02d').format(hours, minutes);
+        }
 
         _getStatus() {
             return readFileSafely(this.correction["path"] + "status", "Unknown");
         }
 
         _getPower() {
-            const path = this.correction["path"]
-            return this.correction['isTP'] === false ? _getValue(path + "current_now") * _getValue(path + "voltage_now") : _getValue(path + "power_now")
+            const path = this.correction["path"];
+            return this.correction['isTP'] === false ? _getValue(path + "current_now") * _getValue(path + "voltage_now") : _getValue(path + "power_now");
         }
 
         _getBatteryStatus() {
             const pct = this.settings.get_boolean("percentage") === true ? this._proxy.Percentage + "%" : "";
             const timeRemaining = this.settings.get_boolean("timeremaining") === true ? this._calculateTimeRemaining() : "";
 
-            let batteryType = this.settings.get_int("battery")
+            let batteryType = this.settings.get_int("battery");
             if (batteryType != 0) {
-                this.correction = getManualPath(batteryType)
+                this.correction = getManualPath(batteryType);
             }
 
-            const status = this._getStatus()
+            const status = this._getStatus();
 
-            const pctTimeRemainingStr = [pct, timeRemaining].filter(val => val !== "").join(' ')
+            const pctTimeRemainingStr = [pct, timeRemaining].filter(val => val !== "").join(' ');
 
             if (status.includes('Charging')) {
                 return _("%s %s%sW").format(pctTimeRemainingStr, "+", this._meas());
@@ -128,7 +123,7 @@ var BatIndicator = GObject.registerClass({
                 return _("%s %s%s").format(pctTimeRemainingStr, "", "?");
             }
 
-            return _("%s").format(this.settings.get_boolean("percentagefull") === true ? pct : "")
+            return _("%s").format(this.settings.get_boolean("percentagefull") === true ? pct : "");
         }
 
         _sync() {
@@ -136,15 +131,13 @@ var BatIndicator = GObject.registerClass({
 
             //enabling battery percentage
             if (!this._percentageLabel.visible) {
-                this._percentageLabel.show()
+                this._percentageLabel.show();
             }
-            //log('SYNC')
 
-            //this._percentageLabel.clutter_text.set_markup('<span size="small">' + this._getBatteryStatus() + '</span>');
             if (this.correction["path"] != -1) {
                 this._percentageLabel.clutter_text.set_text(this._getBatteryStatus());
             } else {
-                log(`Error - Extension BATT_CONSUMPTION_WATTMETTER can't find battery!!!`);
+                console.log(`Error - Extension BATT_CONSUMPTION_WATTMETTER can't find battery!!!`);
                 return false;
             }
 
@@ -156,8 +149,8 @@ var BatIndicator = GObject.registerClass({
             if (power < 0) {
                 return 0;
             } else {
-                let pStr = String(Math.round(power))
-                return pStr.length == 1 ? "0" + pStr : pStr
+                let pStr = String(Math.round(power));
+                return pStr.length == 1 ? "0" + pStr : pStr;
             }
         }
 
@@ -177,45 +170,20 @@ var BatIndicator = GObject.registerClass({
 /**
  * Extension
  */
-
-class BatConsumptionWattmeter {
-    constructor() {
+export default class BatConsumptionWattmeter extends Extension {
+    enable() {
         this.customIndicator = new BatIndicator();
+        this.customIndicator._extension = this;
         this.customIndicator._spawn();
 
-        // Check GNOME Shell version to use the right menu
-        const shellVersion = parseInt(Config.PACKAGE_VERSION.split('.')[0]);
-
-        if (shellVersion >= 43) {
-            // GNOME 43+ uses quickSettings
-            this.statusArea = Panel.statusArea['quickSettings'];
-        } else {
-            // GNOME 42 and earlier uses aggregateMenu
-            this.statusArea = Panel.statusArea['aggregateMenu'];
-        }
-
+        this.statusArea = Main.panel.statusArea.quickSettings;
         this.originalIndicator = this.statusArea._power;
         this.statusArea._indicators.replace_child(this.originalIndicator.indicators, this.customIndicator.indicators);
     }
 
-    destroy(arg) {
+    disable() {
         this.customIndicator._stop();
         this.statusArea._indicators.replace_child(this.customIndicator.indicators, this.originalIndicator.indicators);
         this.customIndicator = null;
     }
-}
-
-/**
- * Init
- */
-
-let bat_consumption_wattmeter;
-
-function enable() {
-    bat_consumption_wattmeter = new BatConsumptionWattmeter();
-}
-
-function disable() {
-    bat_consumption_wattmeter.destroy();
-    bat_consumption_wattmeter = null;
 }
