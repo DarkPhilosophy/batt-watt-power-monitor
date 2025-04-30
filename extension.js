@@ -57,7 +57,7 @@ function readFileSafely(filePath, defaultValue) {
     try {
         return Shell.get_file_contents_utf8_sync(filePath);
     } catch (e) {
-        console.log(`Cannot read file ${filePath}`, e);
+        //console.log(`Cannot read file ${filePath}`, e);
     }
     return defaultValue;
 }
@@ -76,14 +76,7 @@ const CustomBatteryIndicator = GObject.registerClass(
             this.bi_force_sync = null;
 
             // Create the percentage label for the indicator
-            this._percentageLabel = new St.Label({
-                text: '...',
-                y_align: Clutter.ActorAlign.CENTER,
-                style_class: 'system-status-label'
-            });
-
-            // Add the label to the indicator
-            this.indicators.add_child(this._percentageLabel);
+            this._percentageLabel = extension.label
 
             // Initialize the proxy
             console.log('Initializing power proxy...');
@@ -280,27 +273,13 @@ export default class BatConsumptionWattmeter extends Extension {
         console.log('Enabling battery consumption wattmeter extension...');
 
         // Find and hide the default system battery indicator
-        this._hideDefaultBatteryIndicator();
+        this.label = this._hideDefaultBatteryIndicator();
 
         // Create our indicator with the extension passed to the constructor
         this.indicator = new CustomBatteryIndicator(this);
         this.indicator._spawn();
 
-        // Add the indicator to the quick settings directly
-        const quickSettings = Main.panel.statusArea.quickSettings;
-        if (quickSettings) {
-            quickSettings._indicators.add_child(this.indicator.indicators);
-            console.log('Added indicator to quick settings indicators');
-        } else {
-            // Fallback for older GNOME versions
-            const aggregateMenu = Main.panel.statusArea.aggregateMenu;
-            if (aggregateMenu) {
-                aggregateMenu._indicators.add_child(this.indicator.indicators);
-                console.log('Added indicator to aggregate menu indicators (fallback)');
-            } else {
-                console.error('Could not find appropriate location to add indicator');
-            }
-        }
+
 
         console.log('Extension enabled successfully');
     }
@@ -334,9 +313,6 @@ export default class BatConsumptionWattmeter extends Extension {
                     for (let j = 0; j < subChildren.length; j++) {
                         const subChild = subChildren[j];
 
-
-                        console.log(`Found battery indicator at child ${i}, subchild ${j}`);
-
                         // Add it to our original indicators list
                         this.originalIndicators.push({
                             indicator: subChild,
@@ -344,6 +320,7 @@ export default class BatConsumptionWattmeter extends Extension {
                             wasVisible: subChild.visible
                         });
 
+                        return subChild
                         // Hide it
                         subChild.hide();
                         console.log('Default battery indicator hidden');
@@ -437,11 +414,6 @@ export default class BatConsumptionWattmeter extends Extension {
         // Remove our custom indicator
         if (this.indicator) {
             this.indicator._stop();
-
-            // Remove the indicator if it has a parent
-            if (this.indicator.indicators.get_parent()) {
-                this.indicator.indicators.get_parent().remove_child(this.indicator.indicators);
-            }
 
             this.indicator = null;
         }
