@@ -7,5 +7,6 @@ echo 'disable'
 gnome-extensions disable batt_consumption_wattmetter@zachgoldberg
 echo 'install'
 gnome-extensions install --force batt_consumption_wattmetter@zachgoldberg.shell-extension.zip
+sleep 0.5
 echo 'enable'
 gnome-extensions enable batt_consumption_wattmetter@zachgoldberg

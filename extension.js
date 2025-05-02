@@ -17,8 +17,6 @@ import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { loadInterfaceXML } from 'resource:///org/gnome/shell/misc/fileUtils.js';
 
-const DisplayDeviceInterface = loadInterfaceXML('org.freedesktop.UPower.Device');
-const PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(DisplayDeviceInterface);
 
 const BUS_NAME = 'org.freedesktop.UPower';
 const OBJECT_PATH = '/org/freedesktop/UPower/devices/DisplayDevice';
@@ -67,7 +65,7 @@ function readFileSafely(filePath, defaultValue) {
  */
 const CustomBatteryIndicator = GObject.registerClass(
     class CustomBatteryIndicator extends QuickSettings.SystemIndicator {
-        _init(extension) {
+        _init(extension, powerManagementProxyWrapper) {
             super._init();
 
             this._extension = extension;
@@ -80,7 +78,7 @@ const CustomBatteryIndicator = GObject.registerClass(
 
             // Initialize the proxy
             console.log('Initializing power proxy...');
-            this._proxy = new PowerManagerProxy(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
+            this._proxy = new powerManagementProxyWrapper(Gio.DBus.system, BUS_NAME, OBJECT_PATH,
                 (proxy, error) => {
                     if (error) {
                         console.error("Failed to initialize power proxy:", error.message);
@@ -255,7 +253,7 @@ const CustomBatteryIndicator = GObject.registerClass(
                 this._sync.bind(this));
         }
 
-        _stop() {
+        _destroy() {
             if (this.bi_force_sync) {
                 GLib.source_remove(this.bi_force_sync);
                 this.bi_force_sync = null;
@@ -265,6 +263,7 @@ const CustomBatteryIndicator = GObject.registerClass(
                 this._proxy = null;
                 this._powerManagerWatcher = null;
             }
+            super.destroy()
         }
     }
 );
@@ -275,6 +274,8 @@ const CustomBatteryIndicator = GObject.registerClass(
 export default class BatConsumptionWattmeter extends Extension {
     enable() {
         console.log('Enabling battery consumption wattmeter extension...');
+        this.DisplayDeviceInterface = loadInterfaceXML('org.freedesktop.UPower.Device');
+        this.PowerManagerProxy = Gio.DBusProxy.makeProxyWrapper(this.DisplayDeviceInterface);
 
         // Find and hide the default system battery indicator
         this.label = new St.Label({
@@ -285,7 +286,7 @@ export default class BatConsumptionWattmeter extends Extension {
         this._systemLabel = this._replaceBatteryIndicator(this.label);
 
         // Create our indicator with the extension passed to the constructor
-        this.indicator = new CustomBatteryIndicator(this);
+        this.indicator = new CustomBatteryIndicator(this, this.PowerManagerProxy);
         this.indicator._spawn();
 
 
@@ -338,15 +339,26 @@ export default class BatConsumptionWattmeter extends Extension {
 
     disable() {
         console.log('Disabling battery consumption wattmeter extension...');
+        this._replaceBatteryIndicator(this._systemLabel);
+
+        this.DisplayDeviceInterface = null;
+        this.PowerManagerProxy = null;
+
+        if (this._systemLabel) {
+            this._systemLabel = null
+        }
+        if (this.label) {
+            this.label.destroy();
+            this.label = null;
+        }
 
         // Remove our custom indicator
         if (this.indicator) {
-            this.indicator._stop();
+            this.indicator._destroy();
 
             this.indicator = null;
         }
 
-        this._replaceBatteryIndicator(this._systemLabel);
         console.log('Extension disabled successfully');
     }
 }
