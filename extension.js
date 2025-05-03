@@ -253,7 +253,7 @@ const CustomBatteryIndicator = GObject.registerClass(
                 this._sync.bind(this));
         }
 
-        _destroy() {
+        destroy() {
             if (this.bi_force_sync) {
                 GLib.source_remove(this.bi_force_sync);
                 this.bi_force_sync = null;
@@ -354,7 +354,7 @@ export default class BatConsumptionWattmeter extends Extension {
 
         // Remove our custom indicator
         if (this.indicator) {
-            this.indicator._destroy();
+            this.indicator.destroy();
 
             this.indicator = null;
         }
