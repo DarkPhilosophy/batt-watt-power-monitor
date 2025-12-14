@@ -66,17 +66,6 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         intervalRow.add_suffix(intervalSpinButton);
         settingsGroup.add(intervalRow);
 
-        const showIconRow = new Adw.ActionRow({
-            title: _('Show battery icon'),
-        });
-        const showIconSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showicon'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('showicon', showIconSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        showIconRow.add_suffix(showIconSwitch);
-        settingsGroup.add(showIconRow);
-
         const percentageRow = new Adw.ActionRow({
             title: _('Show percentage'),
         });
@@ -98,6 +87,17 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         timeRemainingRow.add_suffix(timeRemainingSwitch);
         settingsGroup.add(timeRemainingRow);
+
+        const percentageFullRow = new Adw.ActionRow({
+            title: _('Show percentage when battery is full'),
+        });
+        const percentageFullSwitch = new Gtk.Switch({
+            active: settings.get_boolean('percentagefull'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('percentagefull', percentageFullSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        percentageFullRow.add_suffix(percentageFullSwitch);
+        settingsGroup.add(percentageFullRow);
 
         const showWattsRow = new Adw.ActionRow({
             title: _('Show watts consumption'),
@@ -148,17 +148,6 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('hidefull', hideFullSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideFullRow.add_suffix(hideFullSwitch);
         settingsGroup.add(hideFullRow);
-
-        const hideIdleRow = new Adw.ActionRow({
-            title: _('Hide battery when idle'),
-        });
-        const hideIdleSwitch = new Gtk.Switch({
-            active: settings.get_boolean('hideidle'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('hideidle', hideIdleSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        hideIdleRow.add_suffix(hideIdleSwitch);
-        settingsGroup.add(hideIdleRow);
 
          window.add(page);
         }

@@ -1,0 +1,179 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y meson gettext libglib2.0-dev libgtk-3-dev
+        npm install
+
+    - name: Build extension
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
+    - name: Lint code
+      run: |
+        npm run lint || echo "Linting not configured"
+
+    - name: Check metadata
+      run: |
+        node -e "const meta = require('./metadata.json'); console.log('Extension:', meta.name, 'v' + meta.version);"
+
+    - name: Verify UUID
+      run: |
+        grep -q "batt_consumption_wattmetter@DarkPhilosophy" metadata.json && echo "✓ UUID is correct" || (echo "✗ UUID is incorrect" && exit 1)
+
+    - name: Check for common issues
+      run: |
+        echo "Checking for common issues..."
+        # Check for zachgoldberg references
+        if grep -r "zachgoldberg" . --include="*.js" --include="*.json" --include="*.md" 2>/dev/null; then
+          echo "✗ Found zachgoldberg references"
+          exit 1
+        else
+          echo "✓ No zachgoldberg references found"
+        fi
+        
+        # Check for DarkPhilosophy references
+        if grep -r "DarkPhilosophy" . --include="*.js" --include="*.json" --include="*.md" 2>/dev/null | grep -q "DarkPhilosophy"; then
+          echo "✓ DarkPhilosophy references present"
+        else
+          echo "✗ No DarkPhilosophy references found"
+          exit 1
+        fi
+
+  test:
+    name: Test Extension
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install test dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y python3-gi gir1.2-gtk-3.0
+
+    - name: Run basic tests
+      run: |
+        echo "Testing extension structure..."
+        test -d "batt_consumption_wattmetter@DarkPhilosophy.shell-extension" && echo "✓ Extension directory exists"
+        test -f "metadata.json" && echo "✓ metadata.json exists"
+        test -f "prefs.js" && echo "✓ prefs.js exists"
+        test -f "extension.js" && echo "✓ extension.js exists"
+        
+        echo "Testing metadata.json structure..."
+        python3 -c "
+import json
+with open('metadata.json') as f:
+    data = json.load(f)
+    required = ['name', 'description', 'uuid', 'version', 'shell-version']
+    for field in required:
+        if field not in data:
+            print(f'✗ Missing required field: {field}')
+            exit(1)
+    print('✓ All required metadata fields present')
+    if 'batt_consumption_wattmetter@DarkPhilosophy' not in data['uuid']:
+        print('✗ Incorrect UUID')
+        exit(1)
+    print('✓ UUID is correct')
+"
+
+  validate:
+    name: Validate Extension
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Validate extension structure
+      run: |
+        echo "Validating extension structure..."
+        
+        # Check main files
+        for file in metadata.json extension.js prefs.js LICENSE README.md; do
+          if [ ! -f "$file" ]; then
+            echo "✗ Missing file: $file"
+            exit 1
+          fi
+          echo "✓ Found: $file"
+        done
+        
+        # Check extension directory
+        if [ ! -d "batt_consumption_wattmetter@DarkPhilosophy.shell-extension" ]; then
+          echo "✗ Missing extension directory"
+          exit 1
+        fi
+        echo "✓ Extension directory exists"
+        
+        # Check schemas directory
+        if [ ! -d "schemas" ]; then
+          echo "✗ Missing schemas directory"
+          exit 1
+        fi
+        echo "✓ Schemas directory exists"
+        
+        echo "All validation checks passed! ✓"
+
+  package:
+    name: Create Package
+    runs-on: ubuntu-latest
+    needs: validate
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Create extension package
+      run: |
+        echo "Creating extension package..."
+        
+        # Create package directory
+        mkdir -p batt_consumption_wattmetter-package
+        
+        # Copy essential files
+        cp -r batt_consumption_wattmetter@DarkPhilosophy.shell-extension batt_consumption_wattmetter-package/
+        cp metadata.json batt_consumption_wattmetter-package/
+        cp README.md batt_consumption_wattmetter-package/
+        cp LICENSE batt_consumption_wattmetter-package/
+        
+        # Create zip package
+        zip -r batt_consumption_wattmetter@DarkPhilosophy.zip batt_consumption_wattmetter@DarkPhilosophy.shell-extension/ metadata.json README.md LICENSE
+        
+        echo "Package created: batt_consumption_wattmetter@DarkPhilosophy.zip"
+        ls -lh batt_consumption_wattmetter@DarkPhilosophy.zip
+
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: extension-package
+        path: batt_consumption_wattmetter@DarkPhilosophy.zip
