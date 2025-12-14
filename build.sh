@@ -20,7 +20,13 @@ fi
 
 # Generate build date
 echo "Generating build date..."
-date -u +"%Y-%m-%d %H:%M:%S UTC" > build_date.txt
+BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+echo "$BUILD_DATE" > build_date.txt
+
+# Update README with build date
+echo "Updating README with build date..."
+ESCAPED_DATE=$(echo "$BUILD_DATE" | sed 's/:/\\%3A/g; s/ /\\%20/g; s/-/\\%2D/g')
+sed -i "s|Build-[^-]*-blue\.svg|Build-$ESCAPED_DATE-blue\.svg|g" README.md
 
 # Create extension directory if it doesn't exist
 mkdir -p "$EXTENSION_DIR/schemas"

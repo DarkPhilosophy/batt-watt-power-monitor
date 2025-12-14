@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GNOME 45-49](https://img.shields.io/badge/GNOME-45--49-blue.svg)](https://www.gnome.org/)
 [![Version 1.0](https://img.shields.io/badge/Version-1.0-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
+[![Build Date](https://img.shields.io/badge/Build-2025--12--14%2015%3A16%3A11%20UTC-blue.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
 
 **Battery Power Monitor** - A clean GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption in the panel.
 
