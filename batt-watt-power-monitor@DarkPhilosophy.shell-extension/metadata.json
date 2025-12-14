@@ -1,7 +1,7 @@
 {
-  "description": "Battery Power Monitor - Shows percentage, time remaining, and watts in the GNOME Shell panel. Real-time power consumption monitoring with smart display options.",
+  "description": "Batt-Watt Power Monitor - Professional GNOME Shell extension for real-time battery power monitoring. Shows actual charging/discharging consumption in Watts, battery percentage, and time remaining. Features configurable update intervals, battery selection, and smart display options.",
   "gettext-domain": "batt-watt-power-monitor",
-  "name": "Battery Power Monitor [Percentage, Time Remaining and Watts]",
+  "name": "Batt-Watt Power Monitor",
   "settings-schema": "org.gnome.shell.extensions.batt-watt-power-monitor",
   "shell-version": [
     "45",

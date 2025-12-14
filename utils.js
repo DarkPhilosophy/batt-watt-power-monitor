@@ -3,7 +3,7 @@ var PrefFields = {
     PERCENTAGE: true,
     PERCENTAGEFULL: true,
     BATTERY: 0,
-    VERSION: 11,
+    VERSION: 12,
     TIMEREMAINING: false,
 };
 
