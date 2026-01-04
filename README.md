@@ -18,7 +18,7 @@
 <!-- LINT-RESULT-START -->
 ### Latest Linting Result
 > **Status**: ✅ **Passing**  
-> **Date**: 2026-01-04 03:23:03 UTC  
+> **Date**: 2026-01-04 03:25:19 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -40,6 +40,7 @@
 - **Real-time Power Consumption**: Shows actual charging/discharging in Watts (+/-)
 - **Battery Icon**: Visual indicator in GNOME Shell panel
 
+<!-- LATEST-VERSION-START -->
 ### Latest Update (v15)
 - **License Change**: Switched from MIT to **GNU GPLv3** to better align with the GNOME ecosystem's ideology of software freedom and ensure the project remains open-source forever.
 - **Automatic Version Sync**: Version is now managed in `package.json` and automatically synchronized to all files (metadata, prefs, README, VERSION) during build/package.
@@ -49,6 +50,7 @@
 - **Version Status Tracking**: Added automated GNOME Extensions version comparison with visual badges (green for synced, yellow for pending release).
 - **Enhanced Deployment**: Improved `deploy_github.sh` with mandatory commit messages, `-amend` flag for quick fixes, and `-skip-ci` option for build control.
 - **Maintenance**: Fully cleaned up project root and removed obsolete/duplicate files.
+<!-- LATEST-VERSION-END -->
 
 ### Smart Controls
 - **Update Interval**: Adjust refresh rate from 1 to 15 seconds (default: 10s)
