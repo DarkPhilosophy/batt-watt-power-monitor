@@ -11,6 +11,24 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 [![Extension CI](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml)
 
+## 🛡️ Validation Status
+<!-- LINT-RESULT-START -->
+### Latest Linting Result
+> **Status**: ✅ **Passing**  
+> **Date**: 2026-01-04 00:44:35 UTC  
+> **Summary**: 0 errors, 0 warnings
+
+<details>
+<summary>Click to view full lint output</summary>
+
+```
+> batt-watt-power-monitor@15.0.0 lint
+> eslint extension/
+```
+
+</details>
+<!-- LINT-RESULT-END -->
+
 ## 🔋 Features
 
 ### Core Display

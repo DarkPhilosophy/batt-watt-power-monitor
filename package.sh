@@ -11,6 +11,10 @@ set -e
 echo "Syncing version..."
 node scripts/sync-version.js
 
+# Update lint status in README
+echo "Updating lint status..."
+node scripts/update-lint-status.js
+
 echo "🏗️  Building Batt-Watt Power Monitor extension package..."
 
 # Extension details

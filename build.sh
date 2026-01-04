@@ -6,6 +6,10 @@ set -e
 echo "Syncing version..."
 node scripts/sync-version.js
 
+# Update lint status in README
+echo "Updating lint status..."
+node scripts/update-lint-status.js
+
 EXTENSION_ID="batt-watt-power-monitor@DarkPhilosophy"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_ID"
 GLIB_SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas"
