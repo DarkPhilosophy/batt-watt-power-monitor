@@ -4,11 +4,12 @@
 [![GNOME Extensions](https://img.shields.io/badge/GNOME-Extensions-orange.svg)](https://extensions.gnome.org/extension/9023/battery-power-monitor/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GNOME 45-49](https://img.shields.io/badge/GNOME-45--49-blue.svg)](https://www.gnome.org/)
-[![Version 14](https://img.shields.io/badge/Version-14-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
+[![Version 14](https://img.shields.io/badge/Version-15-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
 
 **Battery Power Monitor** - A clean GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption in the panel.
 
-**Status**: Extension is currently under review on GNOME Extensions (ID: 9023). Approval typically takes 1-3 days.
+**Status**: **Live** on GNOME Extensions (ID: 9023).
+[![Extension CI](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml)
 
 ## 🔋 Features
 
@@ -117,6 +118,7 @@ Root directory keeps scripts and repo files only.
 
 ### Requirements
 - GNOME Shell 45+
+- Node.js (for version sync)
 - glib-compile-schemas (glib2)
 
 ### Build Process
@@ -124,7 +126,7 @@ Root directory keeps scripts and repo files only.
 #### Fedora Atomic / Bazzite (rpm-ostree)
 ```bash
 # Install dependencies using rpm-ostree
-rpm-ostree install nodejs gettext meson
+rpm-ostree install nodejs gettext
 
 # Reboot to apply changes
 systemctl reboot
@@ -137,7 +139,7 @@ cd batt-watt-power-monitor
 #### Traditional Fedora/RHEL
 ```bash
 # Install dependencies
-sudo dnf install nodejs gettext meson
+sudo dnf install nodejs gettext
 
 # Build the extension
 cd batt-watt-power-monitor
@@ -147,7 +149,7 @@ cd batt-watt-power-monitor
 #### Debian/Ubuntu
 ```bash
 # Install dependencies
-sudo apt install nodejs gettext meson
+sudo apt install nodejs gettext
 
 # Build the extension
 cd batt-watt-power-monitor

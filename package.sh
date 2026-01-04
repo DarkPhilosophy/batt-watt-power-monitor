@@ -7,6 +7,10 @@
 
 set -e
 
+# Sync version from package.json
+echo "Syncing version..."
+node scripts/sync-version.js
+
 echo "🏗️  Building Batt-Watt Power Monitor extension package..."
 
 # Extension details
