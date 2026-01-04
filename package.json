@@ -1,0 +1,25 @@
+{
+  "name": "batt-watt-power-monitor",
+  "version": "14.0.0",
+  "description": "GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.",
+  "scripts": {
+    "lint": "eslint extension/",
+    "package": "./package.sh"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DarkPhilosophy/batt-watt-power-monitor.git"
+  },
+  "keywords": [
+    "gnome",
+    "extension",
+    "battery",
+    "power",
+    "monitor"
+  ],
+  "author": "DarkPhilosophy",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.56.0"
+  }
+}

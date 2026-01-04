@@ -1,0 +1,29 @@
+{
+    "env": {
+        "es6": true,
+        "browser": true,
+        "node": true
+    },
+    "parserOptions": {
+        "ecmaVersion": 2022,
+        "sourceType": "module"
+    },
+    "globals": {
+        "imports": "readonly",
+        "global": "readonly",
+        "log": "readonly",
+        "print": "readonly",
+        "printerr": "readonly",
+        "ARGV": "readonly",
+        "ExtensionUtils": "readonly",
+        "Me": "readonly",
+        "window": "readonly",
+        "console": "readonly"
+    },
+    "rules": {
+        "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+        "no-undef": "warn",
+        "semi": ["error", "always"],
+        "quotes": ["warn", "single", { "avoidEscape": true }]
+    }
+}
