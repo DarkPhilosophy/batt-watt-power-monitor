@@ -1,6 +1,7 @@
 import {
     Extension,
-    InjectionManager
+    InjectionManager,
+    gettext as _
 } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import { panel } from 'resource:///org/gnome/shell/ui/main.js';
@@ -42,7 +43,7 @@ function readFileSafely(filePath, defaultValue) {
 
     // Always try to refresh in background if not already reading
     if (!pendingReads.has(filePath)) {
-        if (DEBUG) console.log(`[BatConsumptionWattmeter] READING ASYNC: ${filePath}`);
+        if (DEBUG) logDebug(`READING ASYNC: ${filePath}`);
         pendingReads.add(filePath);
         
         const file = Gio.File.new_for_path(filePath);
@@ -51,19 +52,19 @@ function readFileSafely(filePath, defaultValue) {
                 const [ok, contents] = source.load_contents_finish(res);
                 if (ok) {
                     const newValue = new TextDecoder('utf-8').decode(contents).trim();
-                    if (DEBUG) console.log(`[BatConsumptionWattmeter] READ SUCCESS for ${filePath}: ${newValue}`);
+                    if (DEBUG) logDebug(`READ SUCCESS for ${filePath}: ${newValue}`);
                     
                     const oldValue = fileCache.get(filePath);
                     fileCache.set(filePath, newValue);
                     
                     // If value changed (or first read), trigger UI update
                     if (newValue !== oldValue && updateUI) {
-                        if (DEBUG) console.log('[BatConsumptionWattmeter] Value changed, triggering UI update');
+                        if (DEBUG) logDebug('Value changed, triggering UI update');
                         updateUI();
                     }
                 }
             } catch (error) {
-                if (DEBUG) console.log(`[BatConsumptionWattmeter] READ ERROR for ${filePath}: ${error.message}`);
+                if (DEBUG) logDebug(`READ ERROR for ${filePath}: ${error.message}`);
             } finally {
                 pendingReads.delete(filePath);
             }
@@ -74,12 +75,18 @@ function readFileSafely(filePath, defaultValue) {
 }
 
 function getAutopath() {
-    let bat0_status = readFileSafely(BAT0 + 'status', 'none');
-    let path = bat0_status === 'none' ? readFileSafely(BAT1 + 'status', 'none') === 'none' ? -1 : BAT1 : BAT0;
-    let isTP = readFileSafely(path + 'power_now', 'none') === 'none' ? false : true;
+    for (const path of [BAT0, BAT1, BAT2]) {
+        if (readFileSafely(path + 'status', 'none') !== 'none') {
+            const isTP = readFileSafely(path + 'power_now', 'none') !== 'none';
+            return {
+                path,
+                isTP
+            };
+        }
+    }
     return {
-        'path': path,
-        'isTP': isTP
+        'path': -1,
+        'isTP': false
     };
 }
 

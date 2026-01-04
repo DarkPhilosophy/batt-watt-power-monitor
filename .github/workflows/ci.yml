@@ -26,6 +26,9 @@ jobs:
     - name: Lint JavaScript
       run: npx eslint extension/extension.js extension/prefs.js
 
+    - name: Validate Schemas
+      run: glib-compile-schemas --strict --dry-run extension/schemas/
+
     - name: Validate Metadata
       run: |
         node -e "

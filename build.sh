@@ -2,6 +2,10 @@
 
 set -e
 
+# Sync version from package.json
+echo "Syncing version..."
+node scripts/sync-version.js
+
 EXTENSION_ID="batt-watt-power-monitor@DarkPhilosophy"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_ID"
 GLIB_SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas"
