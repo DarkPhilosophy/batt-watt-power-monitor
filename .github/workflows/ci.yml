@@ -21,7 +21,7 @@ jobs:
         node-version: '20'
 
     - name: Install dependencies
-      run: npm install eslint
+      run: npm install
 
     - name: Lint JavaScript
       run: npx eslint extension/extension.js extension/prefs.js
@@ -59,13 +59,36 @@ jobs:
     name: Build Package
     runs-on: ubuntu-latest
     needs: validate
+    permissions:
+      contents: write
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install dependencies
+      run: npm install
+
     - name: Build Extension Package
       run: ./package.sh
+
+    - name: Commit Lint Results
+      run: |
+        git config --global user.name 'GitHub Action'
+        git config --global user.email 'action@github.com'
+        # Check if README.md has changed
+        if [[ -n $(git status --porcelain README.md) ]]; then
+          git add README.md
+          git commit -m "Docs: Update CI linting results [skip ci]"
+          git push
+        else
+          echo "No changes to README.md"
+        fi
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
