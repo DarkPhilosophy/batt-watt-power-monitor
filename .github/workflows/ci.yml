@@ -78,17 +78,20 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Fetch GNOME Extensions Version
+      run: node scripts/fetch-ego-version.js
+
     - name: Build Extension Package
       run: ./package.sh
 
-    - name: Commit Lint Results
+    - name: Commit Updated Results
       run: |
         git config --global user.name 'GitHub Action'
         git config --global user.email 'action@github.com'
         # Check if README.md has changed
         if [[ -n $(git status --porcelain README.md) ]]; then
           git add README.md
-          git commit -m "Docs: Update CI linting results [skip ci]"
+          git commit -m "Docs: Update version badges and CI linting results [skip ci]"
           git push
         else
           echo "No changes to README.md"
