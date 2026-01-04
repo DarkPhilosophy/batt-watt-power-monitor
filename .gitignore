@@ -1,3 +1,6 @@
+# Scripts
+deploy_github.sh
+
 # Dependencies
 node_modules/
 
