@@ -7,7 +7,9 @@
 - **EGO Compliance**: Improved asynchronous file reading and fixed `gettext` definition.
 - **Improved Battery Detection**: Refactored automatic path detection to support BAT0, BAT1, and BAT2 more robustly.
 - **Version Status Tracking**: Added automated GNOME Extensions version comparison with visual badges (green for synced, yellow for pending release).
-- **Enhanced Deployment**: Improved `deploy_github.sh` with mandatory commit messages, `-amend` flag for quick fixes, and `-skip-ci` option for build control.
+- **Circular Indicator**: Added optional color ring battery indicator with charging icon and percentage-in-ring support.
+- **Display Behavior**: Fixed label visibility logic so time remaining and watts behave independently of percentage.
+- **Visual Polish**: Improved spacing and sizing when the circular indicator is enabled.
 - **Maintenance**: Fully cleaned up project root and removed obsolete/duplicate files.
 
 ## v14 (2025-12-27)

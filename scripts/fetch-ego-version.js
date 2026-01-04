@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
-const README_PATH = path.join(PROJECT_DIR, 'README.md');
+const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
 const PACKAGE_JSON_PATH = path.join(PROJECT_DIR, 'package.json');
 const EGO_URL = 'https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/';
 

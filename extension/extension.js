@@ -8,6 +8,11 @@ import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import { Indicator } from 'resource:///org/gnome/shell/ui/status/system.js';
 import Gio from 'gi://Gio';
 import UPower from 'gi://UPowerGlib';
+import GObject from 'gi://GObject';
+import St from 'gi://St';
+import GLib from 'gi://GLib';
+import Rsvg from 'gi://Rsvg';
+import Cairo from 'cairo';
 
 const BAT0 = '/sys/class/power_supply/BAT0/';
 const BAT1 = '/sys/class/power_supply/BAT1/';
@@ -23,10 +28,264 @@ let DEBUG = false;
 // Callback to trigger UI update when async read finishes
 let updateUI = null;
 
+// Circular indicator state
+let circleIndicator = null;
+let circleIndicatorParent = null;
+let circleIndicatorStockIcon = null;
+let circleIndicatorWasVisible = null;
+
+const CIRCLE_PANEL_SIZE_RATIO = 0.75;
+const CIRCLE_MIN_SIZE = 18;
+const CIRCLE_RING_OUTER_PADDING = 2;
+const CIRCLE_RING_INNER_RATIO = 0.9;
+const CIRCLE_ARC_START_ANGLE = -Math.PI / 2;
+const CIRCLE_DEGREES_PER_PERCENT = 3.6;
+const CIRCLE_FONT_SIZE_RATIO = 0.33;
+const CIRCLE_CHARGING_ICON_SCALE = 1.7;
+const CIRCLE_CHARGING_ICON_SPACING = 1.05;
+const CIRCLE_LOW_BATTERY_THRESHOLD = 50;
+
 function logDebug(msg) {
     if (DEBUG) {
         console.log(`[BatConsumptionWattmeter] ${msg}`);
     }
+}
+
+// Based on batteryIcon by slim8916 (MIT). Adapted and integrated here.
+const CircleIndicator = GObject.registerClass(
+class CircleIndicator extends St.DrawingArea {
+    _init(status, extensionPath) {
+        const size = Math.max(
+            CIRCLE_MIN_SIZE,
+            Math.floor(panel.height * CIRCLE_PANEL_SIZE_RATIO)
+        );
+        super._init({ width: size, height: size });
+
+        this._status = status;
+        this._extensionPath = extensionPath;
+        this._color = this._calculateColor();
+        this._repaintId = this.connect('repaint', this._onRepaint.bind(this));
+        this.visible = true;
+    }
+
+    _calculateColor() {
+        const percentage = this._status.percentage;
+        let red = 0;
+        let green = 0;
+        const blue = 0;
+
+        if (percentage <= CIRCLE_LOW_BATTERY_THRESHOLD) {
+            red = 1;
+            green = Math.max(0, percentage / CIRCLE_LOW_BATTERY_THRESHOLD);
+        } else {
+            green = 1;
+            red = 1 - (percentage - CIRCLE_LOW_BATTERY_THRESHOLD) / CIRCLE_LOW_BATTERY_THRESHOLD;
+        }
+
+        return [red, green, blue];
+    }
+
+    _loadChargingSvg(red, green, blue) {
+        try {
+            const svgPath = `${this._extensionPath}/charging.svg`;
+            const handle = Rsvg.Handle.new_from_file(svgPath);
+            if (!handle) {
+                return null;
+            }
+
+            const dimensions = handle.get_dimensions();
+            const svgWidth = dimensions.width;
+            const svgHeight = dimensions.height;
+
+            const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
+            const context = new Cairo.Context(surface);
+            handle.render_cairo(context);
+
+            const tintSurface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
+            const tintContext = new Cairo.Context(tintSurface);
+            tintContext.setSourceSurface(surface, 0, 0);
+            tintContext.paint();
+            tintContext.setOperator(Cairo.Operator.IN);
+            tintContext.setSourceRGB(red, green, blue);
+            tintContext.paint();
+
+            return tintSurface;
+        } catch (error) {
+            logDebug(`Failed to load charging icon: ${error.message}`);
+            return null;
+        }
+    }
+
+    _drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue) {
+        const svgSurface = this._loadChargingSvg(red, green, blue);
+        if (!svgSurface) {
+            return centerX - textExtents.width / 2;
+        }
+
+        const svgHeight = svgSurface.getHeight();
+        const svgWidth = svgSurface.getWidth();
+        const scale = (textExtents.height * CIRCLE_CHARGING_ICON_SCALE) / svgHeight;
+        const scaledWidth = svgWidth * scale;
+        const scaledHeight = svgHeight * scale;
+
+        const iconX = centerX - CIRCLE_CHARGING_ICON_SPACING * (textExtents.width + scaledWidth) / 2;
+        const iconY = centerY - scaledHeight / 2;
+        const textX = iconX + scaledWidth - 5;
+
+        context.save();
+        context.scale(scale, scale);
+        context.setSourceSurface(svgSurface, iconX / scale, iconY / scale);
+        context.paint();
+        context.restore();
+
+        return textX;
+    }
+
+    _drawBatteryIcon(context, centerX, centerY, width, height, red, green, blue) {
+        const bodyWidth = width * 0.38;
+        const bodyHeight = height * 0.45;
+        const bodyX = centerX - bodyWidth / 2;
+        const bodyY = centerY - bodyHeight / 2;
+        const nubWidth = bodyWidth * 0.28;
+        const nubHeight = bodyHeight * 0.18;
+        const nubX = centerX - nubWidth / 2;
+        const nubY = bodyY - nubHeight * 0.9;
+
+        context.save();
+        context.setSourceRGB(red, green, blue);
+        context.rectangle(bodyX, bodyY, bodyWidth, bodyHeight);
+        context.stroke();
+        context.rectangle(nubX, nubY, nubWidth, nubHeight);
+        context.stroke();
+        context.restore();
+    }
+
+    _onRepaint(area) {
+        const context = area.get_context();
+        const [width, height] = area.get_surface_size();
+
+        context.setSourceRGBA(0, 0, 0, 0);
+        context.setOperator(Cairo.Operator.CLEAR);
+        context.paint();
+        context.setOperator(Cairo.Operator.OVER);
+
+        const [red, green, blue] = this._color;
+        context.setSourceRGB(red, green, blue);
+
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const outerRadius = Math.min(width, height) / 2 - CIRCLE_RING_OUTER_PADDING;
+        const innerRadius = outerRadius * CIRCLE_RING_INNER_RATIO;
+
+        const arcEndAngle = (270 - (100 - this._status.percentage) * CIRCLE_DEGREES_PER_PERCENT) * Math.PI / 180;
+
+        context.arc(centerX, centerY, outerRadius, CIRCLE_ARC_START_ANGLE, arcEndAngle);
+        context.arcNegative(centerX, centerY, innerRadius, arcEndAngle, CIRCLE_ARC_START_ANGLE);
+        context.closePath();
+        context.fill();
+
+        if (this._status.showText) {
+            context.selectFontFace('Sans', Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
+            context.setFontSize(Math.round(height * CIRCLE_FONT_SIZE_RATIO));
+
+            const text = String(this._status.percentage);
+            const textExtents = context.textExtents(text);
+            let textX = centerX - textExtents.width / 2;
+            const textY = centerY + textExtents.height / 2;
+
+            if (this._status.isCharging) {
+                textX = this._drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue);
+            }
+
+            context.setSourceRGB(red, green, blue);
+            context.moveTo(textX, textY);
+            context.showText(text);
+            context.stroke();
+        } else {
+            this._drawBatteryIcon(context, centerX, centerY, width, height, red, green, blue);
+            if (this._status.isCharging) {
+                const fallbackExtents = { width: width * 0.2, height: height * 0.2 };
+                this._drawChargingIcon(context, centerX, centerY, fallbackExtents, red, green, blue);
+            }
+        }
+    }
+
+    update(status) {
+        this._status = status;
+        this._color = this._calculateColor();
+        this.queue_repaint();
+    }
+
+    destroy() {
+        if (this._repaintId) {
+            this.disconnect(this._repaintId);
+            this._repaintId = 0;
+        }
+        super.destroy();
+    }
+});
+
+function circleIndicatorEnabled(settings) {
+    return settings && settings.get_boolean('usecircleindicator');
+}
+
+function ensureCircleIndicator(settings, extensionPath) {
+    if (!circleIndicatorEnabled(settings)) {
+        destroyCircleIndicator();
+        return;
+    }
+
+    if (circleIndicator) {
+        return;
+    }
+
+    const system = panel.statusArea.quickSettings?._system;
+    circleIndicatorStockIcon = system?._indicator ?? null;
+    circleIndicatorParent = circleIndicatorStockIcon?.get_parent() ?? null;
+    circleIndicator = new CircleIndicator({ percentage: 0, isCharging: false, showText: true }, extensionPath);
+
+    if (circleIndicatorParent && circleIndicatorStockIcon) {
+        circleIndicatorParent.insert_child_above(circleIndicator, circleIndicatorStockIcon);
+        circleIndicatorWasVisible = circleIndicatorStockIcon.visible;
+        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+            circleIndicatorStockIcon?.hide();
+            return GLib.SOURCE_REMOVE;
+        });
+    } else if (panel?._rightBox) {
+        panel._rightBox.insert_child_at_index(circleIndicator, 0);
+    }
+}
+
+function destroyCircleIndicator() {
+    if (!circleIndicator) {
+        return;
+    }
+
+    circleIndicator.destroy();
+    circleIndicator = null;
+
+    if (circleIndicatorStockIcon) {
+        if (circleIndicatorWasVisible === false) {
+            circleIndicatorStockIcon.hide();
+        } else {
+            circleIndicatorStockIcon.show();
+        }
+    }
+
+    circleIndicatorParent = null;
+    circleIndicatorStockIcon = null;
+    circleIndicatorWasVisible = null;
+}
+
+function updateCircleIndicatorStatus(proxy, settings) {
+    if (!circleIndicatorEnabled(settings) || !circleIndicator || !proxy) {
+        return;
+    }
+
+    const percentage = Math.round(proxy.Percentage);
+    const isCharging = proxy.State === UPower.DeviceState.CHARGING;
+    const showText = settings.get_boolean('percentage');
+    circleIndicator.update({ percentage, isCharging, showText });
 }
 
 const fileCache = new Map();
@@ -181,9 +440,10 @@ const _powerToggleSyncOverride = function(settings) {
          // Build display string
          let displayParts = [];
 
-         // Add percentage if enabled
+         // Add percentage if enabled and circular indicator is off
          const showPercentage = settings.get_boolean('percentage');
-         if (showPercentage) {
+         const showPercentageText = showPercentage && !circleIndicatorEnabled(settings);
+         if (showPercentageText) {
              displayParts.push(percentage);
          }
 
@@ -229,6 +489,8 @@ const _powerToggleSyncOverride = function(settings) {
             }
         }
 
+        updateCircleIndicatorStatus(this._proxy, settings);
+
 
          // Handle fully charged without custom display
          if (state === UPower.DeviceState.FULLY_CHARGED && displayParts.length === 0) {
@@ -238,14 +500,19 @@ const _powerToggleSyncOverride = function(settings) {
 
          // If nothing to display, check if percentage is enabled
          if (displayParts.length === 0) {
-             if (showPercentage) {
+             if (circleIndicatorEnabled(settings)) {
+                 this.title = '';
+                 return true;
+             }
+             if (showPercentageText) {
                  this.title = percentage;
                  return true;
              } else {
                  return false;
              }
          } else {
-             this.title = displayParts.join(' ');
+             const title = displayParts.join(' ');
+             this.title = circleIndicatorEnabled(settings) ? ` ${title}` : title;
              return true;
          }
      };
@@ -263,34 +530,48 @@ export default class BatConsumptionWattmeter extends Extension {
         updateUI = () => this._syncToggle();
         
         this._settings = this.getSettings();
-        DEBUG = this._settings.get_boolean('debug');
+        const settings = this._settings;
+        DEBUG = settings.get_boolean('debug');
         this._debugConnection = this._settings.connect('changed::debug', () => {
             DEBUG = this._settings.get_boolean('debug');
         });
 
+        ensureCircleIndicator(settings, this.path);
 
         // Override _sync to set custom title and control visibility
-         this._im.overrideMethod(Indicator.prototype, '_sync', function(_sync) {
-             return function() {
-                  const { powerToggle } = this._systemItem;
-                  const overrideFunc = _powerToggleSyncOverride(this._extension._settings);
-                  const hasOverride = overrideFunc.call(powerToggle);
+        this._im.overrideMethod(Indicator.prototype, '_sync', function(_sync) {
+            return function() {
+                _sync.call(this);
 
-                 _sync.call(this);
-                 this._icon.icon_name = 'battery-good-symbolic';
-                 this.visible = hasOverride;
-                 this._percentageLabel.visible = hasOverride;
-             };
-         });
+                const powerToggle = this._systemItem?.powerToggle;
+                if (!powerToggle || !settings) {
+                    return;
+                }
+                const overrideFunc = _powerToggleSyncOverride(settings);
+                const hasOverride = overrideFunc.call(powerToggle);
+
+                const showLabelText = settings.get_boolean('percentage')
+                    || settings.get_boolean('timeremaining')
+                    || settings.get_boolean('showwatts');
+                if (!circleIndicatorEnabled(settings) && this._icon) {
+                    this._icon.icon_name = 'battery-good-symbolic';
+                }
+                this.visible = hasOverride;
+                if (this._percentageLabel) {
+                    this._percentageLabel.visible = showLabelText && hasOverride;
+                }
+            };
+        });
 
         // Listen for battery changes and update visibility
          this._batteryWatching = null;
          this._settingsConnections = [];
-         const settingKeys = ['showicon', 'percentage', 'timeremaining', 'showwatts', 'showdecimals', 'hidecharging', 'hidefull', 'hideidle'];
+         const settingKeys = ['showicon', 'percentage', 'timeremaining', 'showwatts', 'showdecimals', 'hidecharging', 'hidefull', 'hideidle', 'usecircleindicator'];
          
          settingKeys.forEach(key => {
              const connection = this._settings.connect(`changed::${key}`, () => {
                  logDebug(`Setting changed: ${key}`);
+                 ensureCircleIndicator(this._settings, this.path);
                  this._updateBatteryVisibility(this._settings);
                  this._syncToggle();
              });
@@ -309,6 +590,8 @@ export default class BatConsumptionWattmeter extends Extension {
                     }
                 }
                  this._updateBatteryVisibility(this._settings);
+                 updateCircleIndicatorStatus(proxy, this._settings);
+                 this._syncToggle();
 
             });
         });
@@ -331,12 +614,13 @@ export default class BatConsumptionWattmeter extends Extension {
             const showPercentage = settings.get_boolean('percentage');
             const showTimeRemaining = settings.get_boolean('timeremaining');
             const showWatts = settings.get_boolean('showwatts');
+            const showCircle = settings.get_boolean('usecircleindicator');
+            let shouldShow = true;
 
             // Hide if show icon is disabled or all display options are disabled
-            if (!showIcon || (!showPercentage && !showTimeRemaining && !showWatts)) {
+            if (!showIcon || (!showPercentage && !showTimeRemaining && !showWatts && !showCircle)) {
                 logDebug('Hiding battery - showicon disabled or no display options');
-                powerToggle.hide();
-                return;
+                shouldShow = false;
             }
 
             // Check hide when charging
@@ -344,16 +628,14 @@ export default class BatConsumptionWattmeter extends Extension {
             const status = getStatus(getAutopath());
             if (hideCharging && status.includes('Charging')) {
                 logDebug('Hiding battery - charging');
-                powerToggle.hide();
-                return;
+                shouldShow = false;
             }
 
             // Check hide when full
             const hideFull = settings.get_boolean('hidefull');
             if (hideFull && proxy.State === UPower.DeviceState.FULLY_CHARGED) {
                 logDebug('Hiding battery - full');
-                powerToggle.hide();
-                return;
+                shouldShow = false;
             }
 
             // Check hide when idle
@@ -361,13 +643,19 @@ export default class BatConsumptionWattmeter extends Extension {
             const isIdle = proxy.State !== UPower.DeviceState.CHARGING && proxy.State !== UPower.DeviceState.DISCHARGING;
             if (hideIdle && isIdle) {
                 logDebug('Hiding battery - idle');
-                powerToggle.hide();
-                return;
+                shouldShow = false;
             }
 
-            // Show battery
-            logDebug('Showing battery');
-            powerToggle.show();
+            if (shouldShow) {
+                logDebug('Showing battery');
+                powerToggle.show();
+            } else {
+                powerToggle.hide();
+            }
+
+            if (circleIndicator) {
+                circleIndicator.visible = shouldShow;
+            }
         });
     }
 
@@ -396,6 +684,7 @@ export default class BatConsumptionWattmeter extends Extension {
          this._im.clear();
          this._im = null;
          updateUI = null;
+         destroyCircleIndicator();
          this._syncToggle();
          
          // Null out references
@@ -411,6 +700,11 @@ export default class BatConsumptionWattmeter extends Extension {
     }
 
     _syncToggle() {
-        panel.statusArea.quickSettings._system._systemItem?.powerToggle?._sync();
+        const system = panel.statusArea.quickSettings?._system;
+        if (system?._sync) {
+            system._sync();
+            return;
+        }
+        system?._systemItem?.powerToggle?._sync();
     }
 }

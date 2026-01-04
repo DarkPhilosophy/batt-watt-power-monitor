@@ -6,7 +6,7 @@ const PACKAGE_JSON_PATH = path.join(PROJECT_DIR, 'package.json');
 const METADATA_PATH = path.join(PROJECT_DIR, 'extension', 'metadata.json');
 const VERSION_FILE_PATH = path.join(PROJECT_DIR, 'VERSION');
 const PREFS_PATH = path.join(PROJECT_DIR, 'extension', 'prefs.js');
-const README_PATH = path.join(PROJECT_DIR, 'README.md');
+const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
 
 try {
     // 1. Read source of truth: package.json
@@ -49,7 +49,7 @@ try {
 
     // 5. Extract latest changes from CHANGELOG.md
     console.log('Extracting latest changes from CHANGELOG.md...');
-    const CHANGELOG_PATH = path.join(PROJECT_DIR, 'CHANGELOG.md');
+    const CHANGELOG_PATH = path.join(PROJECT_DIR, '.github', 'CHANGELOG.md');
     let changelogContent = fs.readFileSync(CHANGELOG_PATH, 'utf8');
     
     // Extract the latest version section (v{newVersion})

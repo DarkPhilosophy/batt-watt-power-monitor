@@ -51,6 +51,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const intervalRow = new Adw.ActionRow({
             title: _('Interval (seconds)'),
+            subtitle: _('Refresh rate for battery readings'),
         });
         const intervalAdjustment = new Gtk.Adjustment({
             lower: 1,
@@ -65,8 +66,21 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         intervalRow.add_suffix(intervalSpinButton);
         settingsGroup.add(intervalRow);
 
+        const circleIndicatorRow = new Adw.ActionRow({
+            title: _('Use circular indicator'),
+            subtitle: _('Replace battery icon with a color ring meter'),
+        });
+        const circleIndicatorSwitch = new Gtk.Switch({
+            active: settings.get_boolean('usecircleindicator'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('usecircleindicator', circleIndicatorSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        circleIndicatorRow.add_suffix(circleIndicatorSwitch);
+        settingsGroup.add(circleIndicatorRow);
+
         const showIconRow = new Adw.ActionRow({
             title: _('Show battery icon'),
+            subtitle: _('Toggle the panel icon'),
         });
         const showIconSwitch = new Gtk.Switch({
             active: settings.get_boolean('showicon'),
@@ -78,6 +92,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const percentageRow = new Adw.ActionRow({
             title: _('Show percentage'),
+            subtitle: _('Show battery percent text in the panel'),
         });
         const percentageSwitch = new Gtk.Switch({
             active: settings.get_boolean('percentage'),
@@ -89,6 +104,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const timeRemainingRow = new Adw.ActionRow({
             title: _('Show time remaining'),
+            subtitle: _('Show time to full or time to empty'),
         });
         const timeRemainingSwitch = new Gtk.Switch({
             active: (function(){ try { return settings.get_boolean('timeremaining'); } catch(e) { log('batt-watt-power-monitor: missing key timeremaining, using default'); return false; }})(),
@@ -100,6 +116,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const showWattsRow = new Adw.ActionRow({
             title: _('Show watts consumption'),
+            subtitle: _('Show charge/discharge power in Watts'),
         });
         const showWattsSwitch = new Gtk.Switch({
             active: settings.get_boolean('showwatts'),
@@ -123,6 +140,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const batteryRow = new Adw.ActionRow({
             title: _('Choose battery'),
+            subtitle: _('Select which battery device to read'),
         });
         const batteryCombo = new Gtk.DropDown({
             valign: Gtk.Align.CENTER,
@@ -140,6 +158,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const hideChargingRow = new Adw.ActionRow({
             title: _('Hide battery when charging'),
+            subtitle: _('Hide indicator while charging'),
         });
         const hideChargingSwitch = new Gtk.Switch({
             active: settings.get_boolean('hidecharging'),
@@ -151,6 +170,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const hideFullRow = new Adw.ActionRow({
             title: _('Hide battery when full'),
+            subtitle: _('Hide indicator when fully charged'),
         });
         const hideFullSwitch = new Gtk.Switch({
             active: settings.get_boolean('hidefull'),
@@ -162,6 +182,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const hideIdleRow = new Adw.ActionRow({
             title: _('Hide battery when idle'),
+            subtitle: _('Hide indicator when not charging or discharging'),
         });
         const hideIdleSwitch = new Gtk.Switch({
             active: settings.get_boolean('hideidle'),
