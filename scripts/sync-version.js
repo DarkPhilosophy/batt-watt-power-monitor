@@ -47,17 +47,38 @@ try {
     // The previous build script updated BUILD_DATE.
     // Let's stick to version syncing for now.
 
-    // 5. Update README.md version references
-    console.log('Updating README.md version references...');
+    // 5. Extract latest changes from CHANGELOG.md
+    console.log('Extracting latest changes from CHANGELOG.md...');
+    const CHANGELOG_PATH = path.join(PROJECT_DIR, 'CHANGELOG.md');
+    let changelogContent = fs.readFileSync(CHANGELOG_PATH, 'utf8');
+    
+    // Extract the latest version section (v{newVersion})
+    // Pattern: ## v{newVersion} (DATE) ... until next ## or end of file
+    const changelogRegex = new RegExp(`## v${newVersion}\\s+\\([^)]+\\)([\\s\\S]*?)(?=## v\\d+|$)`);
+    const changelogMatch = changelogContent.match(changelogRegex);
+    
+    let latestChanges = '';
+    if (changelogMatch && changelogMatch[1]) {
+        // Extract bullet points from the changelog
+        latestChanges = changelogMatch[1]
+            .trim()
+            .split('\n')
+            .filter(line => line.startsWith('-'))
+            .join('\n');
+    }
+    
+    // 6. Update README.md version references
+    console.log('Updating README.md with latest changes...');
     let readmeContent = fs.readFileSync(README_PATH, 'utf8');
     
     // Update version badge in header
     readmeContent = readmeContent.replace(/Version-\d+-green/g, `Version-${newVersion}-green`);
     
-    // Update "New in vX" section header to "Latest Update" and include current version
+    // Update "Latest Update" section with header and changelog content
+    const latestUpdateSection = `### Latest Update (v${newVersion})\n${latestChanges}`;
     readmeContent = readmeContent.replace(
-        /###\s+New in v\d+/,
-        `### Latest Update (v${newVersion})`
+        /###\s+Latest Update\s+\(v\d+\)[\s\S]*?(?=\n###\s+Smart Controls)/,
+        latestUpdateSection + '\n'
     );
     
     fs.writeFileSync(README_PATH, readmeContent);

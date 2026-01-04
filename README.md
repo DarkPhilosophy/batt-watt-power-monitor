@@ -18,7 +18,7 @@
 <!-- LINT-RESULT-START -->
 ### Latest Linting Result
 > **Status**: ✅ **Passing**  
-> **Date**: 2026-01-04 03:20:28 UTC  
+> **Date**: 2026-01-04 03:22:34 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -41,9 +41,14 @@
 - **Battery Icon**: Visual indicator in GNOME Shell panel
 
 ### Latest Update (v15)
-- **Decimal Precision**: Toggle between integer (e.g., 16W) and precise 2-digit decimal (e.g., 15.75W) display.
-- **Smart Formatting**: Hides 0.00W readings (idle/calculating).
-- **Stability Fixes**: Resolved stuck power readings on certain hardware by enforcing synchronous file reads.
+- **License Change**: Switched from MIT to **GNU GPLv3** to better align with the GNOME ecosystem's ideology of software freedom and ensure the project remains open-source forever.
+- **Automatic Version Sync**: Version is now managed in `package.json` and automatically synchronized to all files (metadata, prefs, README, VERSION) during build/package.
+- **CI/CD Enhancement**: Added GitHub Actions workflow to automatically lint code, validate GSettings schemas, and build release packages.
+- **EGO Compliance**: Improved asynchronous file reading and fixed `gettext` definition.
+- **Improved Battery Detection**: Refactored automatic path detection to support BAT0, BAT1, and BAT2 more robustly.
+- **Version Status Tracking**: Added automated GNOME Extensions version comparison with visual badges (green for synced, yellow for pending release).
+- **Enhanced Deployment**: Improved `deploy_github.sh` with mandatory commit messages, `-amend` flag for quick fixes, and `-skip-ci` option for build control.
+- **Maintenance**: Fully cleaned up project root and removed obsolete/duplicate files.
 
 ### Smart Controls
 - **Update Interval**: Adjust refresh rate from 1 to 15 seconds (default: 10s)
