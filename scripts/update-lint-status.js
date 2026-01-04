@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
-const README_PATH = path.join(PROJECT_DIR, 'README.md');
+const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
 
 console.log('Running linter for README update...');
 

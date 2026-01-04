@@ -53,6 +53,11 @@
       <summary>Show wattage with 2 decimal places</summary>
       <description>If enabled, displays wattage like 15.75W. If disabled, displays 16W.</description>
     </key>
+    <key type="b" name="usecircleindicator">
+      <default>false</default>
+      <summary>Use circular battery indicator</summary>
+      <description>Replaces the default battery icon with a circular meter indicator.</description>
+    </key>
     <key type="b" name="debug">
       <default>false</default>
       <summary></summary>
