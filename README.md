@@ -18,7 +18,7 @@
 <!-- LINT-RESULT-START -->
 ### Latest Linting Result
 > **Status**: ✅ **Passing**  
-> **Date**: 2026-01-04 03:17:35 UTC  
+> **Date**: 2026-01-04 03:20:02 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -40,7 +40,7 @@
 - **Real-time Power Consumption**: Shows actual charging/discharging in Watts (+/-)
 - **Battery Icon**: Visual indicator in GNOME Shell panel
 
-### New in v14
+### Latest Update (v15)
 - **Decimal Precision**: Toggle between integer (e.g., 16W) and precise 2-digit decimal (e.g., 15.75W) display.
 - **Smart Formatting**: Hides 0.00W readings (idle/calculating).
 - **Stability Fixes**: Resolved stuck power readings on certain hardware by enforcing synchronous file reads.

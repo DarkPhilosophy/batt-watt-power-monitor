@@ -47,10 +47,19 @@ try {
     // The previous build script updated BUILD_DATE.
     // Let's stick to version syncing for now.
 
-    // 5. Update README.md badge
-    console.log('Updating README.md badge...');
+    // 5. Update README.md version references
+    console.log('Updating README.md version references...');
     let readmeContent = fs.readFileSync(README_PATH, 'utf8');
+    
+    // Update version badge in header
     readmeContent = readmeContent.replace(/Version-\d+-green/g, `Version-${newVersion}-green`);
+    
+    // Update "New in vX" section header to "Latest Update" and include current version
+    readmeContent = readmeContent.replace(
+        /###\s+New in v\d+/,
+        `### Latest Update (v${newVersion})`
+    );
+    
     fs.writeFileSync(README_PATH, readmeContent);
 
     console.log('✅ Version sync complete!');
