@@ -18,7 +18,7 @@
     "monitor"
   ],
   "author": "DarkPhilosophy",
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "devDependencies": {
     "eslint": "^8.56.0"
   }
