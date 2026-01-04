@@ -82,12 +82,12 @@ function updateReadme(githubVersion, publishedVersion) {
         const statusColor = isSynced ? 'brightgreen' : 'yellow';
         const statusLabel = isSynced ? 'Synced' : 'Pending';
 
-        // Create the version status badges with simple format
-        // Format: https://img.shields.io/badge/<LABEL>-<MESSAGE>-<COLOR>
-        const statusBadge = `[![${statusLabel}](https://img.shields.io/badge/${statusLabel}-${statusColor}.svg)](${EGO_URL})`;
-        const versionBadge = `![GitHub v${githubVersion}](https://img.shields.io/badge/GitHub-v${githubVersion}-blue.svg)`;
-        const gnomeVersionBadge = `![GNOME v${publishedVersion}](https://img.shields.io/badge/GNOME-v${publishedVersion}-blue.svg)`;
-        const markdownBlock = `<!-- EGO-VERSION-START -->${statusBadge} ${versionBadge} ${gnomeVersionBadge}<!-- EGO-VERSION-END -->`;
+        // Create the version status badges
+        // shields.io format: /badge/<left_text>-<right_text>-<color>
+        const statusBadge = `[![Status: ${statusLabel}](https://img.shields.io/badge/Status-${statusLabel}-${statusColor})](${EGO_URL})`;
+        const githubBadge = `![GitHub](https://img.shields.io/badge/GitHub-v${githubVersion}-blue)`;
+        const gnomeBadge = `![GNOME](https://img.shields.io/badge/GNOME-v${publishedVersion}-green)`;
+        const markdownBlock = `<!-- EGO-VERSION-START -->${statusBadge} ${githubBadge} ${gnomeBadge}<!-- EGO-VERSION-END -->`;
 
         const regex = /<!-- EGO-VERSION-START -->.*?<!-- EGO-VERSION-END -->/s;
 
