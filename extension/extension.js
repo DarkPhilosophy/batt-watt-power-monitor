@@ -8,9 +8,9 @@ import { Indicator } from 'resource:///org/gnome/shell/ui/status/system.js';
 import Gio from 'gi://Gio';
 import UPower from 'gi://UPowerGlib';
 
-const BAT0 = "/sys/class/power_supply/BAT0/";
-const BAT1 = "/sys/class/power_supply/BAT1/";
-const BAT2 = "/sys/class/power_supply/BAT2/";
+const BAT0 = '/sys/class/power_supply/BAT0/';
+const BAT1 = '/sys/class/power_supply/BAT1/';
+const BAT2 = '/sys/class/power_supply/BAT2/';
 
 let batteryCorrection = null;
 let lastOverrideTime = 0;
@@ -58,7 +58,7 @@ function readFileSafely(filePath, defaultValue) {
                     
                     // If value changed (or first read), trigger UI update
                     if (newValue !== oldValue && updateUI) {
-                        if (DEBUG) console.log(`[BatConsumptionWattmeter] Value changed, triggering UI update`);
+                        if (DEBUG) console.log('[BatConsumptionWattmeter] Value changed, triggering UI update');
                         updateUI();
                     }
                 }
@@ -74,9 +74,9 @@ function readFileSafely(filePath, defaultValue) {
 }
 
 function getAutopath() {
-    let bat0_status = readFileSafely(BAT0 + "status", "none");
-    let path = bat0_status === "none" ? readFileSafely(BAT1 + "status", "none") === "none" ? -1 : BAT1 : BAT0;
-    let isTP = readFileSafely(path + "power_now", "none") === "none" ? false : true;
+    let bat0_status = readFileSafely(BAT0 + 'status', 'none');
+    let path = bat0_status === 'none' ? readFileSafely(BAT1 + 'status', 'none') === 'none' ? -1 : BAT1 : BAT0;
+    let isTP = readFileSafely(path + 'power_now', 'none') === 'none' ? false : true;
     return {
         'path': path,
         'isTP': isTP
@@ -89,22 +89,22 @@ function getValue(pathToFile) {
 }
 
 function getPower(correction) {
-    if (!correction || !correction["path"]) {
+    if (!correction || !correction['path']) {
         correction = getAutopath();
-        if (!correction || !correction["path"]) {
+        if (!correction || !correction['path']) {
             return 0;
         }
     }
-    const path = correction["path"];
+    const path = correction['path'];
     let val;
     if (correction['isTP'] === false) {
-        val = getValue(path + "current_now") * getValue(path + "voltage_now");
+        val = getValue(path + 'current_now') * getValue(path + 'voltage_now');
     } else {
-        val = getValue(path + "power_now");
+        val = getValue(path + 'power_now');
     }
     
     if (DEBUG) {
-        const energyNow = getValue(path + "energy_now");
+        const energyNow = getValue(path + 'energy_now');
         console.log(`[BatConsumptionWattmeter] Raw Power: ${val} W | Energy Now: ${energyNow} Wh`);
     }
     
@@ -112,22 +112,22 @@ function getPower(correction) {
 }
 
 function getStatus(correction) {
-    if (!correction || !correction["path"]) {
+    if (!correction || !correction['path']) {
         correction = getAutopath();
-        if (!correction || !correction["path"]) {
-            return "Unknown";
+        if (!correction || !correction['path']) {
+            return 'Unknown';
         }
     }
-    return readFileSafely(correction["path"] + "status", "Unknown");
+    return readFileSafely(correction['path'] + 'status', 'Unknown');
 }
 
 function formatWatts(power, settings) {
     // Hide if effectively zero (charging/discharging calculation pending)
     if (power <= 0.01 && power >= -0.01) {
-        return "";
+        return '';
     }
     
-    if (settings && settings.get_boolean("showdecimals")) {
+    if (settings && settings.get_boolean('showdecimals')) {
          return Math.abs(power).toFixed(2);
     }
     
@@ -175,13 +175,13 @@ const _powerToggleSyncOverride = function(settings) {
          let displayParts = [];
 
          // Add percentage if enabled
-         const showPercentage = settings.get_boolean("percentage");
+         const showPercentage = settings.get_boolean('percentage');
          if (showPercentage) {
              displayParts.push(percentage);
          }
 
          // Add time remaining if enabled
-         const showTimeRemaining = settings.get_boolean("timeremaining");
+         const showTimeRemaining = settings.get_boolean('timeremaining');
          if (showTimeRemaining) {
              let seconds = 0;
              if (state === UPower.DeviceState.CHARGING) {
@@ -197,13 +197,13 @@ const _powerToggleSyncOverride = function(settings) {
          }
 
             // Add watts if enabled
-        const showWatts = settings.get_boolean("showwatts");
+        const showWatts = settings.get_boolean('showwatts');
         if (showWatts) {
             const power = getPower(batteryCorrection);
             let wattStr = '';
             const formattedPower = formatWatts(power, settings);
             
-            if (formattedPower !== "") {
+            if (formattedPower !== '') {
                 if (status.includes('Charging')) {
                     wattStr = '+' + formattedPower + 'W';
                 } else if (status.includes('Discharging')) {
@@ -247,7 +247,7 @@ const _powerToggleSyncOverride = function(settings) {
 export default class BatConsumptionWattmeter extends Extension {
     enable() {
         const buildDate = new Date().toISOString();
-        console.log(`\n[BatConsumptionWattmeter] ===== EXTENSION ENABLED =====`);
+        console.log('\n[BatConsumptionWattmeter] ===== EXTENSION ENABLED =====');
         console.log(`[BatConsumptionWattmeter] Build date: ${buildDate}`);
         
         this._im = new InjectionManager();
@@ -320,10 +320,10 @@ export default class BatConsumptionWattmeter extends Extension {
 
     _updateBatteryVisibility(settings) {
         this._getBattery((proxy, powerToggle) => {
-            const showIcon = settings.get_boolean("showicon");
-            const showPercentage = settings.get_boolean("percentage");
-            const showTimeRemaining = settings.get_boolean("timeremaining");
-            const showWatts = settings.get_boolean("showwatts");
+            const showIcon = settings.get_boolean('showicon');
+            const showPercentage = settings.get_boolean('percentage');
+            const showTimeRemaining = settings.get_boolean('timeremaining');
+            const showWatts = settings.get_boolean('showwatts');
 
             // Hide if show icon is disabled or all display options are disabled
             if (!showIcon || (!showPercentage && !showTimeRemaining && !showWatts)) {
@@ -333,7 +333,7 @@ export default class BatConsumptionWattmeter extends Extension {
             }
 
             // Check hide when charging
-            const hideCharging = settings.get_boolean("hidecharging");
+            const hideCharging = settings.get_boolean('hidecharging');
             const status = getStatus(getAutopath());
             if (hideCharging && status.includes('Charging')) {
                 logDebug('Hiding battery - charging');
@@ -342,7 +342,7 @@ export default class BatConsumptionWattmeter extends Extension {
             }
 
             // Check hide when full
-            const hideFull = settings.get_boolean("hidefull");
+            const hideFull = settings.get_boolean('hidefull');
             if (hideFull && proxy.State === UPower.DeviceState.FULLY_CHARGED) {
                 logDebug('Hiding battery - full');
                 powerToggle.hide();
@@ -350,7 +350,7 @@ export default class BatConsumptionWattmeter extends Extension {
             }
 
             // Check hide when idle
-            const hideIdle = settings.get_boolean("hideidle");
+            const hideIdle = settings.get_boolean('hideidle');
             const isIdle = proxy.State !== UPower.DeviceState.CHARGING && proxy.State !== UPower.DeviceState.DISCHARGING;
             if (hideIdle && isIdle) {
                 logDebug('Hiding battery - idle');
