@@ -1,6 +1,7 @@
 # Changelog
 
 ## v15 (2026-01-04)
+- **License Change**: Switched from MIT to **GNU GPLv3** to better align with the GNOME ecosystem's ideology of software freedom and ensure the project remains open-source forever.
 - **Automatic Version Sync**: Version is now managed in `package.json` and automatically synchronized to all files (metadata, prefs, README, VERSION) during build/package.
 - **CI/CD Enhancement**: Added GitHub Actions workflow to automatically lint code, validate GSettings schemas, and build release packages.
 - **EGO Compliance**: Improved asynchronous file reading and fixed `gettext` definition.
