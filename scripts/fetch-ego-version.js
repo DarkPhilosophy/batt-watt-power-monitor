@@ -87,7 +87,7 @@ function updateReadme(githubVersion, publishedVersion) {
         const statusBadge = `[![Status: ${statusLabel}](https://img.shields.io/badge/Status-${statusLabel}-${statusColor})](${EGO_URL})`;
         const githubBadge = `![GitHub](https://img.shields.io/badge/GitHub-v${githubVersion}-blue)`;
         const gnomeBadge = `![GNOME](https://img.shields.io/badge/GNOME-v${publishedVersion}-green)`;
-        const markdownBlock = `<!-- EGO-VERSION-START -->${statusBadge} ${githubBadge} ${gnomeBadge}<!-- EGO-VERSION-END -->`;
+        const markdownBlock = `<!-- EGO-VERSION-START -->\n${statusBadge} ${githubBadge} ${gnomeBadge}\n<!-- EGO-VERSION-END -->`;
 
         const regex = /<!-- EGO-VERSION-START -->.*?<!-- EGO-VERSION-END -->/s;
 
