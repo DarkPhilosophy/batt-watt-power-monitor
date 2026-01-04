@@ -74,11 +74,12 @@ try {
     // Update version badge in header
     readmeContent = readmeContent.replace(/Version-\d+-green/g, `Version-${newVersion}-green`);
     
-    // Update "Latest Update" section with header and changelog content
+    // Update "Latest Update" section with header and changelog content using comment markers
     const latestUpdateSection = `### Latest Update (v${newVersion})\n${latestChanges}`;
+    const latestVersionRegex = /<!-- LATEST-VERSION-START -->[\s\S]*?<!-- LATEST-VERSION-END -->/;
     readmeContent = readmeContent.replace(
-        /###\s+Latest Update\s+\(v\d+\)[\s\S]*?(?=\n###\s+Smart Controls)/,
-        latestUpdateSection + '\n'
+        latestVersionRegex,
+        `<!-- LATEST-VERSION-START -->\n${latestUpdateSection}\n<!-- LATEST-VERSION-END -->`
     );
     
     fs.writeFileSync(README_PATH, readmeContent);
