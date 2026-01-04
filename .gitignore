@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+gschemas.compiled
+*.zip
+*.tar.gz
+
+# OS generated files
+.DS_Store
+Thumbs.db
+*~
+
+# Backups
+*.backup*
+*.bak
+
+# Logs
+*.log

@@ -6,20 +6,7 @@ import Adw from 'gi://Adw';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const VERSION = '12';
-
-function getBuildDate() {
-    try {
-        const buildDatePath = import.meta.url.replace('file://', '').replace('/prefs.js', '/build_date.txt');
-        const content = Gio.File.new_for_path(buildDatePath).load_contents(null);
-        if (content[0]) {
-            return content[1].toString().trim();
-        }
-    } catch (e) {
-        // File not found or error reading
-    }
-    return 'Unknown';
-}
+const BUILD_DATE = null;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
@@ -27,10 +14,22 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const page = new Adw.PreferencesPage();
 
+        const versionName = this.metadata['version-name'] ?? this.metadata.version ?? 'Unknown';
+        const versionLabel = _('Version ') + versionName;
         const mainGroup = new Adw.PreferencesGroup({
             title: _('BATTERY CONSUMPTION WATT METER'),
-            description: _('Version ') + VERSION + ' - Built: ' + getBuildDate(),
+            description: versionLabel,
         });
+        const updateDescription = () => {
+            if (settings.get_boolean('debug')) {
+                const buildDate = BUILD_DATE ? BUILD_DATE : _('Undefined');
+                mainGroup.description = versionLabel + ' - ' + _('Build: ') + buildDate;
+            } else {
+                mainGroup.description = versionLabel;
+            }
+        };
+        settings.connect('changed::debug', updateDescription);
+        updateDescription();
         page.add(mainGroup);
 
         const linkRow = new Adw.ActionRow({
@@ -92,7 +91,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('Show time remaining'),
         });
         const timeRemainingSwitch = new Gtk.Switch({
-            active: (function(){ try { return settings.get_boolean('timeremaining'); } catch(e) { log('batt_consumption_wattmetter: missing key timeremaining, using default'); return false; }})(),
+            active: (function(){ try { return settings.get_boolean('timeremaining'); } catch(e) { log('batt-watt-power-monitor: missing key timeremaining, using default'); return false; }})(),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
@@ -109,6 +108,18 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('showwatts', showWattsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showWattsRow.add_suffix(showWattsSwitch);
         settingsGroup.add(showWattsRow);
+
+        const showDecimalsRow = new Adw.ActionRow({
+            title: _('Enable 2-digit decimal'),
+            subtitle: _('Display precise wattage (e.g. 15.75W)'),
+        });
+        const showDecimalsSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showdecimals'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showdecimals', showDecimalsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        showDecimalsRow.add_suffix(showDecimalsSwitch);
+        settingsGroup.add(showDecimalsRow);
 
         const batteryRow = new Adw.ActionRow({
             title: _('Choose battery'),
@@ -160,6 +171,22 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         hideIdleRow.add_suffix(hideIdleSwitch);
         settingsGroup.add(hideIdleRow);
 
-         window.add(page);
-        }
-        }
+        const debugGroup = new Adw.PreferencesGroup({
+            title: _('Debug'),
+        });
+        page.add(debugGroup);
+        const debugRow = new Adw.ActionRow({
+            title: _('Enable debug mode'),
+            subtitle: _('Shows build info and enables debug logs'),
+        });
+        const debugSwitch = new Gtk.Switch({
+            active: settings.get_boolean('debug'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('debug', debugSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        debugRow.add_suffix(debugSwitch);
+        debugGroup.add(debugRow);
+
+        window.add(page);
+    }
+}

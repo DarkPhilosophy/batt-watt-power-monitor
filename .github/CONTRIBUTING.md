@@ -54,8 +54,8 @@ This project follows the [Contributor Covenant](https://www.contributor-covenant
 
 ```bash
 # Clone the repository
-git clone https://github.com/DarkPhilosophy/batt_consumption_wattmetter.git
-cd batt_consumption_wattmetter
+git clone https://github.com/DarkPhilosophy/batt-watt-power-monitor.git
+cd batt-watt-power-monitor
 
 # Install dependencies (Fedora/RHEL)
 sudo dnf install nodejs npm meson gettext gnome-extensions-devel

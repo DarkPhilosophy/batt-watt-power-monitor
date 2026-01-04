@@ -1,10 +1,10 @@
 # Battery Power Monitor for GNOME Shell
 
+[![Extension CI](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml)
 [![GNOME Extensions](https://img.shields.io/badge/GNOME-Extensions-orange.svg)](https://extensions.gnome.org/extension/9023/battery-power-monitor/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GNOME 45-49](https://img.shields.io/badge/GNOME-45--49-blue.svg)](https://www.gnome.org/)
-[![Version 1.0](https://img.shields.io/badge/Version-1.0-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
-[![Build Date](https://img.shields.io/badge/Build-2025--12--14%2015%3A16%3A11%20UTC-blue.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
+[![Version 14](https://img.shields.io/badge/Version-14-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)
 
 **Battery Power Monitor** - A clean GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption in the panel.
 
@@ -17,6 +17,11 @@
 - **Time Remaining**: Shows estimated time to full charge or time remaining on battery (enabled by default)
 - **Real-time Power Consumption**: Shows actual charging/discharging in Watts (+/-)
 - **Battery Icon**: Visual indicator in GNOME Shell panel
+
+### New in v14
+- **Decimal Precision**: Toggle between integer (e.g., 16W) and precise 2-digit decimal (e.g., 15.75W) display.
+- **Smart Formatting**: Hides 0.00W readings (idle/calculating).
+- **Stability Fixes**: Resolved stuck power readings on certain hardware by enforcing synchronous file reads.
 
 ### Smart Controls
 - **Update Interval**: Adjust refresh rate from 1 to 15 seconds (default: 10s)
@@ -33,9 +38,7 @@
 
 ## 📸 Screenshot
 
-![Batt-Watt Power Monitor Screenshot](screenshot.png)
-
-*Batt-Watt Power Monitor showing real-time battery consumption in Watts, percentage, and time remaining*
+![Batt-Watt Power Monitor Screenshot](Screenshot.png)
 
 ## ⚠️ Requirements
 
@@ -65,13 +68,12 @@ Without this setting enabled, the extension may not display correctly.
 ### Manual Installation
 1. Clone this repository:
    ```bash
-   git clone https://github.com/DarkPhilosophy/batt_consumption_wattmetter.git
-   cd batt_consumption_wattmetter
+   git clone https://github.com/DarkPhilosophy/batt-watt-power-monitor.git
+   cd batt-watt-power-monitor
    ```
-2. Create the extension directory:
+2. Build and install locally:
    ```bash
-   mkdir -p ~/.local/share/gnome-shell/extensions/
-   cp -r batt-watt-power-monitor@DarkPhilosophy.shell-extension ~/.local/share/gnome-shell/extensions/
+   ./build.sh
    ```
 3. Restart GNOME Shell (Alt+F2, then type 'r' and press Enter)
 4. Enable the extension using GNOME Tweaks or:
@@ -84,7 +86,17 @@ Without this setting enabled, the extension may not display correctly.
 Access settings through:
 - **GNOME Extensions App** (recommended)
 - **GNOME Tweaks** → Extensions → Battery Consumption Watt Meter
-- **Command line**: `gnome-extensions prefs batt_consumption_wattmetter@DarkPhilosophy`
+- **Command line**: `gnome-extensions prefs batt-watt-power-monitor@DarkPhilosophy`
+
+## 📂 Project Layout
+
+Single source of truth for extension files lives in `extension/`:
+- `extension/extension.js`
+- `extension/prefs.js`
+- `extension/metadata.json`
+- `extension/schemas/`
+
+Root directory keeps scripts and repo files only.
 
 ### Available Settings
 
@@ -95,6 +107,7 @@ Access settings through:
 | **Show percentage** | Show battery charge percentage | ON |
 | **Show time remaining** | Display estimated time remaining/to full | ON |
 | **Show watts consumption** | Display power consumption in Watts | ON |
+| **Enable 2-digit decimal** | Display precise wattage (e.g., 15.75W) | OFF |
 | **Choose battery** | Select battery device (AUTOMATIC/BAT0/BAT1/BAT2) | AUTOMATIC |
 | **Hide when charging** | Hide indicator when battery is charging | OFF |
 | **Hide when full** | Hide indicator when battery is full | OFF |
@@ -104,9 +117,7 @@ Access settings through:
 
 ### Requirements
 - GNOME Shell 45+
-- Node.js (for schema compilation)
-- gettext (for translations)
-- meson (for building)
+- glib-compile-schemas (glib2)
 
 ### Build Process
 
@@ -144,9 +155,8 @@ cd batt-watt-power-monitor
 ```
 
 The build script will:
-1. Compile GSettings schemas
-2. Generate translations
-3. Create the distributable extension package
+1. Install the extension locally
+2. Compile GSettings schemas
 
 ## 📊 Technical Details
 
@@ -219,10 +229,14 @@ Contributions are welcome! Please follow these guidelines:
 
 ### Development Setup
 ```bash
-git clone https://github.com/DarkPhilosophy/batt_consumption_wattmetter.git
-cd batt_consumption_wattmetter
+git clone https://github.com/DarkPhilosophy/batt-watt-power-monitor.git
+cd batt-watt-power-monitor
 npm install  # Install development dependencies
 ```
+
+## 📝 Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
 
 ## 📝 License
 
@@ -246,7 +260,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ## 📬 Contact
 
 For issues, questions, or suggestions:
-- **GitHub Issues**: https://github.com/DarkPhilosophy/batt_consumption_wattmetter/issues
+- **GitHub Issues**: https://github.com/DarkPhilosophy/batt-watt-power-monitor/issues
 - **GNOME Extensions**: https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/
 
 ## 💡 Tips

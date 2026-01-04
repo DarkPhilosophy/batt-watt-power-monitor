@@ -48,5 +48,15 @@
       <summary></summary>
       <description></description>
     </key>
+    <key type="b" name="showdecimals">
+      <default>false</default>
+      <summary>Show wattage with 2 decimal places</summary>
+      <description>If enabled, displays wattage like 15.75W. If disabled, displays 16W.</description>
+    </key>
+    <key type="b" name="debug">
+      <default>false</default>
+      <summary></summary>
+      <description></description>
+    </key>
   </schema>
 </schemalist>
