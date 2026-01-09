@@ -1,4 +1,37 @@
+# GNOME Extension Config - Relaxed JSDoc (extension code)
+# SPDX-License-Identifier: MIT OR LGPL-2.0-or-later
+# For: extension.js, prefs.js, etc.
+extends: "eslint:recommended"
+env:
+  es2021: true
+plugins:
+  - jsdoc
 rules:
+  # Formatting (strict)
+  indent:
+    - error
+    - 4
+  quotes:
+    - error
+    - single
+    - avoidEscape: true
+  semi:
+    - error
+    - always
+  comma-dangle:
+    - error
+    - arrays: always-multiline
+      objects: always-multiline
+      functions: never
+  object-curly-spacing: error
+  arrow-parens:
+    - error
+    - as-needed
+  prefer-template: error
+  prefer-const: warn
+  no-var: error
+
+  # Naming (strict)
   no-unused-vars:
     - error
     - vars: local
@@ -7,11 +40,39 @@ rules:
   camelcase:
     - error
     - properties: never
-      # Allow camelcase for `new_` function (replacement)
       allow: [^vfunc_, ^on_, ^new_]
-  # Don't enforce these checks for now
+
+  # Code quality (strict)
+  eqeqeq: error
+  curly:
+    - error
+    - multi-or-nest
+    - consistent
+  no-implicit-coercion: error
+  no-console: warn
+
+  # JSDoc (relaxed for extensions)
   jsdoc/require-jsdoc: warn
   jsdoc/require-param: warn
   jsdoc/require-param-description: warn
   jsdoc/require-param-name: warn
   jsdoc/require-param-type: warn
+  jsdoc/check-param-names: warn
+  jsdoc/check-tag-names: warn
+
+globals:
+   GLib: readonly
+   Gio: readonly
+   GObject: readonly
+   St: readonly
+   Rsvg: readonly
+   Cairo: readonly
+   UPower: readonly
+   log: readonly
+   logError: readonly
+   print: readonly
+   TextDecoder: readonly
+   TextEncoder: readonly
+parserOptions:
+  ecmaVersion: 2022
+  sourceType: module

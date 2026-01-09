@@ -4,8 +4,8 @@ import {
     gettext as _
 } from 'resource:///org/gnome/shell/extensions/extension.js';
 
-import { panel } from 'resource:///org/gnome/shell/ui/main.js';
-import { Indicator } from 'resource:///org/gnome/shell/ui/status/system.js';
+import {panel} from 'resource:///org/gnome/shell/ui/main.js';
+import {Indicator} from 'resource:///org/gnome/shell/ui/status/system.js';
 import Gio from 'gi://Gio';
 import UPower from 'gi://UPowerGlib';
 import GObject from 'gi://GObject';
@@ -75,6 +75,11 @@ const CIRCLE_SIZE_SCALE = 1.48;
 const BATTERY_MIN_SIZE = 12;
 
 
+/**
+ * Calculate ring color based on battery percentage.
+ * @param {number} percentage - Battery percentage (0-100)
+ * @returns {number[]} RGB values [red, green, blue] each 0-1
+ */
 function getRingColor(percentage) {
     let red = 0;
     let green = 0;
@@ -91,10 +96,16 @@ function getRingColor(percentage) {
     return [red, green, blue];
 }
 
+/**
+ * Generate CSS style string for label based on battery percentage.
+ * @param {number} percentage - Battery percentage (0-100)
+ * @param {boolean} useColor - Whether to apply color styling
+ * @returns {string} CSS style string
+ */
 function getLabelStyleFromPercentage(percentage, useColor) {
-    if (!useColor || percentage === null || percentage === undefined || Number.isNaN(percentage)) {
+    if (!useColor || percentage === null || percentage === undefined || Number.isNaN(percentage))
         return '';
-    }
+
 
     const [red, green, blue] = getRingColor(Math.round(percentage));
     const r = Math.round(red * 255);
@@ -103,44 +114,73 @@ function getLabelStyleFromPercentage(percentage, useColor) {
     return `color: rgb(${r}, ${g}, ${b});`;
 }
 
+/**
+ * Extract foreground color from GNOME theme component.
+ * @param {Object} component - ST widget component
+ * @returns {Object} Color object with red, green, blue properties
+ */
 function getForegroundColor(component) {
     try {
         const themeNode = component.get_theme_node();
         return themeNode.get_foreground_color();
     } catch (error) {
-        return { red: 255, green: 255, blue: 255 };
+        return {red: 255, green: 255, blue: 255};
     }
 }
 
+/**
+ * Check if device is in a charging state.
+ * @param {Object} proxy - UPower proxy object
+ * @param {string} status - Status string from sysfs
+ * @returns {boolean} True if device is charging
+ */
 function isChargingState(proxy, status) {
     const state = proxy?.State;
-    return state === UPower.DeviceState.CHARGING
-        || state === UPower.DeviceState.PENDING_CHARGE
-        || (status && status.includes('Charging'));
+    return state === UPower.DeviceState.CHARGING ||
+        state === UPower.DeviceState.PENDING_CHARGE ||
+        (status && status.includes('Charging'));
 }
 
+/**
+ * Get configured circle indicator size from settings.
+ * @param {Object} settings - GSettings object
+ * @returns {number} Circle size in pixels
+ */
 function getCircleSize(settings) {
     const configured = settings?.get_int('circlesize') ?? 0;
     const raw = Math.max(CIRCLE_MIN_SIZE_USER, configured || CIRCLE_MIN_SIZE_USER);
     return Math.round(raw * CIRCLE_SIZE_SCALE);
 }
 
+/**
+ * Get configured battery indicator width from settings.
+ * @param {Object} settings - GSettings object
+ * @returns {number} Battery width in pixels
+ */
 function getBatteryWidth(settings) {
     const configured = settings?.get_int('batterysize') ?? 0;
     return Math.max(BATTERY_MIN_SIZE, configured || BATTERY_MIN_SIZE);
 }
 
+/**
+ * Get configured battery indicator height from settings.
+ * @param {Object} settings - GSettings object
+ * @returns {number} Battery height in pixels
+ */
 function getBatteryHeight(settings) {
     const configured = settings?.get_int('batteryheight') ?? 0;
     return Math.max(BATTERY_MIN_SIZE, configured || BATTERY_MIN_SIZE);
 }
 
+/**
+ * Reset all GNOME power toggle styling to defaults.
+ */
 function resetPowerToggleStyles() {
     const system = panel.statusArea.quickSettings?._system;
     const powerToggle = system?._systemItem?.powerToggle;
-    if (!powerToggle) {
+    if (!powerToggle)
         return;
-    }
+
 
     powerToggle.set_style?.('');
     powerToggle._title?.set_style?.('');
@@ -149,12 +189,12 @@ function resetPowerToggleStyles() {
     powerToggle._icon?.set_style?.('');
     powerToggle._titleLabel?.set_text?.('');
     powerToggle._percentageLabel?.set_text?.('');
-    if (typeof powerToggle.title !== 'undefined') {
+    if (typeof powerToggle.title !== 'undefined')
         powerToggle.title = '';
-    }
-    if (powerToggle._icon) {
+
+    if (powerToggle._icon)
         powerToggle._icon.visible = true;
-    }
+
 
     const indicator = system?._indicator;
     indicator?._percentageLabel?.set_style?.('');
@@ -164,22 +204,42 @@ function resetPowerToggleStyles() {
     indicator?._percentageLabel?.set_style?.('');
 }
 
+/**
+ * Log debug-level message.
+ * @param {string} msg - Message to log
+ */
 function logDebug(msg) {
     logMessage(msg, LogLevel.DEBUG);
 }
 
+/**
+ * Log info-level message.
+ * @param {string} msg - Message to log
+ */
 function logInfo(msg) {
     logMessage(msg, LogLevel.INFO);
 }
 
+/**
+ * Log warning-level message.
+ * @param {string} msg - Message to log
+ */
 function logWarn(msg) {
     logMessage(msg, LogLevel.WARN);
 }
 
+/**
+ * Log error-level message.
+ * @param {string} msg - Message to log
+ */
 function logError(msg) {
     logMessage(msg, LogLevel.ERROR);
 }
 
+/**
+ * Update global variables from settings.
+ * @param {Object} settings - GSettings object
+ */
 function updateGlobalsFromSettings(settings) {
     DEBUG = settings.get_boolean('debug');
     currentLogLevel = settings.get_int('loglevel');
@@ -187,45 +247,57 @@ function updateGlobalsFromSettings(settings) {
     currentLogFilePath = settings.get_string('logfilepath');
 
     // Reset file init flag if path changed (simple approach) or just let it handle it
-    if (logFileInitialized && currentLogFilePath !== settings.get_string('logfilepath')) {
+    if (logFileInitialized && currentLogFilePath !== settings.get_string('logfilepath'))
         logFileInitialized = false;
-    }
 }
 
+/**
+ * Log message with specified level.
+ * @param {string} msg - Message to log
+ * @param {number} level - Log level (default: LogLevel.DEBUG)
+ */
 function logMessage(msg, level = LogLevel.DEBUG) {
-    if (!DEBUG) {
+    if (!DEBUG)
         return;
-    }
-    if (level < currentLogLevel) {
+
+    if (level < currentLogLevel)
         return;
-    }
+
 
     const timestamp = new Date().toISOString();
     const prefix = `${timestamp} ${LOG_LEVEL_NAMES[level]} [Battery Power Monitor]`;
     const output = `${prefix} ${msg}`;
 
-    if (level >= LogLevel.WARN) {
-        console.error(output);
-    } else {
-        console.log(output);
-    }
+    if (level >= LogLevel.WARN)
+        logError(output);
+    else
+        log(output);
 
-    if (logToFileEnabled && currentLogFilePath) {
+
+    if (logToFileEnabled && currentLogFilePath)
         appendLogLine(currentLogFilePath, output);
-    }
 }
 
+/**
+ * Resolve log file path from settings with environment variable expansion.
+ * @param {Object} settings - GSettings object
+ * @returns {string} Full path to log file
+ */
 function resolveLogFilePath(settings) {
     const configured = settings.get_string('logfilepath').trim();
-    if (configured.length === 0) {
+    if (configured.length === 0)
         return `${GLib.get_user_cache_dir()}/batt-watt-power-monitor.log`;
-    }
-    if (configured.startsWith('/')) {
+
+    if (configured.startsWith('/'))
         return configured;
-    }
+
     return `${GLib.get_home_dir()}/${configured}`;
 }
 
+/**
+ * Ensure log directory exists, create if needed.
+ * @param {string} path - Full path to log file
+ */
 function ensureLogDirectory(path) {
     const file = Gio.File.new_for_path(path);
     const parent = file.get_parent();
@@ -233,42 +305,55 @@ function ensureLogDirectory(path) {
         try {
             parent.make_directory_with_parents(null);
         } catch (error) {
-            console.error(`[Battery Power Monitor] Failed to create log dir: ${error.message}`);
+            logError(`[Battery Power Monitor] Failed to create log dir: ${error.message}`);
         }
     }
 }
 
+/**
+ * Rotate log file, keeping one backup.
+ * @param {string} path - Full path to log file
+ */
 function rotateLogFile(path) {
     const file = Gio.File.new_for_path(path);
-    if (!file.query_exists(null)) {
+    if (!file.query_exists(null))
         return;
-    }
+
 
     const oldFile = Gio.File.new_for_path(`${path}.old`);
     if (oldFile.query_exists(null)) {
         try {
             oldFile.delete(null);
         } catch (error) {
-            console.error(`[Battery Power Monitor] Failed to delete old log: ${error.message}`);
+            logError(`[Battery Power Monitor] Failed to delete old log: ${error.message}`);
         }
     }
 
     try {
         file.move(oldFile, Gio.FileCopyFlags.OVERWRITE, null, null);
     } catch (error) {
-        console.error(`[Battery Power Monitor] Failed to rotate log: ${error.message}`);
+        logError(`[Battery Power Monitor] Failed to rotate log: ${error.message}`);
     }
 }
 
+/**
+ * Initialize log file with rotation.
+ * @param {string} path - Full path to log file
+ */
 function initLogFile(path) {
-    if (logFileInitialized && path === currentLogFilePath) {
+    if (logFileInitialized && path === currentLogFilePath)
         return;
-    }
+
     ensureLogDirectory(path);
     rotateLogFile(path);
     logFileInitialized = true;
 }
 
+/**
+ * Append line to log file.
+ * @param {string} path - Full path to log file
+ * @param {string} line - Line to append
+ */
 function appendLogLine(path, line) {
     try {
         ensureLogDirectory(path);
@@ -278,11 +363,19 @@ function appendLogLine(path, line) {
         stream.write_all(output, null);
         stream.close(null);
     } catch (error) {
-        console.error(`[Battery Power Monitor] Failed to write log: ${error.message}`);
+        logError(`Failed to write log: ${error.message}`);
     }
 }
 
 // Shared SVG loading functions for both indicators
+/**
+ * Load and tint charging bolt SVG icon.
+ * @param {string} extensionPath - Path to extension directory
+ * @param {number} red - Red component (0-1)
+ * @param {number} green - Green component (0-1)
+ * @param {number} blue - Blue component (0-1)
+ * @returns {Object} Cairo ImageSurface with tinted SVG or null on error
+ */
 function loadChargingSvg(extensionPath, red, green, blue) {
     try {
         const svgPath = `${extensionPath}/bolt.svg`;
@@ -316,13 +409,18 @@ function loadChargingSvg(extensionPath, red, green, blue) {
     }
 }
 
+/**
+ * Load charging bolt stroke SVG.
+ * @param {string} extensionPath - Path to extension directory
+ * @returns {Object} Cairo ImageSurface or null on error
+ */
 function _loadChargingStrokeSvg(extensionPath) {
     try {
         const svgPath = `${extensionPath}/bolt_stroke.svg`;
         const handle = Rsvg.Handle.new_from_file(svgPath);
-        if (!handle) {
+        if (!handle)
             return null;
-        }
+
 
         const dimensions = handle.get_dimensions();
         const svgWidth = dimensions.width;
@@ -344,6 +442,21 @@ function _loadChargingStrokeSvg(extensionPath) {
 }
 
 // Shared function to draw battery icon
+/**
+ * Draw battery icon using Cairo.
+ * @param {Object} context - Cairo context
+ * @param {number} centerX - X coordinate of center
+ * @param {number} centerY - Y coordinate of center
+ * @param {number} width - Icon width in pixels
+ * @param {number} height - Icon height in pixels
+ * @param {number} percentage - Battery percentage (0-100)
+ * @param {number} red - Red component (0-1)
+ * @param {number} green - Green component (0-1)
+ * @param {number} blue - Blue component (0-1)
+ * @param {number} bodyWidthRatio - Ratio of body width to total width (default: 0.42)
+ * @param {number} bodyHeightRatio - Ratio of body height to total height (default: 0.5)
+ * @param {boolean} showText - Whether to show percentage text (default: false)
+ */
 function drawBatteryIcon(context, centerX, centerY, width, height, percentage, red, green, blue, bodyWidthRatio = 0.42, bodyHeightRatio = 0.5, showText = false) {
     const bodyWidth = width * bodyWidthRatio;
     const bodyHeight = height * bodyHeightRatio;
@@ -387,11 +500,22 @@ function drawBatteryIcon(context, centerX, centerY, width, height, percentage, r
 }
 
 // Shared function to draw SVG bolt icon
+/**
+ * Draw charging bolt icon using Cairo.
+ * @param {Object} context - Cairo context
+ * @param {string} extensionPath - Path to extension directory
+ * @param {number} centerX - X coordinate of center
+ * @param {number} centerY - Y coordinate of center
+ * @param {number} boltHeight - Height of bolt icon in pixels
+ * @param {number} red - Red component (0-1)
+ * @param {number} green - Green component (0-1)
+ * @param {number} blue - Blue component (0-1)
+ */
 function drawBoltIcon(context, extensionPath, centerX, centerY, boltHeight, red, green, blue) {
     const svgSurface = loadChargingSvg(extensionPath, red, green, blue);
-    if (!svgSurface) {
+    if (!svgSurface)
         return;
-    }
+
 
     const svgHeight = svgSurface.getHeight();
     const svgWidth = svgSurface.getWidth();
@@ -406,14 +530,14 @@ function drawBoltIcon(context, extensionPath, centerX, centerY, boltHeight, red,
     context.paint();
     context.restore();
 
-    /*const strokeSurface = _loadChargingStrokeSvg(extensionPath);
+    const strokeSurface = _loadChargingStrokeSvg(extensionPath);
     if (strokeSurface) {
         context.save();
         context.scale(scale, scale);
         context.setSourceSurface(strokeSurface, boltX / scale, boltY / scale);
         context.paint();
         context.restore();
-    }*/
+    }
 }
 
 // Based on batteryIcon by slim8916 (MIT). Adapted and integrated here.
@@ -421,7 +545,7 @@ const CircleIndicator = GObject.registerClass(
     class CircleIndicator extends St.DrawingArea {
         _init(status, extensionPath) {
             const size = status?.size ?? CIRCLE_MIN_SIZE;
-            super._init({ width: size, height: size });
+            super._init({width: size, height: size});
 
             this._status = status;
             this._extensionPath = extensionPath;
@@ -464,7 +588,7 @@ const CircleIndicator = GObject.registerClass(
             context.paint();
             context.restore();
 
-            /*const strokeSurface = _loadChargingStrokeSvg(this._extensionPath);
+            /* const strokeSurface = _loadChargingStrokeSvg(this._extensionPath);
             if (strokeSurface) {
                 context.save();
                 context.scale(scale, scale);
@@ -519,9 +643,9 @@ const CircleIndicator = GObject.registerClass(
                 let textX = centerX - textExtents.width / 2;
                 const textY = centerY + textExtents.height / 2;
 
-                if (this._status.isCharging || this._status.forceBolt) {
+                if (this._status.isCharging || this._status.forceBolt)
                     textX = this._drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue);
-                }
+
 
                 context.setSourceRGB(red, green, blue);
                 context.moveTo(textX, textY);
@@ -557,7 +681,7 @@ const BatteryIndicator = GObject.registerClass(
         _init(status) {
             const width = status?.width ?? BATTERY_MIN_SIZE;
             const height = status?.height ?? BATTERY_MIN_SIZE;
-            super._init({ width, height });
+            super._init({width, height});
             this.set_size(width, height);
             this.set_width(width);
             this.set_height(height);
@@ -638,12 +762,12 @@ const BatteryIndicator = GObject.registerClass(
             // Use explicit battery width from status (passed from update/init)
             let rawBatteryW = this._status.batteryWidth;
 
-            if (rawBatteryW === undefined) {
+            if (rawBatteryW === undefined)
                 rawBatteryW = this._status?.width ?? width;
-            }
+
 
             // Apply 0.9 scale factor consistent with iconHeight (padding)
-            let batteryDrawWidth = rawBatteryW * 0.9;
+            const batteryDrawWidth = rawBatteryW * 0.9;
 
             // OVERLAY LAYOUT: No compression. Battery determines width.
 
@@ -739,6 +863,11 @@ const BatteryIndicator = GObject.registerClass(
 
 
 
+/**
+ * Ensure circle indicator exists and is properly configured.
+ * @param {Object} settings - GSettings object
+ * @param {string} extensionPath - Path to extension directory
+ */
 function ensureCircleIndicator(settings, extensionPath) {
     if (!settings.get_boolean('usecircleindicator')) {
         destroyCircleIndicator();
@@ -747,11 +876,10 @@ function ensureCircleIndicator(settings, extensionPath) {
 
     if (circleIndicator) {
         const desiredSize = getCircleSize(settings);
-        if (circleIndicator.width !== desiredSize || circleIndicator.height !== desiredSize) {
+        if (circleIndicator.width !== desiredSize || circleIndicator.height !== desiredSize)
             destroyCircleIndicator();
-        } else {
+        else
             return;
-        }
     }
 
     destroyBatteryIndicator();
@@ -779,20 +907,22 @@ function ensureCircleIndicator(settings, extensionPath) {
     }
 }
 
+/**
+ * Destroy circle indicator and restore stock icon.
+ */
 function destroyCircleIndicator() {
-    if (!circleIndicator) {
+    if (!circleIndicator)
         return;
-    }
+
 
     circleIndicator.destroy();
     circleIndicator = null;
 
     if (circleIndicatorStockIcon) {
-        if (circleIndicatorWasVisible === false) {
+        if (circleIndicatorWasVisible === false)
             circleIndicatorStockIcon.hide();
-        } else {
+        else
             circleIndicatorStockIcon.show();
-        }
     }
 
     circleIndicatorParent = null;
@@ -800,10 +930,15 @@ function destroyCircleIndicator() {
     circleIndicatorWasVisible = null;
 }
 
+/**
+ * Update circle indicator with current battery status.
+ * @param {Object} proxy - UPower proxy object
+ * @param {Object} settings - GSettings object
+ */
 function updateCircleIndicatorStatus(proxy, settings) {
-    if (!settings.get_boolean('usecircleindicator') || !circleIndicator || !proxy) {
+    if (!settings.get_boolean('usecircleindicator') || !circleIndicator || !proxy)
         return;
-    }
+
 
     const percentage = Math.round(proxy.Percentage);
     const status = getStatus(getAutopath());
@@ -812,13 +947,23 @@ function updateCircleIndicatorStatus(proxy, settings) {
     const useColor = settings.get_boolean('showcolored');
     const forceBolt = settings.get_boolean('forcebolt');
     logDebug(`Circle status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
-    circleIndicator.update({ percentage, isCharging, showText, useColor, forceBolt });
+    circleIndicator.update({percentage, isCharging, showText, useColor, forceBolt});
 }
 
+/**
+ * Check if battery indicator should be shown.
+ * @param {Object} settings - GSettings object
+ * @returns {boolean} True if battery indicator is enabled
+ */
 function batteryIndicatorEnabled(settings) {
     return settings && settings.get_boolean('showicon') && !settings.get_boolean('usecircleindicator');
 }
 
+/**
+ * Ensure battery indicator exists and is properly configured.
+ * @param {Object} settings - GSettings object
+ * @param {string} extensionPath - Path to extension directory
+ */
 function ensureBatteryIndicator(settings, extensionPath) {
     if (!batteryIndicatorEnabled(settings)) {
         destroyBatteryIndicator();
@@ -839,7 +984,7 @@ function ensureBatteryIndicator(settings, extensionPath) {
             width: desiredWidth,
             height: desiredHeight,
             batteryWidth: desiredWidth,
-            settings: settings, // Pass settings for direct access
+            settings, // Pass settings for direct access
         });
         return;
     }
@@ -856,7 +1001,7 @@ function ensureBatteryIndicator(settings, extensionPath) {
         forceBolt: settings.get_boolean('forcebolt'),
         width: batteryW,
         batteryWidth: batteryW,
-        settings: settings, // Pass settings for direct access
+        settings, // Pass settings for direct access
         extensionPath,
     });
 
@@ -872,20 +1017,22 @@ function ensureBatteryIndicator(settings, extensionPath) {
     }
 }
 
+/**
+ * Destroy battery indicator and restore stock icon.
+ */
 function destroyBatteryIndicator() {
-    if (!batteryIndicator) {
+    if (!batteryIndicator)
         return;
-    }
+
 
     batteryIndicator.destroy();
     batteryIndicator = null;
 
     if (batteryIndicatorStockIcon) {
-        if (batteryIndicatorWasVisible === false) {
+        if (batteryIndicatorWasVisible === false)
             batteryIndicatorStockIcon.hide();
-        } else {
+        else
             batteryIndicatorStockIcon.show();
-        }
     }
 
     batteryIndicatorParent = null;
@@ -893,10 +1040,15 @@ function destroyBatteryIndicator() {
     batteryIndicatorWasVisible = null;
 }
 
+/**
+ * Update battery indicator with current battery status.
+ * @param {Object} proxy - UPower proxy object
+ * @param {Object} settings - GSettings object
+ */
 function updateBatteryIndicatorStatus(proxy, settings) {
-    if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy) {
+    if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy)
         return;
-    }
+
 
     const percentage = Math.round(proxy.Percentage);
     const showText = settings.get_boolean('percentage') && !settings.get_boolean('showpercentageoutside');
@@ -930,8 +1082,12 @@ const pendingReads = new Set();
 
 /**
  * Reads file content asynchronously to comply with EGO review guidelines.
- * Note: This prevents freezing the Shell UI but may cause a slight delay 
+ * Note: This prevents freezing the Shell UI but may cause a slight delay
  * in wattage updates as the UI refreshes only after the file read completes.
+ *
+ * @param {string} filePath - Full path to file to read
+ * @param {string} defaultValue - Default value if file cannot be read
+ * @returns {string} Cached value or defaultValue
  */
 function readFileSafely(filePath, defaultValue) {
     // Get current cached value (or default)
@@ -970,91 +1126,126 @@ function readFileSafely(filePath, defaultValue) {
     return currentVal;
 }
 
+/**
+ * Auto-detect battery path from available sysfs power supply entries.
+ * @returns {Object} Object with path and isTP (True Power) flag
+ */
 function getAutopath() {
     for (const path of [BAT0, BAT1, BAT2]) {
-        if (readFileSafely(path + 'status', 'none') !== 'none') {
-            const isTP = readFileSafely(path + 'power_now', 'none') !== 'none';
+        if (readFileSafely(`${path}status`, 'none') !== 'none') {
+            const isTP = readFileSafely(`${path}power_now`, 'none') !== 'none';
             return {
                 path,
-                isTP
+                isTP,
             };
         }
     }
     return {
         'path': -1,
-        'isTP': false
+        'isTP': false,
     };
 }
 
+/**
+ * Read numeric value from sysfs file and convert from µ to base unit.
+ * @param {string} pathToFile - Full path to sysfs file
+ * @returns {number} Converted value in base unit
+ */
 function getValue(pathToFile) {
     const value = parseFloat(readFileSafely(pathToFile, -1));
     return value === -1 ? value : value / 1000000;
 }
 
+/**
+ * Find object key by value.
+ * @param {Object} obj - Object to search
+ * @param {*} value - Value to find
+ * @returns {string} Key name or 'Unknown' if not found
+ */
 function getObjectKey(obj, value) {
     for (const key in obj) {
-        if (obj[key] === value) {
+        if (obj[key] === value)
             return key;
-        }
     }
     return 'Unknown';
 }
 
+/**
+ * Read power consumption from sysfs battery files.
+ * @param {Object} correction - Battery path correction object from getAutopath()
+ * @returns {number} Power in watts
+ */
 function getPower(correction) {
     if (!correction || !correction['path']) {
         correction = getAutopath();
-        if (!correction || !correction['path']) {
+        if (!correction || !correction['path'])
             return 0;
-        }
     }
     const path = correction['path'];
     let val;
-    if (correction['isTP'] === false) {
-        val = getValue(path + 'current_now') * getValue(path + 'voltage_now');
-    } else {
-        val = getValue(path + 'power_now');
-    }
+    if (correction['isTP'] === false)
+        val = getValue(`${path}current_now`) * getValue(`${path}voltage_now`);
+    else
+        val = getValue(`${path}power_now`);
+
 
     {
-        const energyNow = getValue(path + 'energy_now');
+        const energyNow = getValue(`${path}energy_now`);
         logDebug(`Raw Power: ${val} W | Energy Now: ${energyNow} Wh`);
     }
 
     return val;
 }
 
+/**
+ * Read battery status from sysfs.
+ * @param {Object} correction - Battery path correction object from getAutopath()
+ * @returns {string} Status string (Charging, Discharging, etc.)
+ */
 function getStatus(correction) {
     if (!correction || !correction['path']) {
         correction = getAutopath();
-        if (!correction || !correction['path']) {
+        if (!correction || !correction['path'])
             return 'Unknown';
-        }
     }
-    return readFileSafely(correction['path'] + 'status', 'Unknown');
+    return readFileSafely(`${correction['path']}status`, 'Unknown');
 }
 
+/**
+ * Format power value as string with optional decimals.
+ * @param {number} power - Power in watts
+ * @param {Object} settings - GSettings object
+ * @returns {string} Formatted power string or empty if near zero
+ */
 function formatWatts(power, settings) {
     // Hide if effectively zero (charging/discharging calculation pending)
-    if (power <= 0.01 && power >= -0.01) {
+    if (power <= 0.01 && power >= -0.01)
         return '';
-    }
 
-    if (settings && settings.get_boolean('showdecimals')) {
+
+    if (settings && settings.get_boolean('showdecimals'))
         return Math.abs(power).toFixed(2);
-    }
+
 
     // Default behavior: Round to integer
     return Math.round(Math.abs(power)).toString();
 }
 
+/**
+ * Format remaining time as HH∶MM string.
+ * @param {number} seconds - Remaining time in seconds
+ * @returns {string|null} Formatted time string or null if invalid
+ */
 function formatTimeRemaining(seconds) {
-    if (seconds <= 0) return null;
+    if (seconds <= 0)
+        return null;
 
-    let time = Math.round(seconds / 60);
-    if (time <= 0) return null;
+    const time = Math.round(seconds / 60);
+    if (time <= 0)
+        return null;
 
-    let minutes = time % 60;
-    let hours = Math.floor(time / 60);
+    const minutes = time % 60;
+    const hours = Math.floor(time / 60);
     return _('%d\u2236%02d').format(hours, minutes);
 }
 
@@ -1074,40 +1265,39 @@ const _powerToggleSyncOverride = function (settings) {
         lastOverrideTime = now;
 
         // Only set title, don't touch visibility - that's handled separately
-        if (!this._proxy.IsPresent) {
+        if (!this._proxy.IsPresent)
             return false;
-        }
+
 
         batteryCorrection = getAutopath();
-        const percentage = Math.round(this._proxy.Percentage) + '%';
-        let state = this._proxy.State;
+        const percentage = `${Math.round(this._proxy.Percentage)}%`;
+        const state = this._proxy.State;
         const status = getStatus(batteryCorrection);
 
         // Build display string
-        let displayParts = [];
+        const displayParts = [];
 
         // Add percentage if enabled and circular indicator is off
         const showPercentage = settings.get_boolean('percentage');
         const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
         const showPercentageText = showPercentageOutside;
-        if (showPercentageText) {
+        if (showPercentageText)
             displayParts.push(percentage);
-        }
+
 
         // Add time remaining if enabled
         const showTimeRemaining = settings.get_boolean('timeremaining');
         if (showTimeRemaining) {
             let seconds = 0;
-            if (state === UPower.DeviceState.CHARGING) {
+            if (state === UPower.DeviceState.CHARGING)
                 seconds = this._proxy.TimeToFull;
-            } else if (state === UPower.DeviceState.DISCHARGING) {
+            else if (state === UPower.DeviceState.DISCHARGING)
                 seconds = this._proxy.TimeToEmpty;
-            }
 
-            let timeStr = formatTimeRemaining(seconds);
-            if (timeStr) {
+
+            const timeStr = formatTimeRemaining(seconds);
+            if (timeStr)
                 displayParts.push(timeStr);
-            }
         }
 
         // Add watts if enabled
@@ -1118,22 +1308,18 @@ const _powerToggleSyncOverride = function (settings) {
             const formattedPower = formatWatts(power, settings);
 
             if (formattedPower !== '') {
-                if (status.includes('Charging')) {
-                    wattStr = '+' + formattedPower + 'W';
-                } else if (status.includes('Discharging')) {
-                    wattStr = '-' + formattedPower + 'W';
-                } else if (status.includes('Unknown')) {
+                if (status.includes('Charging'))
+                    wattStr = `+${formattedPower}W`;
+                else if (status.includes('Discharging'))
+                    wattStr = `-${formattedPower}W`;
+                else if (status.includes('Unknown'))
                     wattStr = '?';
-                } else {
-                    if (state === UPower.DeviceState.FULLY_CHARGED) {
-                        wattStr = '∞';
-                    }
-                }
+                else if (state === UPower.DeviceState.FULLY_CHARGED)
+                    wattStr = '∞';
             }
 
-            if (wattStr) {
+            if (wattStr)
                 displayParts.push(wattStr);
-            }
         }
 
         updateCircleIndicatorStatus(this._proxy, settings);
@@ -1218,20 +1404,20 @@ export default class BatteryPowerMonitor extends Extension {
         ensureBatteryIndicator(settings, this.path);
 
         // Override _sync to set custom title and control visibility
-        this._im.overrideMethod(Indicator.prototype, '_sync', function (_sync) {
+        this._im.overrideMethod(Indicator.prototype, '_sync', _sync => {
             return function () {
                 _sync.call(this);
 
                 const powerToggle = this._systemItem?.powerToggle;
-                if (!powerToggle || !settings) {
+                if (!powerToggle || !settings)
                     return;
-                }
+
                 const overrideFunc = _powerToggleSyncOverride(settings);
                 const hasOverride = overrideFunc.call(powerToggle);
 
-                const showLabelText = (settings.get_boolean('showpercentageoutside') && settings.get_boolean('percentage'))
-                    || settings.get_boolean('timeremaining')
-                    || settings.get_boolean('showwatts');
+                const showLabelText = (settings.get_boolean('showpercentageoutside') && settings.get_boolean('percentage')) ||
+                    settings.get_boolean('timeremaining') ||
+                    settings.get_boolean('showwatts');
                 const showIcon = settings.get_boolean('showicon');
                 const showCircle = settings.get_boolean('usecircleindicator');
                 const showStockIcon = showIcon && !showCircle && !batteryIndicator;
@@ -1242,13 +1428,12 @@ export default class BatteryPowerMonitor extends Extension {
                 );
                 if (this._icon) {
                     this._icon.visible = showStockIcon;
-                    if (showStockIcon) {
+                    if (showStockIcon)
                         this._icon.icon_name = 'battery-good-symbolic';
-                    }
                 }
-                if (powerToggle?.set_style) {
+                if (powerToggle?.set_style)
                     powerToggle.set_style(labelStyle);
-                }
+
                 powerToggle?._title?.set_style?.(labelStyle);
                 powerToggle?._titleLabel?.set_style?.(labelStyle);
                 this.visible = hasOverride && shouldShowIndicator;
@@ -1269,7 +1454,7 @@ export default class BatteryPowerMonitor extends Extension {
             'percentage', 'showpercentageoutside', 'timeremaining',
             'showwatts', 'showdecimals', 'hidecharging', 'hidefull', 'hideidle',
             'usecircleindicator', 'showcolored', 'forcebolt',
-            'interval', 'debug', 'loglevel', 'logtofile', 'logfilepath'
+            'interval', 'debug', 'loglevel', 'logtofile', 'logfilepath',
         ];
 
         // Initial sync of globals
@@ -1281,19 +1466,19 @@ export default class BatteryPowerMonitor extends Extension {
                 logDebug(`Setting changed: ${key}`);
 
                 // Update globals if debug settings changed
-                if (['debug', 'loglevel', 'logtofile', 'logfilepath'].includes(key)) {
+                if (['debug', 'loglevel', 'logtofile', 'logfilepath'].includes(key))
                     updateGlobalsFromSettings(this._settings);
-                }
+
 
                 // Update interval if interval changed
-                if (key === 'interval') {
+                if (key === 'interval')
                     this._updateInterval(this._settings);
-                }
+
 
                 ensureCircleIndicator(this._settings, this.path);
                 ensureBatteryIndicator(this._settings, this.path);
                 this._updateBatteryVisibility(this._settings);
-                this._getBattery((proxy) => {
+                this._getBattery(proxy => {
                     updateCircleIndicatorStatus(proxy, this._settings);
                     updateBatteryIndicatorStatus(proxy, this._settings);
                 });
@@ -1304,7 +1489,7 @@ export default class BatteryPowerMonitor extends Extension {
 
 
         // Watch battery for property changes
-        this._getBattery((proxy) => {
+        this._getBattery(proxy => {
             this._batteryWatching = proxy.connect('g-properties-changed', () => {
                 {
                     try {
@@ -1317,25 +1502,22 @@ export default class BatteryPowerMonitor extends Extension {
                 updateCircleIndicatorStatus(proxy, this._settings);
                 updateBatteryIndicatorStatus(proxy, this._settings);
                 this._syncToggle();
-
             });
         });
 
         this._updateBatteryVisibility(this._settings);
-        this._getBattery((proxy) => {
+        this._getBattery(proxy => {
             updateBatteryIndicatorStatus(proxy, this._settings);
         });
         this._syncToggle();
-
     }
 
     _getBattery(callback) {
-        let system = panel.statusArea.quickSettings._system;
-        if (system && system._systemItem._powerToggle) {
+        const system = panel.statusArea.quickSettings._system;
+        if (system && system._systemItem._powerToggle)
             callback(system._systemItem._powerToggle._proxy, system);
-        } else {
+        else
             logWarn('Failed to find system power indicator proxy');
-        }
     }
 
     _updateBatteryVisibility(settings) {
@@ -1376,22 +1558,13 @@ export default class BatteryPowerMonitor extends Extension {
             const hideIdle = settings.get_boolean('hideidle');
             const isIdle = proxy.State !== UPower.DeviceState.CHARGING && proxy.State !== UPower.DeviceState.DISCHARGING;
 
-            // Force log to console to bypass settings
-            console.error(`[BATTERY DEBUG] VISIBILITY CHECK:
-                state=${proxy.State} (${getObjectKey(UPower.DeviceState, proxy.State)})
-                hideIdle=${hideIdle}
-                isIdle=${isIdle}
-                hideFull=${settings.get_boolean('hidefull')}
-                hideCharging=${settings.get_boolean('hidecharging')}
-                showIcon=${showIcon}
-                showCircle=${showCircle}
-                showLabel=${showLabelText}
-                effectiveCircle=${effectiveCircle}
-                effectiveIcon=${effectiveIcon}
-            `);
+            // Debug visibility logic
+            if (DEBUG) 
+                logDebug(`VISIBILITY CHECK: state=${proxy.State} (${getObjectKey(UPower.DeviceState, proxy.State)}) hideIdle=${hideIdle} isIdle=${isIdle} hideFull=${settings.get_boolean('hidefull')} hideCharging=${settings.get_boolean('hidecharging')}`);
+             
 
             if (hideIdle && isIdle) {
-                console.error('[BATTERY DEBUG] Decision: Hiding because Idle');
+                logDebug('Hiding battery - idle');
                 shouldShow = false;
             }
 
@@ -1404,12 +1577,11 @@ export default class BatteryPowerMonitor extends Extension {
                 powerToggle.hide();
             }
 
-            if (circleIndicator) {
+            if (circleIndicator)
                 circleIndicator.visible = shouldShow && effectiveCircle;
-            }
-            if (batteryIndicator) {
+
+            if (batteryIndicator)
                 batteryIndicator.visible = shouldShow && effectiveIcon;
-            }
         });
     }
 
@@ -1439,7 +1611,7 @@ export default class BatteryPowerMonitor extends Extension {
 
         // Disconnect battery watching
         if (this._batteryWatching !== null) {
-            this._getBattery((proxy) => {
+            this._getBattery(proxy => {
                 proxy.disconnect(this._batteryWatching);
             });
             this._batteryWatching = null;

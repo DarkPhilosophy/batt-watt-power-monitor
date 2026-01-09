@@ -4,7 +4,7 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
-import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const BUILD_DATE = null;
 
@@ -151,7 +151,14 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             subtitle: _('Show time to full or time to empty'),
         });
         const timeRemainingSwitch = new Gtk.Switch({
-            active: (function () { try { return settings.get_boolean('timeremaining'); } catch (e) { log('batt-watt-power-monitor: missing key timeremaining, using default'); return false; } })(),
+            active: (function () {
+                try {
+                    return settings.get_boolean('timeremaining');
+                } catch (e) {
+                    log('batt-watt-power-monitor: missing key timeremaining, using default');
+                    return false;
+                }
+            })(),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
@@ -191,7 +198,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             model: Gtk.StringList.new(['AUTOMATIC', 'BAT0', 'BAT1', 'BAT2']),
         });
         batteryCombo.set_selected(settings.get_int('battery'));
-        batteryCombo.connect('notify::selected', (widget) => {
+        batteryCombo.connect('notify::selected', widget => {
             settings.set_int('battery', widget.get_selected());
         });
         settings.connect('changed::battery', () => {
@@ -349,7 +356,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             model: logLevelModel,
         });
         logLevelDropDown.set_selected(settings.get_int('loglevel'));
-        logLevelDropDown.connect('notify::selected', (widget) => {
+        logLevelDropDown.connect('notify::selected', widget => {
             settings.set_int('loglevel', widget.get_selected());
         });
         settings.connect('changed::loglevel', () => {
@@ -383,9 +390,8 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         settings.connect('changed::logfilepath', () => {
             const newValue = settings.get_string('logfilepath');
-            if (logPathEntry.get_text() !== newValue) {
+            if (logPathEntry.get_text() !== newValue)
                 logPathEntry.set_text(newValue);
-            }
         });
         logPathRow.add_suffix(logPathEntry);
         debugGroup.add(logPathRow);

@@ -20,3 +20,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Lint utility
+lint_check.sh

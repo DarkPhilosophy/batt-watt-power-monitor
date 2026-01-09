@@ -19,21 +19,15 @@
 <!-- LINT-RESULT-START -->
 ### Latest Linting Result
 > **Status**: ✅ **Passing**  
-> **Date**: 2026-01-09 11:29:34 UTC  
-> **Summary**: 0 errors, 1 warnings
+> **Date**: 2026-01-09 13:09:20 UTC  
+> **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
 > batt-watt-power-monitor@16.0.0 lint
-> eslint extension/
-
-
-/var/home/alexa/Projects/batt-watt-power-monitor/extension/extension.js
-  319:10  warning  '_loadChargingStrokeSvg' is defined but never used  no-unused-vars
-
-✖ 1 problem (0 errors, 1 warning)
+> eslint --config lint/eslintrc-extension.yml extension/
 ```
 
 </details>

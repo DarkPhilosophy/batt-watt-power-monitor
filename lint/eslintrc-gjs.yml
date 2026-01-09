@@ -1,5 +1,4 @@
 # https://gitlab.gnome.org/GNOME/gnome-shell-extensions/tree/main/lint
----
 # SPDX-License-Identifier: MIT OR LGPL-2.0-or-later
 # SPDX-FileCopyrightText: 2018 Claudio André <claudioandre.br@gmail.com>
 
@@ -9,30 +8,13 @@ extends: "eslint:recommended"
 plugins:
   - jsdoc
 rules:
+  # === FORMATTING: Spacing & Indentation ===
   array-bracket-newline:
     - error
     - consistent
   array-bracket-spacing:
     - error
     - never
-  array-callback-return: error
-  arrow-parens:
-    - error
-    - as-needed
-  arrow-spacing: error
-  block-scoped-var: error
-  block-spacing: error
-  brace-style: error
-  # Waiting for this to have matured a bit in eslint
-  # camelcase:
-  #   - error
-  #   - properties: never
-  #     allow: [^vfunc_, ^on_, _instance_init]
-  comma-dangle:
-    - error
-    - arrays: always-multiline
-      objects: always-multiline
-      functions: never
   comma-spacing:
     - error
     - before: false
@@ -41,21 +23,9 @@ rules:
     - error
     - last
   computed-property-spacing: error
-  curly:
-    - error
-    - multi-or-nest
-    - consistent
   dot-location:
     - error
     - property
-  eol-last: error
-  eqeqeq: error
-  func-call-spacing: error
-  func-name-matching: error
-  func-style:
-    - error
-    - declaration
-    - allowArrowFunctions: true
   indent:
     - error
     - 4
@@ -65,20 +35,6 @@ rules:
         - "CallExpression[callee.object.name=GObject][callee.property.name=registerClass] > ClassExpression:first-child"
       # Allow dedenting chained member expressions
       MemberExpression: "off"
-  jsdoc/check-alignment: error
-  jsdoc/check-param-names: error
-  jsdoc/check-tag-names: error
-  jsdoc/check-types: error
-  jsdoc/implements-on-classes: error
-  jsdoc/tag-lines:
-    - error
-    - any
-    - startLines: 1
-  jsdoc/require-jsdoc: error
-  jsdoc/require-param: error
-  jsdoc/require-param-description: error
-  jsdoc/require-param-name: error
-  jsdoc/require-param-type: error
   key-spacing:
     - error
     - beforeColon: false
@@ -87,23 +43,160 @@ rules:
     - error
     - before: true
       after: true
+  no-multi-spaces: error
+  no-spaced-func: error
+  no-tabs: error
+  no-trailing-spaces: error
+  object-curly-newline:
+    - error
+    - consistent: true
+      multiline: true
+  object-curly-spacing: error
+  semi-spacing:
+    - error
+    - before: false
+      after: true
+  space-before-blocks: error
+  space-before-function-paren:
+    - error
+    - named: never
+      anonymous: always
+      asyncArrow: always
+  space-in-parens: error
+  space-infix-ops:
+    - error
+    - int32Hint: false
+  space-unary-ops: error
+  spaced-comment: error
+  template-tag-spacing: error
+
+  # === FORMATTING: Braces, Quotes & Punctuation ===
+  arrow-parens:
+    - error
+    - as-needed
+  arrow-spacing: error
+  block-spacing: error
+  brace-style: error
+  comma-dangle:
+    - error
+    - arrays: always-multiline
+      objects: always-multiline
+      functions: never
+  curly:
+    - error
+    - multi-or-nest
+    - consistent
+  eol-last: error
+  func-call-spacing: error
   linebreak-style:
     - error
     - unix
+  new-parens: error
+  nonblock-statement-body-position:
+    - error
+    - below
+  padded-blocks:
+    - error
+    - never
+  quotes:
+    - error
+    - single
+    - avoidEscape: true
+  semi:
+    - error
+    - always
+  semi-style: error
+  switch-colon-spacing: error
+  template-curly-spacing: error
+  unicode-bom: error
+  wrap-iife:
+    - error
+    - inside
+  yield-star-spacing: error
+
+  # === NAMING & STYLE ===
+  camelcase:
+    - error
+    - properties: never
+  func-name-matching: error
+  func-style:
+    - error
+    - declaration
+    - allowArrowFunctions: true
   lines-between-class-members:
     - error
     - always
     - exceptAfterSingleLine: true
-  max-nested-callbacks: error
-  max-statements-per-line: error
-  new-parens: error
   no-array-constructor: error
-  no-await-in-loop: error
-  no-caller: error
+  no-new-object: error
+  object-shorthand: error
+  operator-assignment: error
+  operator-linebreak: error
+  yoda: error
+
+  # === CODE QUALITY: Variables & Scope ===
+  block-scoped-var: error
+  no-label-var: error
+  no-shadow: error
+  no-shadow-restricted-names: error
+  no-undef-init: error
+  no-unused-expressions: error
+  no-unused-vars:
+    - error
+    # Vars use a suffix _ instead of a prefix because of file-scope private vars
+    - varsIgnorePattern: (^unused|_$)
+      argsIgnorePattern: ^(unused|_)
+
+  # === CODE QUALITY: Comparison & Logic ===
+  array-callback-return: error
+  eqeqeq: error
   no-constant-condition:
     - error
     - checkLoops: false
   no-div-regex: error
+  no-implicit-coercion:
+    - error
+    - allow:
+        - "!!"
+  no-lonely-if: error
+  no-nested-ternary: error
+  no-self-compare: error
+  no-throw-literal: error
+  no-unneeded-ternary: error
+  prefer-numeric-literals: error
+  prefer-promise-reject-errors: error
+  symbol-description: error
+
+  # === CODE QUALITY: Async & Control Flow ===
+  no-await-in-loop: error
+  no-loop-func: error
+  no-return-assign: error
+  no-return-await: error
+  require-await: error
+
+  # === CODE QUALITY: Functions & Calls ===
+  max-nested-callbacks: error
+  max-statements-per-line: error
+  no-useless-call: error
+  no-useless-concat: error
+  no-useless-constructor: error
+  no-useless-rename: error
+  no-useless-return: error
+
+  # === CODE QUALITY: Strings & Templates ===
+  no-template-curly-in-string: error
+  prefer-rest-params: error
+  prefer-spread: error
+  prefer-template: error
+
+  # === CODE QUALITY: this & context ===
+  no-invalid-this: error
+  no-caller: error
+  no-iterator: error
+  no-proto: error
+  no-with: error
+
+  # === CODE QUALITY: Misc ===
   no-empty:
     - error
     - allowEmptyCatch: true
@@ -114,20 +207,7 @@ rules:
     - conditionalAssign: false
       nestedBinaryExpressions: false
       returnAssign: false
-  no-implicit-coercion:
-    - error
-    - allow:
-        - "!!"
-  no-invalid-this: error
-  no-iterator: error
-  no-label-var: error
-  no-lonely-if: error
-  no-loop-func: error
-  no-nested-ternary: error
-  no-new-object: error
-  no-new-wrappers: error
   no-octal-escape: error
-  no-proto: error
   no-prototype-builtins: "off"
   no-restricted-globals: [error, window]
   no-restricted-properties:
@@ -164,91 +244,23 @@ rules:
       message: _init() that only calls super._init() is unnecessary
     - selector: BinaryExpression[operator="instanceof"][right.name="Array"]
       message: Use Array.isArray()
-  no-return-assign: error
-  no-return-await: error
-  no-self-compare: error
-  no-shadow: error
-  no-shadow-restricted-names: error
-  no-spaced-func: error
-  no-tabs: error
-  no-template-curly-in-string: error
-  no-throw-literal: error
-  no-trailing-spaces: error
-  no-undef-init: error
-  no-unneeded-ternary: error
-  no-unused-expressions: error
-  no-unused-vars:
-    - error
-    # Vars use a suffix _ instead of a prefix because of file-scope private vars
-    - varsIgnorePattern: (^unused|_$)
-      argsIgnorePattern: ^(unused|_)
-  no-useless-call: error
-  no-useless-computed-key: error
-  no-useless-concat: error
-  no-useless-constructor: error
-  no-useless-rename: error
-  no-useless-return: error
   no-whitespace-before-property: error
-  no-with: error
-  nonblock-statement-body-position:
+
+  # === JSDoc Documentation ===
+  jsdoc/check-alignment: error
+  jsdoc/check-param-names: error
+  jsdoc/check-tag-names: error
+  jsdoc/check-types: error
+  jsdoc/implements-on-classes: error
+  jsdoc/tag-lines:
     - error
-    - below
-  object-curly-newline:
-    - error
-    - consistent: true
-      multiline: true
-  object-curly-spacing: error
-  object-shorthand: error
-  operator-assignment: error
-  operator-linebreak: error
-  padded-blocks:
-    - error
-    - never
-  # These may be a bit controversial, we can try them out and enable them later
-  # prefer-const: error
-  # prefer-destructuring: error
-  prefer-numeric-literals: error
-  prefer-promise-reject-errors: error
-  prefer-rest-params: error
-  prefer-spread: error
-  prefer-template: error
-  quotes:
-    - error
-    - single
-    - avoidEscape: true
-  require-await: error
-  rest-spread-spacing: error
-  semi:
-    - error
-    - always
-  semi-spacing:
-    - error
-    - before: false
-      after: true
-  semi-style: error
-  space-before-blocks: error
-  space-before-function-paren:
-    - error
-    - named: never
-      # for `function ()` and `async () =>`, preserve space around keywords
-      anonymous: always
-      asyncArrow: always
-  space-in-parens: error
-  space-infix-ops:
-    - error
-    - int32Hint: false
-  space-unary-ops: error
-  spaced-comment: error
-  switch-colon-spacing: error
-  symbol-description: error
-  template-curly-spacing: error
-  template-tag-spacing: error
-  unicode-bom: error
-  wrap-iife:
-    - error
-    - inside
-  yield-star-spacing: error
-  yoda: error
+    - any
+    - startLines: 1
+  jsdoc/require-jsdoc: error
+  jsdoc/require-param: error
+  jsdoc/require-param-description: error
+  jsdoc/require-param-name: error
+  jsdoc/require-param-type: error
 settings:
   jsdoc:
     mode: typescript

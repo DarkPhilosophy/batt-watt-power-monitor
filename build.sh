@@ -2,6 +2,49 @@
 
 set -e
 
+# Parse arguments
+FIX_MODE=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -fix|--fix)
+            FIX_MODE=true
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: ./build.sh [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -fix, --fix    Auto-fix linting issues before build"
+            echo "  -h, --help     Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# Lint check
+echo "Checking code quality..."
+if npm run lint > /dev/null 2>&1; then
+    echo "✓ Linting passed"
+elif [ "$FIX_MODE" = true ]; then
+    echo "⚠ Linting issues found, auto-fixing..."
+    npm run lint:fix
+    if npm run lint > /dev/null 2>&1; then
+        echo "✓ Linting passed after auto-fix"
+    else
+        echo "✗ Linting still failing after auto-fix. Please review manually:" >&2
+        npm run lint
+        exit 1
+    fi
+else
+    echo "✗ Linting failed. Fix issues or run: ./build.sh -fix" >&2
+    npm run lint
+    exit 1
+fi
+
 # Sync version from package.json
 echo "Syncing version..."
 node scripts/sync-version.js
