@@ -37,7 +37,6 @@ cp "$PROJECT_DIR/extension/extension.js" "$TEMP_DIR/"
 cp "$PROJECT_DIR/extension/prefs.js" "$TEMP_DIR/"
 cp "$PROJECT_DIR/extension/metadata.json" "$TEMP_DIR/"
 cp "$PROJECT_DIR/extension/bolt.svg" "$TEMP_DIR/"
-cp "$PROJECT_DIR/extension/bolt_stroke.svg" "$TEMP_DIR/"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$TEMP_DIR/schemas/" 2>/dev/null || true
 
 # Create zip package - files at root level, not in subdirectory
