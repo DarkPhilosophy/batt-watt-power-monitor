@@ -45,7 +45,7 @@ mkdir -p "$EXTENSION_DIR/schemas"
 
 # Copy files directly
 echo "Installing files..."
-cp "$PROJECT_DIR/extension/extension.js" "$PROJECT_DIR/extension/prefs.js" "$PROJECT_DIR/extension/metadata.json" "$PROJECT_DIR/extension/charging.svg" "$EXTENSION_DIR/"
+cp "$PROJECT_DIR/extension/extension.js" "$PROJECT_DIR/extension/prefs.js" "$PROJECT_DIR/extension/metadata.json" "$PROJECT_DIR/extension/bolt.svg" "$PROJECT_DIR/extension/bolt_stroke.svg" "$EXTENSION_DIR/"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$EXTENSION_DIR/schemas/"
 
 BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")

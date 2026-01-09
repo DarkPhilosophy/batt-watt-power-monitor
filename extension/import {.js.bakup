@@ -61,7 +61,7 @@ let batteryIndicatorStockIcon = null;
 let batteryIndicatorWasVisible = null;
 let shouldShowIndicator = true;
 
-
+const CIRCLE_PANEL_SIZE_RATIO = 0.75;
 const CIRCLE_MIN_SIZE = 12;
 const CIRCLE_RING_OUTER_PADDING = 2;
 const CIRCLE_RING_INNER_RATIO = 0.9;
@@ -73,7 +73,7 @@ const CIRCLE_CHARGING_ICON_SPACING = 1.05;
 const CIRCLE_LOW_BATTERY_THRESHOLD = 50;
 const CIRCLE_SIZE_SCALE = 1.48;
 const BATTERY_MIN_SIZE = 12;
-
+const BATTERY_OUTER_PADDING = 2;
 
 function getRingColor(percentage) {
     let red = 0;
@@ -201,7 +201,7 @@ function logMessage(msg, level = LogLevel.DEBUG) {
     }
 
     const timestamp = new Date().toISOString();
-    const prefix = `${timestamp} ${LOG_LEVEL_NAMES[level]} [Battery Power Monitor]`;
+    const prefix = `${timestamp} ${LOG_LEVEL_NAMES[level]} [BatConsumptionWattmeter]`;
     const output = `${prefix} ${msg}`;
 
     if (level >= LogLevel.WARN) {
@@ -233,7 +233,7 @@ function ensureLogDirectory(path) {
         try {
             parent.make_directory_with_parents(null);
         } catch (error) {
-            console.error(`[Battery Power Monitor] Failed to create log dir: ${error.message}`);
+            console.error(`[BatConsumptionWattmeter] Failed to create log dir: ${error.message}`);
         }
     }
 }
@@ -249,14 +249,14 @@ function rotateLogFile(path) {
         try {
             oldFile.delete(null);
         } catch (error) {
-            console.error(`[Battery Power Monitor] Failed to delete old log: ${error.message}`);
+            console.error(`[BatConsumptionWattmeter] Failed to delete old log: ${error.message}`);
         }
     }
 
     try {
         file.move(oldFile, Gio.FileCopyFlags.OVERWRITE, null, null);
     } catch (error) {
-        console.error(`[Battery Power Monitor] Failed to rotate log: ${error.message}`);
+        console.error(`[BatConsumptionWattmeter] Failed to rotate log: ${error.message}`);
     }
 }
 
@@ -278,7 +278,7 @@ function appendLogLine(path, line) {
         stream.write_all(output, null);
         stream.close(null);
     } catch (error) {
-        console.error(`[Battery Power Monitor] Failed to write log: ${error.message}`);
+        console.error(`[BatConsumptionWattmeter] Failed to write log: ${error.message}`);
     }
 }
 
@@ -311,7 +311,7 @@ function loadChargingSvg(extensionPath, red, green, blue) {
 
         return tintSurface;
     } catch (error) {
-        logError(`Failed to load charging icon: ${error.message}`);
+        logDebug(`Failed to load charging icon: ${error.message}`);
         return null;
     }
 }
@@ -595,7 +595,8 @@ const BatteryIndicator = GObject.registerClass(
             const desiredHeight = this._status.height ?? height;
             const drawWidth = Math.min(width, desiredWidth);
             const drawHeight = Math.min(height, desiredHeight);
-
+            const offsetX = (width - drawWidth) / 2;
+            const offsetY = (height - drawHeight) / 2;
 
             context.setSourceRGBA(0, 0, 0, 0);
             context.setOperator(Cairo.Operator.CLEAR);
@@ -606,20 +607,18 @@ const BatteryIndicator = GObject.registerClass(
 
             const centerX = width / 2;
             const centerY = height / 2;
-            // Flexible Layout Logic
-            // We want to fit [Bolt] [Gap] [Battery] into drawWidth
-
             const iconWidth = drawWidth * 0.9;
             const iconHeight = drawHeight * 0.9;
 
             // Flexible Layout Logic
             // We want to fit [Bolt] [Gap] [Battery] into drawWidth
+
             const gap = -2; // Slightly overlap bolt for tight look
             let boltWidth = 0;
             let boltHeight = 0;
             let boltScale = 0;
             let svgSurface = null;
-
+            let strokeSurface = null;
 
             // Pre-calculate Bolt dimensions if needed
             if (this._status.isCharging || this._status.forceBolt) {
@@ -630,6 +629,7 @@ const BatteryIndicator = GObject.registerClass(
                     boltHeight = iconHeight * 0.75; // Use max available height for bolt
                     boltScale = boltHeight / svgHeight;
                     boltWidth = svgWidth * boltScale;
+                    strokeSurface = loadChargingStrokeSvg(this._extensionPath);
                 }
             }
 
@@ -644,54 +644,43 @@ const BatteryIndicator = GObject.registerClass(
             // Apply 0.9 scale factor consistent with iconHeight (padding)
             let batteryDrawWidth = rawBatteryW * 0.9;
 
-            // OVERLAY LAYOUT: No compression. Battery determines width.
+            if (boltWidth > 0) {
+                const availableForBattery = iconWidth - boltWidth - gap;
+                if (batteryDrawWidth > availableForBattery) {
+                    batteryDrawWidth = Math.max(BATTERY_MIN_SIZE, availableForBattery);
+                }
+            }
 
-            // Center the BATTERY BODY only. Bolt is an overlay on the left.
-            // Center the BATTERY BODY only. Bolt is an overlay on the left.
+            // Determine Start X to center the group [Bolt-Gap-Battery]
+            const totalGroupWidth = boltWidth > 0 ? (boltWidth + gap + batteryDrawWidth) : batteryDrawWidth;
+            const startX = centerX - totalGroupWidth / 2;
 
-            // Draw Battery Body (First)
-            const batteryCenterX = centerX; // Battery is centered
-            // Note: passing batteryDrawWidth as layout width
-            drawBatteryIcon(context, batteryCenterX, centerY, batteryDrawWidth, iconHeight,
-                this._status.percentage, red, green, blue, 0.7, 0.75, false);
-
-            // Draw Bolt (Second - Overlay Badge)
+            // Draw Bolt
             if (boltWidth > 0 && svgSurface) {
-                // Align to left of battery body stroke (ratio 0.7)
-                const bodyWidth = batteryDrawWidth * 0.7;
-                const iconX = (centerX - bodyWidth / 2) - 2;
+                const iconX = startX;
                 const iconY = centerY - boltHeight / 2;
 
                 context.save();
                 context.scale(boltScale, boltScale);
-
-                // 1. Draw Simulated Stroke (Black Bolt with offsets)
-                // Load black bolt (using 0,0,0 RGB)
-                // Note: ideally cache this interaction
-                const blackSurface = loadChargingSvg(this._extensionPath, 0, 0, 0);
-
-                if (blackSurface) {
-                    // Loop -2 to 2 for stroke (matching text logic)
-                    // Divide offsets by scale to ensure screen-pixel thickness
-                    const step = 1 / boltScale; // 1 screen pixel
-                    // User requested loop -2 to 2 (thick stroke)
-                    for (let dx = -2; dx <= 2; dx++) {
-                        for (let dy = -2; dy <= 2; dy++) {
-                            if (dx !== 0 || dy !== 0) {
-                                // Draw black surface at offset
-                                context.setSourceSurface(blackSurface, (iconX / boltScale) + (dx * step), (iconY / boltScale) + (dy * step));
-                                context.paint();
-                            }
-                        }
-                    }
-                }
-
-                // 2. Draw Colored Bolt
                 context.setSourceSurface(svgSurface, iconX / boltScale, iconY / boltScale);
                 context.paint();
-
                 context.restore();
+
+                if (strokeSurface) {
+                    context.save();
+                    context.scale(boltScale, boltScale);
+                    context.setSourceSurface(strokeSurface, iconX / boltScale, iconY / boltScale);
+                    context.paint();
+                    context.restore();
+                }
             }
+
+            // Draw Battery Body
+            const batteryCenterX = startX + (boltWidth > 0 ? (boltWidth + gap) : 0) + batteryDrawWidth / 2;
+
+            // Note: passing batteryDrawWidth as layout width
+            drawBatteryIcon(context, batteryCenterX, centerY, batteryDrawWidth, iconHeight,
+                this._status.percentage, red, green, blue, 0.7, 0.75, false);
 
             // Draw Text (Centered in Battery)
             if (this._status.showText) {
@@ -736,10 +725,12 @@ const BatteryIndicator = GObject.registerClass(
         }
     });
 
-
+function circleIndicatorEnabled(settings) {
+    return settings && settings.get_boolean('usecircleindicator');
+}
 
 function ensureCircleIndicator(settings, extensionPath) {
-    if (!settings.get_boolean('usecircleindicator')) {
+    if (!circleIndicatorEnabled(settings)) {
         destroyCircleIndicator();
         return;
     }
@@ -800,7 +791,7 @@ function destroyCircleIndicator() {
 }
 
 function updateCircleIndicatorStatus(proxy, settings) {
-    if (!settings.get_boolean('usecircleindicator') || !circleIndicator || !proxy) {
+    if (!circleIndicatorEnabled(settings) || !circleIndicator || !proxy) {
         return;
     }
 
@@ -815,7 +806,7 @@ function updateCircleIndicatorStatus(proxy, settings) {
 }
 
 function batteryIndicatorEnabled(settings) {
-    return settings && settings.get_boolean('showicon') && !settings.get_boolean('usecircleindicator');
+    return settings && settings.get_boolean('showicon') && !circleIndicatorEnabled(settings);
 }
 
 function ensureBatteryIndicator(settings, extensionPath) {
@@ -907,8 +898,9 @@ function updateBatteryIndicatorStatus(proxy, settings) {
 
     const batteryW = getBatteryWidth(settings);
     const height = getBatteryHeight(settings);
-    // STRICT WIDTH: No expansion. Bolt shares space or compresses battery (Sibling Layout).
-    const desiredWidth = batteryW;
+    // Expand widget width if charging to fit the bolt side-by-side
+    const extraForBolt = isCharging ? Math.round(height * 0.6) : 0;
+    const desiredWidth = batteryW + extraForBolt;
 
     batteryIndicator.set_style(`width: ${desiredWidth}px; height: ${height}px; min-width: ${desiredWidth}px; min-height: ${height}px;`);
     batteryIndicator.queue_relayout();
@@ -1007,7 +999,7 @@ function getPower(correction) {
 
     {
         const energyNow = getValue(path + 'energy_now');
-        logDebug(`Raw Power: ${val} W | Energy Now: ${energyNow} Wh`);
+        console.log(`[BatConsumptionWattmeter] Raw Power: ${val} W | Energy Now: ${energyNow} Wh`);
     }
 
     return val;
@@ -1148,13 +1140,13 @@ const _powerToggleSyncOverride = function (settings) {
             }
         } else {
             const title = displayParts.join(' ');
-            this.title = settings.get_boolean('usecircleindicator') ? ` ${title}` : title;
+            this.title = circleIndicatorEnabled(settings) ? ` ${title}` : title;
             return true;
         }
     };
 };
 
-export default class BatteryPowerMonitor extends Extension {
+export default class BatConsumptionWattmeter extends Extension {
     enable() {
         const buildDate = new Date().toISOString();
         this._im = new InjectionManager();
@@ -1188,8 +1180,8 @@ export default class BatteryPowerMonitor extends Extension {
         };
 
 
-        logInfo('\n[Battery Power Monitor] ===== EXTENSION ENABLED =====');
-        logInfo(`[Battery Power Monitor] Build date: ${buildDate}`);
+        logDebug('\n[Battery Power Monitor] ===== EXTENSION ENABLED =====');
+        logDebug(`[Battery Power Monitor] Build date: ${buildDate}`);
 
         updateLogSettings();
         this._debugConnection = this._settings.connect('changed::debug', updateLogSettings);
@@ -1216,7 +1208,7 @@ export default class BatteryPowerMonitor extends Extension {
                     || settings.get_boolean('timeremaining')
                     || settings.get_boolean('showwatts');
                 const showIcon = settings.get_boolean('showicon');
-                const showCircle = settings.get_boolean('usecircleindicator');
+                const showCircle = circleIndicatorEnabled(settings);
                 const showStockIcon = showIcon && !showCircle && !batteryIndicator;
                 const percentageValue = this._proxy?.Percentage ?? powerToggle?._proxy?.Percentage;
                 const labelStyle = getLabelStyleFromPercentage(
@@ -1291,9 +1283,9 @@ export default class BatteryPowerMonitor extends Extension {
             this._batteryWatching = proxy.connect('g-properties-changed', () => {
                 {
                     try {
-                        logDebug(`Event: g-properties-changed. Rate=${proxy.EnergyRate}, State=${proxy.State}`);
+                        console.log(`[BatConsumptionWattmeter] Event: g-properties-changed. Rate=${proxy.EnergyRate}, State=${proxy.State}`);
                     } catch (e) {
-                        logWarn(`Event: g-properties-changed (Error reading proxy: ${e.message})`);
+                        console.log(`[BatConsumptionWattmeter] Event: g-properties-changed (Error reading proxy: ${e.message})`);
                     }
                 }
                 this._updateBatteryVisibility(this._settings);
@@ -1316,8 +1308,6 @@ export default class BatteryPowerMonitor extends Extension {
         let system = panel.statusArea.quickSettings._system;
         if (system && system._systemItem._powerToggle) {
             callback(system._systemItem._powerToggle._proxy, system);
-        } else {
-            logWarn('Failed to find system power indicator proxy');
         }
     }
 
@@ -1388,7 +1378,7 @@ export default class BatteryPowerMonitor extends Extension {
 
         const interval = settings.get_int('interval');
         if (interval > 0) {
-            logInfo(`Setting refresh interval to ${interval} seconds`);
+            logDebug(`Setting refresh interval to ${interval} seconds`);
             this._refreshTimeoutId = GLib.timeout_add_seconds(GLib.PRIORITY_DEFAULT, interval, () => {
                 this._syncToggle();
                 return GLib.SOURCE_CONTINUE;
@@ -1397,7 +1387,6 @@ export default class BatteryPowerMonitor extends Extension {
     }
 
     disable() {
-        logInfo('[Battery Power Monitor] ===== EXTENSION DISABLED =====');
         // Clear interval
         if (this._refreshTimeoutId) {
             GLib.source_remove(this._refreshTimeoutId);

@@ -89,8 +89,9 @@ jobs:
         git config --global user.name 'GitHub Action'
         git config --global user.email 'action@github.com'
         # Check if README.md has changed
-        if [[ -n $(git status --porcelain README.md) ]]; then
-          git add README.md
+        # Check if .github/README.md has changed
+        if [[ -n $(git status --porcelain .github/README.md) ]]; then
+          git add .github/README.md
           git commit -m "Docs: Update version badges and CI linting results [skip ci]"
           git push
         else
