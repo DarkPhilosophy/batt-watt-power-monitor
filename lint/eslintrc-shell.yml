@@ -4,16 +4,19 @@
 # SPDX-License-Identifier: MIT OR LGPL-2.0-or-later
 
 rules:
-  camelcase:
-    - error
-    - properties: never
-      allow: [^vfunc_, ^on_]
-  consistent-return: error
-  eqeqeq:
-    - error
-    - smart
-  prefer-arrow-callback: error
+   camelcase:
+     - error
+     - properties: never
+       allow: [^vfunc_, ^on_]
+   consistent-return: error
+   eqeqeq:
+     - error
+     - smart
+   prefer-arrow-callback: error
+
 globals:
-  global: readonly
+   global: readonly
+
 parserOptions:
-  sourceType: module
+   ecmaVersion: 2022
+   sourceType: module
