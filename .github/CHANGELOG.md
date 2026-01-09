@@ -18,6 +18,7 @@
 - **Circular Icon**: Larger inner battery icon with a visible, outlined charging bolt.
 - **Overlay Layout**: The charging bolt is now an overlay badge, ensuring strict adherence to the configured battery width without expansion.
 - **Procedural Stroke**: Implemented high-quality procedural outline for the charging bolt to ensure perfect visibility on all backgrounds.
+- **Circular Text Outline**: Added a black outline to the circular percentage text to match the battery stroke.
 - **Independent Sizing**: Battery Bar Width and Height settings are now fully decoupled, allowing precise aspect ratio control. Battery Circular Size setting controls the diameter of the circular indicator.
 - **Settings Organization**: Preferences are now fracmented and restructured into dedicated **General**, **Battery Bar / Circular** (dynamic change), and **Debug** pages for better navigation.
 

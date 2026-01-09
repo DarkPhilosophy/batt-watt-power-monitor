@@ -11,7 +11,7 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v15-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v16-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
 <!-- EGO-VERSION-END -->
 
 ## Validation Status
@@ -19,8 +19,8 @@
 <!-- LINT-RESULT-START -->
 ### Latest Linting Result
 > **Status**: ✅ **Passing**  
-> **Date**: 2026-01-09 08:53:32 UTC  
-> **Summary**: 0 errors, 2 warnings
+> **Date**: 2026-01-09 11:29:34 UTC  
+> **Summary**: 0 errors, 1 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
@@ -31,10 +31,9 @@
 
 
 /var/home/alexa/Projects/batt-watt-power-monitor/extension/extension.js
-  612:19  warning  'iconWidth' is assigned a value but never used  no-unused-vars
-  617:19  warning  'gap' is assigned a value but never used        no-unused-vars
+  319:10  warning  '_loadChargingStrokeSvg' is defined but never used  no-unused-vars
 
-✖ 2 problems (0 errors, 2 warnings)
+✖ 1 problem (0 errors, 1 warning)
 ```
 
 </details>
@@ -58,6 +57,7 @@
 - **Circular Icon**: Larger inner battery icon with a visible, outlined charging bolt.
 - **Overlay Layout**: The charging bolt is now an overlay badge, ensuring strict adherence to the configured battery width without expansion.
 - **Procedural Stroke**: Implemented high-quality procedural outline for the charging bolt to ensure perfect visibility on all backgrounds.
+- **Circular Text Outline**: Added a black outline to the circular percentage text to match the battery stroke.
 - **Independent Sizing**: Battery Bar Width and Height settings are now fully decoupled, allowing precise aspect ratio control. Battery Circular Size setting controls the diameter of the circular indicator.
 - **Settings Organization**: Preferences are now fracmented and restructured into dedicated **General**, **Battery Bar / Circular** (dynamic change), and **Debug** pages for better navigation.
 - **Layout**: Fixed "Double Width" issue where specific combinations of settings caused the widget to expand incorrectly.

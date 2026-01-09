@@ -316,7 +316,7 @@ function loadChargingSvg(extensionPath, red, green, blue) {
     }
 }
 
-function loadChargingStrokeSvg(extensionPath) {
+function _loadChargingStrokeSvg(extensionPath) {
     try {
         const svgPath = `${extensionPath}/bolt_stroke.svg`;
         const handle = Rsvg.Handle.new_from_file(svgPath);
@@ -406,14 +406,14 @@ function drawBoltIcon(context, extensionPath, centerX, centerY, boltHeight, red,
     context.paint();
     context.restore();
 
-    const strokeSurface = loadChargingStrokeSvg(extensionPath);
+    /*const strokeSurface = _loadChargingStrokeSvg(extensionPath);
     if (strokeSurface) {
         context.save();
         context.scale(scale, scale);
         context.setSourceSurface(strokeSurface, boltX / scale, boltY / scale);
         context.paint();
         context.restore();
-    }
+    }*/
 }
 
 // Based on batteryIcon by slim8916 (MIT). Adapted and integrated here.
@@ -464,14 +464,14 @@ const CircleIndicator = GObject.registerClass(
             context.paint();
             context.restore();
 
-            const strokeSurface = loadChargingStrokeSvg(this._extensionPath);
+            /*const strokeSurface = _loadChargingStrokeSvg(this._extensionPath);
             if (strokeSurface) {
                 context.save();
                 context.scale(scale, scale);
                 context.setSourceSurface(strokeSurface, iconX / scale, iconY / scale);
                 context.paint();
                 context.restore();
-            }
+            }*/
 
             return textX;
         }
@@ -526,6 +526,8 @@ const CircleIndicator = GObject.registerClass(
                 context.setSourceRGB(red, green, blue);
                 context.moveTo(textX, textY);
                 context.showText(text);
+                context.setLineWidth(Math.max(1, Math.round(height * 0.05)));
+                context.setSourceRGB(0, 0, 0);
                 context.stroke();
             } else {
                 const iconWidth = innerRadius * 1.95;
@@ -591,9 +593,9 @@ const BatteryIndicator = GObject.registerClass(
             const context = area.get_context();
             const [width, height] = area.get_surface_size();
             logDebug(`_onRepaint: surfW=${width}, statusBatW=${this._status.batteryWidth}`);
-            const desiredWidth = this._status.width ?? width;
+
             const desiredHeight = this._status.height ?? height;
-            const drawWidth = Math.min(width, desiredWidth);
+
             const drawHeight = Math.min(height, desiredHeight);
 
 
@@ -609,12 +611,11 @@ const BatteryIndicator = GObject.registerClass(
             // Flexible Layout Logic
             // We want to fit [Bolt] [Gap] [Battery] into drawWidth
 
-            const iconWidth = drawWidth * 0.9;
+
             const iconHeight = drawHeight * 0.9;
 
             // Flexible Layout Logic
             // We want to fit [Bolt] [Gap] [Battery] into drawWidth
-            const gap = -2; // Slightly overlap bolt for tight look
             let boltWidth = 0;
             let boltHeight = 0;
             let boltScale = 0;
@@ -990,6 +991,15 @@ function getValue(pathToFile) {
     return value === -1 ? value : value / 1000000;
 }
 
+function getObjectKey(obj, value) {
+    for (const key in obj) {
+        if (obj[key] === value) {
+            return key;
+        }
+    }
+    return 'Unknown';
+}
+
 function getPower(correction) {
     if (!correction || !correction['path']) {
         correction = getAutopath();
@@ -1138,14 +1148,21 @@ const _powerToggleSyncOverride = function (settings) {
             return false;
         }
 
-        // If nothing to display, check if percentage is enabled
+        // If nothing to display, keep icon visible when enabled
         if (displayParts.length === 0) {
             if (showPercentageText) {
                 this.title = percentage;
                 return true;
-            } else {
-                return false;
             }
+
+            const showIcon = settings.get_boolean('showicon');
+            const showCircle = settings.get_boolean('usecircleindicator');
+            if (showIcon || showCircle) {
+                this.title = '';
+                return true;
+            }
+
+            return false;
         } else {
             const title = displayParts.join(' ');
             this.title = settings.get_boolean('usecircleindicator') ? ` ${title}` : title;
@@ -1358,8 +1375,23 @@ export default class BatteryPowerMonitor extends Extension {
             // Check hide when idle
             const hideIdle = settings.get_boolean('hideidle');
             const isIdle = proxy.State !== UPower.DeviceState.CHARGING && proxy.State !== UPower.DeviceState.DISCHARGING;
+
+            // Force log to console to bypass settings
+            console.error(`[BATTERY DEBUG] VISIBILITY CHECK:
+                state=${proxy.State} (${getObjectKey(UPower.DeviceState, proxy.State)})
+                hideIdle=${hideIdle}
+                isIdle=${isIdle}
+                hideFull=${settings.get_boolean('hidefull')}
+                hideCharging=${settings.get_boolean('hidecharging')}
+                showIcon=${showIcon}
+                showCircle=${showCircle}
+                showLabel=${showLabelText}
+                effectiveCircle=${effectiveCircle}
+                effectiveIcon=${effectiveIcon}
+            `);
+
             if (hideIdle && isIdle) {
-                logDebug('Hiding battery - idle');
+                console.error('[BATTERY DEBUG] Decision: Hiding because Idle');
                 shouldShow = false;
             }
 
@@ -1368,6 +1400,7 @@ export default class BatteryPowerMonitor extends Extension {
                 logDebug('Showing battery');
                 powerToggle.show();
             } else {
+                logWarn('Hiding battery - toggle hidden');
                 powerToggle.hide();
             }
 

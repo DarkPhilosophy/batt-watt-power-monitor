@@ -12,6 +12,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
         const settings = this.getSettings();
         window.default_width = 900;
+        window.set_title(_('Battery Power Monitor: Watts & Time Extension'));
 
         const page = new Adw.PreferencesPage({
             title: _('General'),
@@ -23,28 +24,35 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('Debug'),
         });
 
+        /*
+         * Version Information
+         */
         const versionName = this.metadata['version-name'] ?? this.metadata.version ?? 'Unknown';
         const versionLabel = _('Version ') + versionName;
         const mainGroup = new Adw.PreferencesGroup({
-            title: _('BATTERY CONSUMPTION WATT METER'),
-            description: versionLabel,
+            title: _('Battery Power Monitor'),
+            description: _(`${versionLabel}`),
         });
         const updateDescription = () => {
             if (settings.get_boolean('debug')) {
                 const buildDate = BUILD_DATE ? BUILD_DATE : _('Undefined');
-                mainGroup.description = versionLabel + ' - ' + _('Build: ') + buildDate;
+                mainGroup.description = _(`${versionLabel} - ${_('Build: ')}${buildDate}`);
             } else {
-                mainGroup.description = versionLabel;
+                mainGroup.description = _(`${versionLabel}`);
             }
         };
         settings.connect('changed::debug', updateDescription);
         updateDescription();
         page.add(mainGroup);
 
+        /*
+         * Project Link
+         */
         const linkRow = new Adw.ActionRow({
             title: _('Project Homepage'),
             subtitle: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
         });
+
         const linkButton = new Gtk.LinkButton({
             uri: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
             icon_name: 'go-next-symbolic',
@@ -53,6 +61,9 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         linkRow.add_suffix(linkButton);
         mainGroup.add(linkRow);
 
+        /*
+         * Settings
+         */
         const settingsGroup = new Adw.PreferencesGroup({
             title: _('Display Settings'),
         });
