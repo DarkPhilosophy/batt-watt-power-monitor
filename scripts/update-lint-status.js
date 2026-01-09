@@ -13,12 +13,14 @@ let statusText = 'Passing';
 let exitCode = 0;
 
 try {
-    // Run eslint and capture output
+    // Run linter and capture output
     // We use try-catch because execSync throws on non-zero exit code (lint errors)
-    lintOutput = execSync('npm run lint', { cwd: PROJECT_DIR, encoding: 'utf8' });
+    // npm run lint now uses ./lint_check.sh with comprehensive YAML configs
+    lintOutput = execSync('npm run lint', { cwd: PROJECT_DIR, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
 } catch (error) {
-    lintOutput = error.stdout || error.message;
-    exitCode = 1;
+    // Capture both stdout and stderr
+    lintOutput = (error.stdout || '') + (error.stderr || '') || error.message;
+    exitCode = error.status || 1;
     statusIcon = '❌';
     statusText = 'Failed';
 }

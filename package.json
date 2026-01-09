@@ -3,7 +3,9 @@
   "version": "16.0.0",
   "description": "GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.",
   "scripts": {
-    "lint": "eslint extension/",
+    "lint": "eslint --config lint/eslintrc-extension.yml extension/",
+    "lint:fix": "eslint --fix --config lint/eslintrc-extension.yml extension/",
+    "lint:status": "node scripts/update-lint-status.js",
     "package": "./package.sh"
   },
   "repository": {
@@ -20,6 +22,7 @@
   "author": "DarkPhilosophy",
   "license": "GPL-3.0-or-later",
   "devDependencies": {
-    "eslint": "^8.56.0"
+    "eslint": "^8.56.0",
+    "eslint-plugin-jsdoc": "^46.0.3"
   }
 }

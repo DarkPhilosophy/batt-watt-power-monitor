@@ -26,7 +26,11 @@ jobs:
       run: npm install
 
     - name: Lint JavaScript
-      run: npx eslint extension/extension.js extension/prefs.js
+      run: npm run lint
+
+    - name: Update Lint Status in README
+      if: always()
+      run: npm run lint:status
 
     - name: Validate Schemas
       run: glib-compile-schemas --strict --dry-run extension/schemas/
