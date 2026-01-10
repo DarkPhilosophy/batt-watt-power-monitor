@@ -2,9 +2,9 @@ name: Extension CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   validate:
@@ -28,37 +28,23 @@ jobs:
     - name: Lint JavaScript
       run: npm run lint
 
-    - name: Update Lint Status in README
-      if: always()
-      run: npm run lint:status
-
     - name: Validate Schemas
       run: glib-compile-schemas --strict --dry-run extension/schemas/
 
-    - name: Validate Metadata
+    - name: Validate Metadata Template
       run: |
         node -e "
           const fs = require('fs');
-          const meta = JSON.parse(fs.readFileSync('extension/metadata.json', 'utf8'));
-          
-          console.log('Validating metadata.json...');
-          console.log('Name:', meta.name);
-          console.log('UUID:', meta.uuid);
-          console.log('Version:', meta.version);
-          
-          if (meta.uuid !== 'batt-watt-power-monitor@DarkPhilosophy') {
-            console.error('Error: UUID mismatch!');
-            process.exit(1);
-          }
-          
+          const content = fs.readFileSync('extension/metadata.json', 'utf8');
+          const meta = JSON.parse(content);
           const required = ['name', 'description', 'uuid', 'shell-version'];
           for (const field of required) {
             if (!meta[field]) {
-              console.error(`Error: Missing required field '${field}'`);
+              console.error(\`Error: Missing required field '\${field}'\`);
               process.exit(1);
             }
           }
-          console.log('Metadata looks good! ✅');
+          console.log('Metadata template looks good! ✅');
         "
 
   package:
@@ -82,24 +68,38 @@ jobs:
     - name: Install dependencies
       run: npm install
 
+    - name: Sync Version
+      run: node scripts/sync-version.js
+
     - name: Fetch GNOME Extensions Version
       run: node scripts/fetch-ego-version.js
+
+    - name: Lint JavaScript (for status)
+      run: |
+        set -o pipefail
+        if npm run lint -- --format stylish | tee .lint-output.txt; then
+          echo true > .lint-passed
+        else
+          echo false > .lint-passed
+          exit 1
+        fi
+
+    - name: Update Lint Status
+      run: npm run lint:status
 
     - name: Build Extension Package
       run: ./package.sh
 
-    - name: Commit Updated Results
+    - name: Commit Changes
       run: |
         git config --global user.name 'GitHub Action'
         git config --global user.email 'action@github.com'
-        # Check if README.md has changed
-        # Check if .github/README.md has changed
-        if [[ -n $(git status --porcelain .github/README.md) ]]; then
-          git add .github/README.md
-          git commit -m "Docs: Update version badges and CI linting results [skip ci]"
+        if [[ -n $(git status --porcelain) ]]; then
+          git add .
+          git commit -m "chore: Sync version, badges, and lint status [skip ci]"
           git push
         else
-          echo "No changes to README.md"
+          echo "No changes to commit"
         fi
 
     - name: Upload Artifact

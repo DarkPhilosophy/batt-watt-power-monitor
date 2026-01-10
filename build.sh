@@ -14,7 +14,7 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: ./build.sh [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  -fix, --fix    Auto-fix linting issues before build"
+            echo "  --fix          Auto-fix linting issues before build"
             echo "  -h, --help     Show this help message"
             exit 0
             ;;
@@ -27,21 +27,37 @@ done
 
 # Lint check
 echo "Checking code quality..."
-if npm run lint > /dev/null 2>&1; then
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LINT_OUTPUT_FILE="$PROJECT_DIR/.lint-output.txt"
+LINT_PASSED_FILE="$PROJECT_DIR/.lint-passed"
+
+run_lint() {
+    local output
+    output=$(npm run lint -- --format stylish 2>&1)
+    local status=$?
+    printf "%s\n" "$output" > "$LINT_OUTPUT_FILE"
+    if [ $status -eq 0 ]; then
+        echo true > "$LINT_PASSED_FILE"
+    else
+        echo false > "$LINT_PASSED_FILE"
+    fi
+    printf "%s\n" "$output"
+    return $status
+}
+
+if run_lint; then
     echo "✓ Linting passed"
 elif [ "$FIX_MODE" = true ]; then
     echo "⚠ Linting issues found, auto-fixing..."
     npm run lint:fix
-    if npm run lint > /dev/null 2>&1; then
+    if run_lint; then
         echo "✓ Linting passed after auto-fix"
     else
         echo "✗ Linting still failing after auto-fix. Please review manually:" >&2
-        npm run lint
         exit 1
     fi
 else
-    echo "✗ Linting failed. Fix issues or run: ./build.sh -fix" >&2
-    npm run lint
+    echo "✗ Linting failed. Fix issues or run: ./build.sh --fix" >&2
     exit 1
 fi
 
@@ -56,7 +72,6 @@ node scripts/update-lint-status.js
 EXTENSION_ID="batt-watt-power-monitor@DarkPhilosophy"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_ID"
 GLIB_SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas"
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "Building $EXTENSION_ID..."
 

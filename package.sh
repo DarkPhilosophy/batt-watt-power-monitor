@@ -11,6 +11,23 @@ set -e
 echo "Syncing version..."
 node scripts/sync-version.js
 
+# Lint check (for status update)
+echo "Checking code quality..."
+PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+LINT_OUTPUT_FILE="$PROJECT_DIR/.lint-output.txt"
+LINT_PASSED_FILE="$PROJECT_DIR/.lint-passed"
+lint_output=$(npm run lint -- --format stylish 2>&1)
+lint_status=$?
+printf "%s\n" "$lint_output" > "$LINT_OUTPUT_FILE"
+if [ $lint_status -eq 0 ]; then
+    echo true > "$LINT_PASSED_FILE"
+else
+    echo false > "$LINT_PASSED_FILE"
+    echo "$lint_output"
+    echo "✗ Linting failed." >&2
+    exit 1
+fi
+
 # Update lint status in README
 echo "Updating lint status..."
 node scripts/update-lint-status.js
