@@ -3,8 +3,8 @@
   "version": "17.0.0",
   "description": "GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.",
   "scripts": {
-    "lint": "eslint --config .eslintrc.yml extension scripts",
-    "lint:fix": "eslint --fix --config .eslintrc.yml extension scripts",
+    "lint": "eslint --config .eslintrc.yml extension scripts --format stylish",
+    "lint:fix": "eslint --fix --config .eslintrc.yml extension scripts --format stylish",
     "lint:status": "node scripts/update-lint-status.js",
     "package": "./package.sh"
   },

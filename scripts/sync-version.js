@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+/* eslint-disable no-console, jsdoc/require-jsdoc */
 const fs = require('fs');
 const path = require('path');
 
@@ -8,6 +8,7 @@ const METADATA_PATH = path.join(PROJECT_DIR, 'extension', 'metadata.json');
 const VERSION_FILE_PATH = path.join(PROJECT_DIR, 'VERSION');
 const PREFS_PATH = path.join(PROJECT_DIR, 'extension', 'prefs.js');
 const CHANGELOG_PATH = path.join(PROJECT_DIR, '.github', 'CHANGELOG.md');
+const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
 
 try {
     // 1. Read source of truth: package.json
@@ -58,6 +59,31 @@ try {
         }
     } catch (error) {
         console.log(`ℹ️  Failed to update changelog in prefs.js: ${error.message}`);
+    }
+
+    try {
+        const changelogMd = fs.readFileSync(CHANGELOG_PATH, 'utf8');
+        const entries = extractChangelogEntries(changelogMd, newVersion);
+        if (entries.length > 0) {
+            const latestBlock = `<!-- LATEST-VERSION-START -->\n### Latest Update (v${newVersion})\n${entries.join('\n')}\n<!-- LATEST-VERSION-END -->`;
+            const readmeContent = fs.readFileSync(README_PATH, 'utf8');
+            const regex = /<!-- LATEST-VERSION-START -->[\s\S]*<!-- LATEST-VERSION-END -->/;
+            if (regex.test(readmeContent)) {
+                let newContent = readmeContent.replace(regex, latestBlock);
+                const badgeRegex = /\[!\[Version [^\]]+\]\(https:\/\/img\.shields\.io\/badge\/Version-[^-]+-green\.svg\)\]\([^)]+\)/;
+                const badge = `[![Version ${newVersion}](https://img.shields.io/badge/Version-${newVersion}-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)`;
+                if (badgeRegex.test(newContent))
+                    newContent = newContent.replace(badgeRegex, badge);
+                fs.writeFileSync(README_PATH, newContent);
+                console.log('✅ Updated README latest update block');
+            } else {
+                console.log('ℹ️  No LATEST-VERSION block found in README.md');
+            }
+        } else {
+            console.log(`ℹ️  No changelog entries found for v${newVersion}`);
+        }
+    } catch (error) {
+        console.log(`ℹ️  Failed to update README latest update block: ${error.message}`);
     }
 
     console.log('✅ Version sync complete!');
@@ -111,4 +137,34 @@ function extractChangelogForVersion(markdown, version) {
     const essential = entries.filter(item => essentialKeys.some(key => item.includes(key)));
     const output = essential.length > 0 ? essential : entries.slice(0, 6);
     return `\n${output.join('\n\n')}`;
+}
+
+/**
+ * Extract raw bullet lines for a specific version.
+ *
+ * @param {string} markdown - Changelog contents
+ * @param {string} version - Version number (major)
+ * @returns {string[]} Raw bullet lines
+ */
+// eslint-disable-next-line jsdoc/require-jsdoc
+function extractChangelogEntries(markdown, version) {
+    const header = `## v${version}`;
+    const start = markdown.indexOf(header);
+    if (start === -1)
+        return [];
+
+    const afterHeader = markdown.slice(start + header.length);
+    const nextHeaderIndex = afterHeader.search(/\n## v\d+/);
+    const section = nextHeaderIndex === -1 ? afterHeader : afterHeader.slice(0, nextHeaderIndex);
+    const lines = section.split('\n');
+    const entries = [];
+
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('- '))
+            continue;
+        entries.push(trimmed);
+    }
+
+    return entries;
 }
