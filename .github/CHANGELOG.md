@@ -1,5 +1,25 @@
 # Changelog
 
+## v17 (2026-01-10) - EMERGENCY MEMORY LEAK FIX
+
+> **CRITICAL SECURITY & STABILITY PATCH**
+
+- **Memory Leak Fix**: SVG surfaces were reloaded on every repaint (~5 sec cycle) causing unbounded memory growth, leading to GNOME Shell crash (3.5GB accumulation). Now cached.
+- **SVG Caching System**: Introduced `SVG_CACHE` Map with TTL (5min) and automatic purge mechanism. Surfaces cached by color+path hash, preventing reload cycles.
+- **Memory Prevention Framework**: Added `purgeSvgCache()` with periodic cleanup (max 1x/min) to prevent cache unbounded growth.
+- **Safe Cleanup**: `disable()` now explicitly clears SVG cache to prevent memory retention after unload.
+- **Logging**: Added `[Memory Prevention]` debug logs for cache hit/purge events to monitor memory health.
+- **Hard Cache Guard**: Added LRU-style cap, surface `finish()` on eviction, and color quantization to prevent unbounded SVG variants.
+- **Performance Refactor**: DRY helpers for indicator status, Cairo clear, widget sizing, and cached sysfs path/status reads to reduce hot-path work.
+- **Lint Pipeline**: Root ESLint config now covers `scripts/*.js`; CI lint output is plumbed into lint status updates.
+- **Bug Fix**: Persisted "Show Colored" styling now resets on disable by restoring cached GNOME theme color.
+
+> **Bug Fixes**:
+
+- **Segmentation Fault (SIGSEGV)**: Fixed crash occurring after 37+ minutes of operation due to memory exhaustion.
+- **Runaway Cairo Allocation**: SVG surfaces no longer re-allocated per frame; cached surfaces are reused.
+- **Cache TTL Bounds**: Automatic expiry of unused SVG surfaces prevents indefinite memory accumulation.
+
 ## v16 (2026-01-09)
 
 - **Logging**: Added structured log levels with timestamps, a UI log-level selector, and file logging with per-session rotation.

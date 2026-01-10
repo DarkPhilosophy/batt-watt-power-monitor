@@ -7,37 +7,18 @@ import Adw from 'gi://Adw';
 import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
 const BUILD_DATE = null;
-const CHANGELOG = '\n\
-Logging: Added structured log levels with timestamps, a UI log-level selector, and file logging with per-session rotation.\n\n\
-Visibility: Respect hide-when-charging/full/idle by syncing indicator visibility with the override hook.\n\n\
-Display: Avoid showing infinity when full; use percentage or blank depending on settings.\n\n\
-Show Battery Icon: Hide only the icon/circular indicator without hiding text labels.\n\n\
-Show Colored: Optional monochrome mode for the circular indicator ring/text.\n\n\
-Disable Cleanup: Clear custom styles and restore default label visibility when disabling.\n\n\
-Icon Sizes: Added size controls for battery and circular indicators.\n\n\
-Icon Percentage: Option to show percentage inside the icon or outside as text.\n\n\
-Charging Bolt: Show a bolt inside the battery icon while charging.\n\n\
-Settings Pages: Added General and mode-specific settings pages with dynamic switching.\n\n\
-Battery Dimensions: Separate width/height controls for the battery icon.\n\n\
-Debug Page: Moved debug settings into a dedicated page.\n\n\
-Percentage Outside: Percentage text now appears outside the icon even with circular mode enabled.\n\n\
-Circular Icon: Larger inner battery icon with a visible, outlined charging bolt.\n\n\
-Overlay Layout: The charging bolt is now an overlay badge, ensuring strict adherence to the configured battery width without expansion.\n\n\
-Procedural Stroke: Implemented high-quality procedural outline for the charging bolt to ensure perfect visibility on all backgrounds.\n\n\
-Circular Text Outline: Added a black outline to the circular percentage text to match the battery stroke.\n\n\
-Independent Sizing: Battery Bar Width and Height settings are now fully decoupled, allowing precise aspect ratio control. Battery Circular Size setting controls the diameter of the circular indicator.\n\n\
-Percentage Outside: Percentage text now appears outside the icon even with circular mode enabled.\n\n\
-Circular Icon: Larger inner battery icon with a visible, outlined charging bolt.\n\n\
-Overlay Layout: The charging bolt is now an overlay badge, ensuring strict adherence to the configured battery width without expansion.\n\n\
-Procedural Stroke: Implemented high-quality procedural outline for the charging bolt to ensure perfect visibility on all backgrounds.\n\n\
-Circular Text Outline: Added a black outline to the circular percentage text to match the battery stroke.\n\n\
-Independent Sizing: Battery Bar Width and Height settings are now fully decoupled, allowing precise aspect ratio control. Battery Circular Size setting controls the diameter of the circular indicator.\n\n\
-Settings Organization: Preferences are now fracmented and restructured into dedicated General, Battery Bar / Circular (dynamic change), and Debug pages for better navigation.\n\n\
-Layout: Fixed "Double Width" issue where specific combinations of settings caused the widget to expand incorrectly.\n\n\
-Rendering: Fixed "Ghosting" and "Fill Outside" glitches caused by conflicting layout logic.\n\n\
-Z-Index: Corrected drawing order so the charging bolt properly overlays the battery icon instead of being covered by it.\n\n\
-Alignment: Fixed shifting issues when toggling text labels, ensuring the battery icon remains perfectly stable.\n\n\
-Logging Cleanup: Removed legacy raw console.log traces. Better logging with structured log levels and timestamps.';
+const CHANGELOG = `
+Memory Leak Fix: SVG surfaces were reloaded on every repaint (~5 sec cycle) causing unbounded memory growth, leading to GNOME Shell crash (3.5GB accumulation). Now cached.
+
+Safe Cleanup: disable() now explicitly clears SVG cache to prevent memory retention after unload.
+
+Hard Cache Guard: Added LRU-style cap, surface finish() on eviction, and color quantization to prevent unbounded SVG variants.
+
+Performance Refactor: DRY helpers for indicator status, Cairo clear, widget sizing, and cached sysfs path/status reads to reduce hot-path work.
+
+Lint Pipeline: Root ESLint config now covers scripts/*.js; CI lint output is plumbed into lint status updates.
+
+Bug Fix: Persisted "Show Colored" styling now resets on disable by restoring cached GNOME theme color.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {

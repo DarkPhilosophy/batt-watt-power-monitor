@@ -1,3 +1,4 @@
+/* eslint-disable no-invalid-this */
 import {
     Extension,
     InjectionManager,
@@ -25,8 +26,173 @@ const MAX_CALLS_PER_SECOND = 100;
 // Force DEBUG on for investigation
 let DEBUG = false;
 
+// ============================================================================
+// MEMORY LEAK PREVENTION: SVG Surface Cache (v17 Emergency Fix)
+// ============================================================================
+// Cache SVG surfaces to prevent reloading and memory accumulation
+const SVG_CACHE = new Map();
+const SVG_CACHE_MAX_AGE_MS = 5 * 60 * 1000; // 5 minutes: purge old cached entries
+const SVG_CACHE_MAX_ENTRIES = 64;
+const SVG_CACHE_PURGE_INTERVAL_MS = 60 * 1000;
+const SVG_COLOR_QUANT = 0.05;
+let lastCachePurgeTime = Date.now();
+const TEXT_DECODER = new TextDecoder('utf-8');
+
+/**
+ * Clamp a number to the 0..1 range.
+ *
+ * @param {number} value - Input value
+ * @returns {number} Clamped value
+ */
+function clamp01(value) {
+    return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * Quantize a color channel to reduce cache key variance.
+ *
+ * @param {number} value - Channel value (0..1)
+ * @returns {number} Quantized channel value
+ */
+function quantizeColor(value) {
+    const clamped = clamp01(value);
+    return Math.round(clamped / SVG_COLOR_QUANT) * SVG_COLOR_QUANT;
+}
+
+/**
+ * Format a color key for cache indexing.
+ *
+ * @param {number} value - Channel value (0..1)
+ * @returns {string} Quantized channel key
+ */
+function formatColorKey(value) {
+    return quantizeColor(value).toFixed(2);
+}
+
+/**
+ * Safely finish a Cairo surface to release native memory.
+ *
+ * @param {object} surface - Cairo surface
+ */
+function finishSurface(surface) {
+    try {
+        surface?.finish?.();
+    } catch (error) {
+        logDebug(`[Memory Prevention] Surface finish error: ${error.message}`);
+    }
+}
+
+/**
+ * Evict least-recently-used SVG cache entries to enforce hard cap.
+ */
+function evictSvgCacheIfNeeded() {
+    if (SVG_CACHE.size <= SVG_CACHE_MAX_ENTRIES)
+        return;
+
+    const entries = [...SVG_CACHE.entries()]
+        .sort((a, b) => a[1].timestamp - b[1].timestamp);
+    const toRemove = entries.length - SVG_CACHE_MAX_ENTRIES;
+    for (let i = 0; i < toRemove; i++) {
+        const [key, entry] = entries[i];
+        finishSurface(entry.surface);
+        SVG_CACHE.delete(key);
+    }
+}
+
+/**
+ * Purge expired cached SVG surfaces to prevent unbounded memory growth.
+ * Called periodically; entries older than SVG_CACHE_MAX_AGE_MS are removed.
+ */
+function purgeSvgCache() {
+    const now = Date.now();
+    if (now - lastCachePurgeTime < SVG_CACHE_PURGE_INTERVAL_MS)
+        return;
+
+    let purgedCount = 0;
+    for (const [key, {timestamp}] of SVG_CACHE.entries()) {
+        if (now - timestamp > SVG_CACHE_MAX_AGE_MS) {
+            finishSurface(SVG_CACHE.get(key)?.surface);
+            SVG_CACHE.delete(key);
+            purgedCount++;
+        }
+    }
+
+    lastCachePurgeTime = now;
+    evictSvgCacheIfNeeded();
+    if (purgedCount > 0)
+        logDebug(`[Memory Prevention] Purged ${purgedCount} cached SVG surfaces`);
+}
+
+/**
+ * Get or load cached SVG surface with memory management.
+ *
+ * @param {string} cacheKey - Unique cache identifier
+ * @param {Function} loaderFunc - Function to load SVG if not cached
+ * @returns {object} Cached Cairo ImageSurface or null
+ */
+function getCachedSvg(cacheKey, loaderFunc) {
+    purgeSvgCache();
+
+    if (SVG_CACHE.has(cacheKey)) {
+        const entry = SVG_CACHE.get(cacheKey);
+        entry.timestamp = Date.now(); // Refresh timestamp on access
+        entry.accessCount++;
+        return entry.surface;
+    }
+
+    const surface = loaderFunc();
+    if (surface) {
+        SVG_CACHE.set(cacheKey, {
+            surface,
+            timestamp: Date.now(),
+            accessCount: 1,
+        });
+        evictSvgCacheIfNeeded();
+        logDebug(`[Memory Prevention] Cached SVG: ${cacheKey}`);
+    }
+
+    return surface;
+}
+
+/**
+ * Clear SVG cache and finish any retained surfaces.
+ */
+function clearSvgCache() {
+    for (const {surface} of SVG_CACHE.values())
+        finishSurface(surface);
+    SVG_CACHE.clear();
+}
+
+/**
+ * Clear a Cairo context to transparent before drawing.
+ *
+ * @param {object} context - Cairo context
+ */
+function clearCairoContext(context) {
+    context.setSourceRGBA(0, 0, 0, 0);
+    context.setOperator(Cairo.Operator.CLEAR);
+    context.paint();
+    context.setOperator(Cairo.Operator.OVER);
+}
+
+/**
+ * Apply consistent sizing rules for ST widgets.
+ *
+ * @param {object} widget - ST widget
+ * @param {number} width - Width in pixels
+ * @param {number} height - Height in pixels
+ */
+function applyWidgetSize(widget, width, height) {
+    widget.set_size(width, height);
+    widget.set_width?.(width);
+    widget.set_height?.(height);
+    widget.set_style(`width: ${width}px; height: ${height}px; min-width: ${width}px; min-height: ${height}px;`);
+    widget.queue_relayout();
+}
+
 // Callback to trigger UI update when async read finishes
 let updateUI = null;
+let updateQueued = false;
 
 // Professional logging utility
 const LogLevel = {
@@ -60,6 +226,8 @@ let batteryIndicatorParent = null;
 let batteryIndicatorStockIcon = null;
 let batteryIndicatorWasVisible = null;
 let shouldShowIndicator = true;
+let defaultPowerToggleStyles = null;
+let defaultLabelColorStyle = null;
 
 
 const CIRCLE_MIN_SIZE = 12;
@@ -77,6 +245,7 @@ const BATTERY_MIN_SIZE = 12;
 
 /**
  * Calculate ring color based on battery percentage.
+ *
  * @param {number} percentage - Battery percentage (0-100)
  * @returns {number[]} RGB values [red, green, blue] each 0-1
  */
@@ -98,6 +267,7 @@ function getRingColor(percentage) {
 
 /**
  * Generate CSS style string for label based on battery percentage.
+ *
  * @param {number} percentage - Battery percentage (0-100)
  * @param {boolean} useColor - Whether to apply color styling
  * @returns {string} CSS style string
@@ -116,8 +286,9 @@ function getLabelStyleFromPercentage(percentage, useColor) {
 
 /**
  * Extract foreground color from GNOME theme component.
- * @param {Object} component - ST widget component
- * @returns {Object} Color object with red, green, blue properties
+ *
+ * @param {object} component - ST widget component
+ * @returns {object} Color object with red, green, blue properties
  */
 function getForegroundColor(component) {
     try {
@@ -130,7 +301,8 @@ function getForegroundColor(component) {
 
 /**
  * Check if device is in a charging state.
- * @param {Object} proxy - UPower proxy object
+ *
+ * @param {object} proxy - UPower proxy object
  * @param {string} status - Status string from sysfs
  * @returns {boolean} True if device is charging
  */
@@ -143,18 +315,20 @@ function isChargingState(proxy, status) {
 
 /**
  * Get configured circle indicator size from settings.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @returns {number} Circle size in pixels
  */
 function getCircleSize(settings) {
     const configured = settings?.get_int('circlesize') ?? 0;
-    const raw = Math.max(CIRCLE_MIN_SIZE_USER, configured || CIRCLE_MIN_SIZE_USER);
+    const raw = Math.max(CIRCLE_MIN_SIZE, configured || CIRCLE_MIN_SIZE);
     return Math.round(raw * CIRCLE_SIZE_SCALE);
 }
 
 /**
  * Get configured battery indicator width from settings.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @returns {number} Battery width in pixels
  */
 function getBatteryWidth(settings) {
@@ -164,12 +338,65 @@ function getBatteryWidth(settings) {
 
 /**
  * Get configured battery indicator height from settings.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @returns {number} Battery height in pixels
  */
 function getBatteryHeight(settings) {
     const configured = settings?.get_int('batteryheight') ?? 0;
     return Math.max(BATTERY_MIN_SIZE, configured || BATTERY_MIN_SIZE);
+}
+
+/**
+ * Read inline style from a widget, if available.
+ *
+ * @param {object} widget - ST widget
+ * @returns {string} Inline style
+ */
+function readWidgetStyle(widget) {
+    return widget?.get_style?.() ?? '';
+}
+
+/**
+ * Cache default inline styles for the system power toggle widgets.
+ */
+function cachePowerToggleStyles() {
+    if (defaultPowerToggleStyles)
+        return;
+
+    const system = panel.statusArea.quickSettings?._system;
+    const powerToggle = system?._systemItem?.powerToggle;
+    if (!powerToggle)
+        return;
+
+    const indicator = system?._indicator;
+    defaultPowerToggleStyles = {
+        powerToggle: readWidgetStyle(powerToggle),
+        title: readWidgetStyle(powerToggle._title),
+        titleLabel: readWidgetStyle(powerToggle._titleLabel),
+        percentageLabel: readWidgetStyle(powerToggle._percentageLabel),
+        icon: readWidgetStyle(powerToggle._icon),
+        indicatorPercentage: readWidgetStyle(indicator?._percentageLabel),
+        indicatorIcon: readWidgetStyle(indicator?._icon),
+    };
+}
+
+/**
+ * Cache default label color from GNOME theme for later restore.
+ */
+function cacheDefaultLabelColor() {
+    if (defaultLabelColorStyle)
+        return;
+
+    const system = panel.statusArea.quickSettings?._system;
+    const powerToggle = system?._systemItem?.powerToggle;
+    const indicator = system?._indicator;
+    const label = powerToggle?._titleLabel || powerToggle?._percentageLabel || indicator?._percentageLabel;
+    if (!label)
+        return;
+
+    const fg = getForegroundColor(label);
+    defaultLabelColorStyle = `color: rgb(${fg.red}, ${fg.green}, ${fg.blue});`;
 }
 
 /**
@@ -181,12 +408,17 @@ function resetPowerToggleStyles() {
     if (!powerToggle)
         return;
 
+    const cached = defaultPowerToggleStyles;
+    if (!cached)
+        cachePowerToggleStyles();
 
-    powerToggle.set_style?.('');
-    powerToggle._title?.set_style?.('');
-    powerToggle._titleLabel?.set_style?.('');
-    powerToggle._percentageLabel?.set_style?.('');
-    powerToggle._icon?.set_style?.('');
+    const styles = defaultPowerToggleStyles || {};
+
+    powerToggle.set_style?.(styles.powerToggle ?? '');
+    powerToggle._title?.set_style?.(styles.title ?? '');
+    powerToggle._titleLabel?.set_style?.(defaultLabelColorStyle ?? styles.titleLabel ?? '');
+    powerToggle._percentageLabel?.set_style?.(defaultLabelColorStyle ?? styles.percentageLabel ?? '');
+    powerToggle._icon?.set_style?.(styles.icon ?? '');
     powerToggle._titleLabel?.set_text?.('');
     powerToggle._percentageLabel?.set_text?.('');
     if (typeof powerToggle.title !== 'undefined')
@@ -197,15 +429,16 @@ function resetPowerToggleStyles() {
 
 
     const indicator = system?._indicator;
-    indicator?._percentageLabel?.set_style?.('');
+    indicator?._percentageLabel?.set_style?.(defaultLabelColorStyle ?? styles.indicatorPercentage ?? '');
     indicator?._percentageLabel?.set_text?.('');
-    indicator?._icon?.set_style?.('');
+    indicator?._icon?.set_style?.(styles.indicatorIcon ?? '');
     indicator?._percentageLabel?.set_text?.('');
-    indicator?._percentageLabel?.set_style?.('');
+    indicator?._percentageLabel?.set_style?.(defaultLabelColorStyle ?? styles.indicatorPercentage ?? '');
 }
 
 /**
  * Log debug-level message.
+ *
  * @param {string} msg - Message to log
  */
 function logDebug(msg) {
@@ -214,6 +447,7 @@ function logDebug(msg) {
 
 /**
  * Log info-level message.
+ *
  * @param {string} msg - Message to log
  */
 function logInfo(msg) {
@@ -222,6 +456,7 @@ function logInfo(msg) {
 
 /**
  * Log warning-level message.
+ *
  * @param {string} msg - Message to log
  */
 function logWarn(msg) {
@@ -230,6 +465,7 @@ function logWarn(msg) {
 
 /**
  * Log error-level message.
+ *
  * @param {string} msg - Message to log
  */
 function logError(msg) {
@@ -238,7 +474,8 @@ function logError(msg) {
 
 /**
  * Update global variables from settings.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  */
 function updateGlobalsFromSettings(settings) {
     DEBUG = settings.get_boolean('debug');
@@ -253,6 +490,7 @@ function updateGlobalsFromSettings(settings) {
 
 /**
  * Log message with specified level.
+ *
  * @param {string} msg - Message to log
  * @param {number} level - Log level (default: LogLevel.DEBUG)
  */
@@ -280,7 +518,8 @@ function logMessage(msg, level = LogLevel.DEBUG) {
 
 /**
  * Resolve log file path from settings with environment variable expansion.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @returns {string} Full path to log file
  */
 function resolveLogFilePath(settings) {
@@ -296,6 +535,7 @@ function resolveLogFilePath(settings) {
 
 /**
  * Ensure log directory exists, create if needed.
+ *
  * @param {string} path - Full path to log file
  */
 function ensureLogDirectory(path) {
@@ -312,6 +552,7 @@ function ensureLogDirectory(path) {
 
 /**
  * Rotate log file, keeping one backup.
+ *
  * @param {string} path - Full path to log file
  */
 function rotateLogFile(path) {
@@ -338,6 +579,7 @@ function rotateLogFile(path) {
 
 /**
  * Initialize log file with rotation.
+ *
  * @param {string} path - Full path to log file
  */
 function initLogFile(path) {
@@ -351,6 +593,7 @@ function initLogFile(path) {
 
 /**
  * Append line to log file.
+ *
  * @param {string} path - Full path to log file
  * @param {string} line - Line to append
  */
@@ -369,82 +612,97 @@ function appendLogLine(path, line) {
 
 // Shared SVG loading functions for both indicators
 /**
- * Load and tint charging bolt SVG icon.
+ * Load and tint charging bolt SVG icon with caching.
+ *
  * @param {string} extensionPath - Path to extension directory
  * @param {number} red - Red component (0-1)
  * @param {number} green - Green component (0-1)
  * @param {number} blue - Blue component (0-1)
- * @returns {Object} Cairo ImageSurface with tinted SVG or null on error
+ * @returns {object} Cached Cairo ImageSurface with tinted SVG or null on error
  */
 function loadChargingSvg(extensionPath, red, green, blue) {
-    try {
-        const svgPath = `${extensionPath}/bolt.svg`;
-        logDebug(`Loading bolt SVG from: ${svgPath}, color RGB(${red}, ${green}, ${blue})`);
-        const handle = Rsvg.Handle.new_from_file(svgPath);
-        if (!handle) {
-            logDebug('Failed to create SVG handle');
+    const qRed = quantizeColor(red);
+    const qGreen = quantizeColor(green);
+    const qBlue = quantizeColor(blue);
+    // Create cache key from color + path (color variations cause different SVGs)
+    const cacheKey = `bolt_${formatColorKey(qRed)}_${formatColorKey(qGreen)}_${formatColorKey(qBlue)}`;
+
+    return getCachedSvg(cacheKey, () => {
+        try {
+            const svgPath = `${extensionPath}/bolt.svg`;
+            const handle = Rsvg.Handle.new_from_file(svgPath);
+            if (!handle) {
+                logDebug('Failed to create SVG handle');
+                return null;
+            }
+
+            const dimensions = handle.get_dimensions();
+            const svgWidth = dimensions.width;
+            const svgHeight = dimensions.height;
+
+            const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
+            const context = new Cairo.Context(surface);
+            handle.render_cairo(context);
+
+            const tintSurface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
+            const tintContext = new Cairo.Context(tintSurface);
+            tintContext.setSourceSurface(surface, 0, 0);
+            tintContext.paint();
+            tintContext.setOperator(Cairo.Operator.IN);
+            tintContext.setSourceRGB(qRed, qGreen, qBlue);
+            tintContext.paint();
+            finishSurface(surface);
+
+            return tintSurface;
+        } catch (error) {
+            logError(`Failed to load charging icon: ${error.message}`);
             return null;
         }
-
-        const dimensions = handle.get_dimensions();
-        const svgWidth = dimensions.width;
-        const svgHeight = dimensions.height;
-
-        const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
-        const context = new Cairo.Context(surface);
-        handle.render_cairo(context);
-
-        const tintSurface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
-        const tintContext = new Cairo.Context(tintSurface);
-        tintContext.setSourceSurface(surface, 0, 0);
-        tintContext.paint();
-        tintContext.setOperator(Cairo.Operator.IN);
-        tintContext.setSourceRGB(red, green, blue);
-        tintContext.paint();
-
-        return tintSurface;
-    } catch (error) {
-        logError(`Failed to load charging icon: ${error.message}`);
-        return null;
-    }
+    });
 }
 
 /**
- * Load charging bolt stroke SVG.
+ * Load charging bolt stroke SVG with caching.
+ *
  * @param {string} extensionPath - Path to extension directory
- * @returns {Object} Cairo ImageSurface or null on error
+ * @returns {object} Cached Cairo ImageSurface or null on error
  */
 function _loadChargingStrokeSvg(extensionPath) {
-    try {
-        const svgPath = `${extensionPath}/bolt_stroke.svg`;
-        const handle = Rsvg.Handle.new_from_file(svgPath);
-        if (!handle)
+    const cacheKey = 'bolt_stroke';
+
+    return getCachedSvg(cacheKey, () => {
+        try {
+            const svgPath = `${extensionPath}/bolt_stroke.svg`;
+            const handle = Rsvg.Handle.new_from_file(svgPath);
+            if (!handle)
+                return null;
+
+
+            const dimensions = handle.get_dimensions();
+            const svgWidth = dimensions.width;
+            const svgHeight = dimensions.height;
+
+            const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
+            const context = new Cairo.Context(surface);
+            context.setSourceRGBA(0, 0, 0, 0);
+            context.setOperator(Cairo.Operator.CLEAR);
+            context.paint();
+            context.setOperator(Cairo.Operator.OVER);
+            handle.render_cairo(context);
+
+            return surface;
+        } catch (error) {
+            logDebug(`Failed to load charging stroke icon: ${error.message}`);
             return null;
-
-
-        const dimensions = handle.get_dimensions();
-        const svgWidth = dimensions.width;
-        const svgHeight = dimensions.height;
-
-        const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
-        const context = new Cairo.Context(surface);
-        context.setSourceRGBA(0, 0, 0, 0);
-        context.setOperator(Cairo.Operator.CLEAR);
-        context.paint();
-        context.setOperator(Cairo.Operator.OVER);
-        handle.render_cairo(context);
-
-        return surface;
-    } catch (error) {
-        logDebug(`Failed to load charging stroke icon: ${error.message}`);
-        return null;
-    }
+        }
+    });
 }
 
 // Shared function to draw battery icon
 /**
  * Draw battery icon using Cairo.
- * @param {Object} context - Cairo context
+ *
+ * @param {object} context - Cairo context
  * @param {number} centerX - X coordinate of center
  * @param {number} centerY - Y coordinate of center
  * @param {number} width - Icon width in pixels
@@ -502,7 +760,8 @@ function drawBatteryIcon(context, centerX, centerY, width, height, percentage, r
 // Shared function to draw SVG bolt icon
 /**
  * Draw charging bolt icon using Cairo.
- * @param {Object} context - Cairo context
+ *
+ * @param {object} context - Cairo context
  * @param {string} extensionPath - Path to extension directory
  * @param {number} centerX - X coordinate of center
  * @param {number} centerY - Y coordinate of center
@@ -614,10 +873,7 @@ const CircleIndicator = GObject.registerClass(
             const context = area.get_context();
             const [width, height] = area.get_surface_size();
 
-            context.setSourceRGBA(0, 0, 0, 0);
-            context.setOperator(Cairo.Operator.CLEAR);
-            context.paint();
-            context.setOperator(Cairo.Operator.OVER);
+            clearCairoContext(context);
 
             const [red, green, blue] = this._color;
             context.setSourceRGB(red, green, blue);
@@ -682,11 +938,7 @@ const BatteryIndicator = GObject.registerClass(
             const width = status?.width ?? BATTERY_MIN_SIZE;
             const height = status?.height ?? BATTERY_MIN_SIZE;
             super._init({width, height});
-            this.set_size(width, height);
-            this.set_width(width);
-            this.set_height(height);
-            this.set_style(`width: ${width}px; height: ${height}px; min-width: ${width}px; min-height: ${height}px;`);
-            this.queue_relayout();
+            applyWidgetSize(this, width, height);
 
             this._status = status;
             this._extensionPath = status.extensionPath;
@@ -722,11 +974,7 @@ const BatteryIndicator = GObject.registerClass(
 
             const drawHeight = Math.min(height, desiredHeight);
 
-
-            context.setSourceRGBA(0, 0, 0, 0);
-            context.setOperator(Cairo.Operator.CLEAR);
-            context.paint();
-            context.setOperator(Cairo.Operator.OVER);
+            clearCairoContext(context);
 
             const [red, green, blue] = this._color;
 
@@ -865,7 +1113,8 @@ const BatteryIndicator = GObject.registerClass(
 
 /**
  * Ensure circle indicator exists and is properly configured.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @param {string} extensionPath - Path to extension directory
  */
 function ensureCircleIndicator(settings, extensionPath) {
@@ -932,27 +1181,31 @@ function destroyCircleIndicator() {
 
 /**
  * Update circle indicator with current battery status.
- * @param {Object} proxy - UPower proxy object
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} proxy - UPower proxy object
+ * @param {object} settings - GSettings object
  */
 function updateCircleIndicatorStatus(proxy, settings) {
     if (!settings.get_boolean('usecircleindicator') || !circleIndicator || !proxy)
         return;
 
 
-    const percentage = Math.round(proxy.Percentage);
-    const status = getStatus(getAutopath());
-    const isCharging = isChargingState(proxy, status) || settings.get_boolean('forcebolt');
-    const showText = settings.get_boolean('percentage') && !settings.get_boolean('showpercentageoutside');
-    const useColor = settings.get_boolean('showcolored');
-    const forceBolt = settings.get_boolean('forcebolt');
+    const {
+        percentage,
+        status,
+        isCharging,
+        showText,
+        useColor,
+        forceBolt,
+    } = buildIndicatorStatus(proxy, settings);
     logDebug(`Circle status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
     circleIndicator.update({percentage, isCharging, showText, useColor, forceBolt});
 }
 
 /**
  * Check if battery indicator should be shown.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @returns {boolean} True if battery indicator is enabled
  */
 function batteryIndicatorEnabled(settings) {
@@ -961,7 +1214,8 @@ function batteryIndicatorEnabled(settings) {
 
 /**
  * Ensure battery indicator exists and is properly configured.
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} settings - GSettings object
  * @param {string} extensionPath - Path to extension directory
  */
 function ensureBatteryIndicator(settings, extensionPath) {
@@ -973,8 +1227,7 @@ function ensureBatteryIndicator(settings, extensionPath) {
     if (batteryIndicator) {
         const desiredWidth = getBatteryWidth(settings);
         const desiredHeight = getBatteryHeight(settings);
-        batteryIndicator.set_style(`width: ${desiredWidth}px; height: ${desiredHeight}px; min-width: ${desiredWidth}px; min-height: ${desiredHeight}px;`);
-        batteryIndicator.queue_relayout();
+        applyWidgetSize(batteryIndicator, desiredWidth, desiredHeight);
         batteryIndicator.update({
             percentage: batteryIndicator._status?.percentage ?? 0,
             isCharging: batteryIndicator._status?.isCharging ?? false,
@@ -1042,20 +1295,23 @@ function destroyBatteryIndicator() {
 
 /**
  * Update battery indicator with current battery status.
- * @param {Object} proxy - UPower proxy object
- * @param {Object} settings - GSettings object
+ *
+ * @param {object} proxy - UPower proxy object
+ * @param {object} settings - GSettings object
  */
 function updateBatteryIndicatorStatus(proxy, settings) {
     if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy)
         return;
 
 
-    const percentage = Math.round(proxy.Percentage);
-    const showText = settings.get_boolean('percentage') && !settings.get_boolean('showpercentageoutside');
-    const status = getStatus(getAutopath());
-    const isCharging = isChargingState(proxy, status) || settings.get_boolean('forcebolt');
-    const useColor = settings.get_boolean('showcolored');
-    const forceBolt = settings.get_boolean('forcebolt');
+    const {
+        percentage,
+        status,
+        isCharging,
+        showText,
+        useColor,
+        forceBolt,
+    } = buildIndicatorStatus(proxy, settings);
     logDebug(`Bar status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
@@ -1063,8 +1319,7 @@ function updateBatteryIndicatorStatus(proxy, settings) {
     // STRICT WIDTH: No expansion. Bolt shares space or compresses battery (Sibling Layout).
     const desiredWidth = batteryW;
 
-    batteryIndicator.set_style(`width: ${desiredWidth}px; height: ${height}px; min-width: ${desiredWidth}px; min-height: ${height}px;`);
-    batteryIndicator.queue_relayout();
+    applyWidgetSize(batteryIndicator, desiredWidth, height);
     batteryIndicator.update({
         percentage,
         useColor,
@@ -1103,7 +1358,7 @@ function readFileSafely(filePath, defaultValue) {
             try {
                 const [ok, contents] = source.load_contents_finish(res);
                 if (ok) {
-                    const newValue = new TextDecoder('utf-8').decode(contents).trim();
+                    const newValue = TEXT_DECODER.decode(contents).trim();
                     logDebug(`READ SUCCESS for ${filePath}: ${newValue}`);
 
                     const oldValue = fileCache.get(filePath);
@@ -1112,7 +1367,14 @@ function readFileSafely(filePath, defaultValue) {
                     // If value changed (or first read), trigger UI update
                     if (newValue !== oldValue && updateUI) {
                         logDebug('Value changed, triggering UI update');
-                        updateUI();
+                        if (!updateQueued) {
+                            updateQueued = true;
+                            GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                                updateQueued = false;
+                                updateUI();
+                                return GLib.SOURCE_REMOVE;
+                            });
+                        }
                     }
                 }
             } catch (error) {
@@ -1128,7 +1390,8 @@ function readFileSafely(filePath, defaultValue) {
 
 /**
  * Auto-detect battery path from available sysfs power supply entries.
- * @returns {Object} Object with path and isTP (True Power) flag
+ *
+ * @returns {object} Object with path and isTP (True Power) flag
  */
 function getAutopath() {
     for (const path of [BAT0, BAT1, BAT2]) {
@@ -1147,7 +1410,79 @@ function getAutopath() {
 }
 
 /**
+ * Get cached battery correction or re-detect if missing.
+ *
+ * @returns {object} Battery correction
+ */
+function getBatteryCorrection() {
+    if (!batteryCorrection || !batteryCorrection.path || batteryCorrection.path === -1)
+        batteryCorrection = getAutopath();
+    return batteryCorrection;
+}
+
+/**
+ * Get current battery status using cached correction.
+ *
+ * @returns {string} Status string
+ */
+function getBatteryStatus() {
+    const correction = getBatteryCorrection();
+    return getStatus(correction);
+}
+
+/**
+ * Snapshot settings used by hot-path display logic.
+ *
+ * @param {object} settings - GSettings object
+ * @returns {object} Snapshot of settings values
+ */
+function getSettingsSnapshot(settings) {
+    const showPercentage = settings.get_boolean('percentage');
+    const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
+    const showTimeRemaining = settings.get_boolean('timeremaining');
+    const showWatts = settings.get_boolean('showwatts');
+    const showIcon = settings.get_boolean('showicon');
+    const showCircle = settings.get_boolean('usecircleindicator');
+    const showColored = settings.get_boolean('showcolored');
+    const forceBolt = settings.get_boolean('forcebolt');
+    return {
+        showPercentage,
+        showPercentageOutside,
+        showPercentageText: showPercentageOutside,
+        showTimeRemaining,
+        showWatts,
+        showIcon,
+        showCircle,
+        showColored,
+        forceBolt,
+        showText: showPercentage && !showPercentageOutside,
+    };
+}
+
+/**
+ * Build indicator status used by drawing routines.
+ *
+ * @param {object} proxy - UPower proxy object
+ * @param {object} settings - GSettings object
+ * @returns {object} Status data for indicators
+ */
+function buildIndicatorStatus(proxy, settings) {
+    const percentage = Math.round(proxy.Percentage);
+    const status = getBatteryStatus();
+    const snapshot = getSettingsSnapshot(settings);
+    return {
+        percentage,
+        status,
+        isCharging: isChargingState(proxy, status) || snapshot.forceBolt,
+        showText: snapshot.showText,
+        useColor: snapshot.showColored,
+        forceBolt: snapshot.forceBolt,
+    };
+}
+
+/**
  * Read numeric value from sysfs file and convert from µ to base unit.
+ *
  * @param {string} pathToFile - Full path to sysfs file
  * @returns {number} Converted value in base unit
  */
@@ -1158,7 +1493,8 @@ function getValue(pathToFile) {
 
 /**
  * Find object key by value.
- * @param {Object} obj - Object to search
+ *
+ * @param {object} obj - Object to search
  * @param {*} value - Value to find
  * @returns {string} Key name or 'Unknown' if not found
  */
@@ -1172,12 +1508,13 @@ function getObjectKey(obj, value) {
 
 /**
  * Read power consumption from sysfs battery files.
- * @param {Object} correction - Battery path correction object from getAutopath()
+ *
+ * @param {object} correction - Battery path correction object from getAutopath()
  * @returns {number} Power in watts
  */
 function getPower(correction) {
     if (!correction || !correction['path']) {
-        correction = getAutopath();
+        correction = getBatteryCorrection();
         if (!correction || !correction['path'])
             return 0;
     }
@@ -1199,12 +1536,13 @@ function getPower(correction) {
 
 /**
  * Read battery status from sysfs.
- * @param {Object} correction - Battery path correction object from getAutopath()
+ *
+ * @param {object} correction - Battery path correction object from getAutopath()
  * @returns {string} Status string (Charging, Discharging, etc.)
  */
 function getStatus(correction) {
     if (!correction || !correction['path']) {
-        correction = getAutopath();
+        correction = getBatteryCorrection();
         if (!correction || !correction['path'])
             return 'Unknown';
     }
@@ -1213,8 +1551,9 @@ function getStatus(correction) {
 
 /**
  * Format power value as string with optional decimals.
+ *
  * @param {number} power - Power in watts
- * @param {Object} settings - GSettings object
+ * @param {object} settings - GSettings object
  * @returns {string} Formatted power string or empty if near zero
  */
 function formatWatts(power, settings) {
@@ -1233,6 +1572,7 @@ function formatWatts(power, settings) {
 
 /**
  * Format remaining time as HH∶MM string.
+ *
  * @param {number} seconds - Remaining time in seconds
  * @returns {string|null} Formatted time string or null if invalid
  */
@@ -1249,7 +1589,14 @@ function formatTimeRemaining(seconds) {
     return _('%d\u2236%02d').format(hours, minutes);
 }
 
-const _powerToggleSyncOverride = function (settings) {
+/**
+ * Create override function for power toggle sync.
+ *
+ * @param {object} settings - GSettings object
+ * @returns {Function} Sync override function
+ */
+function _powerToggleSyncOverride(settings) {
+    // eslint-disable-next-line no-unused-vars, no-invalid-this
     return function () {
         // Safety check: prevent infinite loops
         const now = Date.now();
@@ -1269,25 +1616,22 @@ const _powerToggleSyncOverride = function (settings) {
             return false;
 
 
-        batteryCorrection = getAutopath();
+        batteryCorrection = getBatteryCorrection();
         const percentage = `${Math.round(this._proxy.Percentage)}%`;
         const state = this._proxy.State;
         const status = getStatus(batteryCorrection);
+        const snapshot = getSettingsSnapshot(settings);
 
         // Build display string
         const displayParts = [];
 
         // Add percentage if enabled and circular indicator is off
-        const showPercentage = settings.get_boolean('percentage');
-        const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
-        const showPercentageText = showPercentageOutside;
-        if (showPercentageText)
+        if (snapshot.showPercentageText)
             displayParts.push(percentage);
 
 
         // Add time remaining if enabled
-        const showTimeRemaining = settings.get_boolean('timeremaining');
-        if (showTimeRemaining) {
+        if (snapshot.showTimeRemaining) {
             let seconds = 0;
             if (state === UPower.DeviceState.CHARGING)
                 seconds = this._proxy.TimeToFull;
@@ -1301,8 +1645,7 @@ const _powerToggleSyncOverride = function (settings) {
         }
 
         // Add watts if enabled
-        const showWatts = settings.get_boolean('showwatts');
-        if (showWatts) {
+        if (snapshot.showWatts) {
             const power = getPower(batteryCorrection);
             let wattStr = '';
             const formattedPower = formatWatts(power, settings);
@@ -1327,7 +1670,7 @@ const _powerToggleSyncOverride = function (settings) {
 
         // Handle fully charged without custom display
         if (state === UPower.DeviceState.FULLY_CHARGED && displayParts.length === 0) {
-            if (showPercentageOutside && showPercentage) {
+            if (snapshot.showPercentageText && snapshot.showPercentage) {
                 this.title = percentage;
                 return true;
             }
@@ -1336,14 +1679,12 @@ const _powerToggleSyncOverride = function (settings) {
 
         // If nothing to display, keep icon visible when enabled
         if (displayParts.length === 0) {
-            if (showPercentageText) {
+            if (snapshot.showPercentageText) {
                 this.title = percentage;
                 return true;
             }
 
-            const showIcon = settings.get_boolean('showicon');
-            const showCircle = settings.get_boolean('usecircleindicator');
-            if (showIcon || showCircle) {
+            if (snapshot.showIcon || snapshot.showCircle) {
                 this.title = '';
                 return true;
             }
@@ -1351,11 +1692,11 @@ const _powerToggleSyncOverride = function (settings) {
             return false;
         } else {
             const title = displayParts.join(' ');
-            this.title = settings.get_boolean('usecircleindicator') ? ` ${title}` : title;
+            this.title = snapshot.showCircle ? ` ${title}` : title;
             return true;
         }
     };
-};
+}
 
 export default class BatteryPowerMonitor extends Extension {
     enable() {
@@ -1363,7 +1704,28 @@ export default class BatteryPowerMonitor extends Extension {
         this._im = new InjectionManager();
 
         // Set update callback for async reads
-        updateUI = () => this._syncToggle();
+        let syncInProgress = false;
+        let syncPending = false;
+        const runSync = () => {
+            if (syncInProgress) {
+                syncPending = true;
+                return;
+            }
+            syncInProgress = true;
+            try {
+                this._syncToggle();
+            } finally {
+                syncInProgress = false;
+                if (syncPending) {
+                    syncPending = false;
+                    GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                        runSync();
+                        return GLib.SOURCE_REMOVE;
+                    });
+                }
+            }
+        };
+        updateUI = () => runSync();
 
         this._settings = this.getSettings();
         const settings = this._settings;
@@ -1402,6 +1764,8 @@ export default class BatteryPowerMonitor extends Extension {
 
         ensureCircleIndicator(settings, this.path);
         ensureBatteryIndicator(settings, this.path);
+        cachePowerToggleStyles();
+        cacheDefaultLabelColor();
 
         // Override _sync to set custom title and control visibility
         this._im.overrideMethod(Indicator.prototype, '_sync', _sync => {
@@ -1411,6 +1775,8 @@ export default class BatteryPowerMonitor extends Extension {
                 const powerToggle = this._systemItem?.powerToggle;
                 if (!powerToggle || !settings)
                     return;
+                cachePowerToggleStyles();
+                cacheDefaultLabelColor();
 
                 const overrideFunc = _powerToggleSyncOverride(settings);
                 const hasOverride = overrideFunc.call(powerToggle);
@@ -1522,15 +1888,10 @@ export default class BatteryPowerMonitor extends Extension {
 
     _updateBatteryVisibility(settings) {
         this._getBattery((proxy, powerToggle) => {
-            const showIcon = settings.get_boolean('showicon');
-            const showPercentage = settings.get_boolean('percentage');
-            const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
-            const showTimeRemaining = settings.get_boolean('timeremaining');
-            const showWatts = settings.get_boolean('showwatts');
-            const showCircle = settings.get_boolean('usecircleindicator');
-            const showLabelText = showPercentageOutside || showTimeRemaining || showWatts;
-            const effectiveCircle = showCircle && showIcon;
-            const effectiveIcon = showIcon && !showCircle;
+            const snapshot = getSettingsSnapshot(settings);
+            const showLabelText = snapshot.showPercentageOutside || snapshot.showTimeRemaining || snapshot.showWatts;
+            const effectiveCircle = snapshot.showCircle && snapshot.showIcon;
+            const effectiveIcon = snapshot.showIcon && !snapshot.showCircle;
             let shouldShow = true;
 
             // Hide if nothing would be visible
@@ -1541,7 +1902,7 @@ export default class BatteryPowerMonitor extends Extension {
 
             // Check hide when charging
             const hideCharging = settings.get_boolean('hidecharging');
-            const status = getStatus(getAutopath());
+            const status = getBatteryStatus();
             if (hideCharging && status.includes('Charging')) {
                 logDebug('Hiding battery - charging');
                 shouldShow = false;
@@ -1559,9 +1920,9 @@ export default class BatteryPowerMonitor extends Extension {
             const isIdle = proxy.State !== UPower.DeviceState.CHARGING && proxy.State !== UPower.DeviceState.DISCHARGING;
 
             // Debug visibility logic
-            if (DEBUG) 
+            if (DEBUG)
                 logDebug(`VISIBILITY CHECK: state=${proxy.State} (${getObjectKey(UPower.DeviceState, proxy.State)}) hideIdle=${hideIdle} isIdle=${isIdle} hideFull=${settings.get_boolean('hidefull')} hideCharging=${settings.get_boolean('hidecharging')}`);
-             
+
 
             if (hideIdle && isIdle) {
                 logDebug('Hiding battery - idle');
@@ -1660,6 +2021,10 @@ export default class BatteryPowerMonitor extends Extension {
         overrideCallCount = 0;
         fileCache.clear();
         pendingReads.clear();
+
+        // Clear SVG cache to prevent memory retention after unload (v17 fix)
+        logInfo('[Memory Prevention] Clearing SVG cache on extension disable');
+        clearSvgCache();
     }
 
     _syncToggle() {
@@ -1671,4 +2036,3 @@ export default class BatteryPowerMonitor extends Extension {
         system?._systemItem?.powerToggle?._sync();
     }
 }
-const CIRCLE_MIN_SIZE_USER = 12;

@@ -17,17 +17,17 @@
 ## Validation Status
 
 <!-- LINT-RESULT-START -->
-### Latest Linting Result
+### Linting Status
 > **Status**: ✅ **Passing**  
-> **Date**: 2026-01-09 13:39:13 UTC  
+> **Last Updated**: 2026-01-10 03:21:51 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@16.0.0 lint
-> eslint --config lint/eslintrc-extension.yml extension/
+> batt-watt-power-monitor@17.0.0 lint
+> eslint --config .eslintrc.yml extension scripts --format stylish
 ```
 
 </details>

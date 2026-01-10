@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const https = require('https');
 const fs = require('fs');
 const path = require('path');
@@ -21,10 +22,10 @@ try {
 }
 
 // Fetch HTML from GNOME Extensions
-https.get(EGO_URL, (res) => {
+https.get(EGO_URL, res => {
     let html = '';
 
-    res.on('data', (chunk) => {
+    res.on('data', chunk => {
         html += chunk;
     });
 
@@ -59,33 +60,37 @@ https.get(EGO_URL, (res) => {
 
             // Update README.md with version badges
             updateReadme(githubVersion, publishedVersion);
-
         } catch (error) {
             console.error('❌ Error parsing version data:', error.message);
             console.warn('⚠️  Continuing without updating published version badge');
             process.exit(0); // Don't fail the build
         }
     });
-
-}).on('error', (error) => {
+}).on('error', error => {
     console.error('❌ Error fetching GNOME Extensions page:', error.message);
     console.warn('⚠️  Continuing without updating published version badge');
     process.exit(0); // Don't fail the build
 });
 
-function updateReadme(githubVersion, publishedVersion) {
+/**
+ * Update README badges for GitHub vs GNOME version status.
+ *
+ * @param {number} githubVersionValue - Version from package.json
+ * @param {number} publishedVersion - Version from GNOME Extensions
+ */
+function updateReadme(githubVersionValue, publishedVersion) {
     try {
-        let readmeContent = fs.readFileSync(README_PATH, 'utf8');
+        const readmeContent = fs.readFileSync(README_PATH, 'utf8');
 
         // Determine status color and message
-        const isSynced = githubVersion === publishedVersion;
+        const isSynced = githubVersionValue === publishedVersion;
         const statusColor = isSynced ? 'brightgreen' : 'yellow';
         const statusLabel = isSynced ? 'Synced' : 'Pending';
 
         // Create the version status badges
         // shields.io format: /badge/<left_text>-<right_text>-<color>
         const statusBadge = `[![Status: ${statusLabel}](https://img.shields.io/badge/Status-${statusLabel}-${statusColor})](${EGO_URL})`;
-        const githubBadge = `![GitHub](https://img.shields.io/badge/GitHub-v${githubVersion}-blue)`;
+        const githubBadge = `![GitHub](https://img.shields.io/badge/GitHub-v${githubVersionValue}-blue)`;
         const gnomeBadge = `![GNOME](https://img.shields.io/badge/GNOME-v${publishedVersion}-green)`;
         const markdownBlock = `<!-- EGO-VERSION-START -->\n${statusBadge} ${githubBadge} ${gnomeBadge}\n<!-- EGO-VERSION-END -->`;
 
@@ -95,8 +100,8 @@ function updateReadme(githubVersion, publishedVersion) {
             // Update existing badges
             const newContent = readmeContent.replace(regex, markdownBlock);
             fs.writeFileSync(README_PATH, newContent);
-            console.log(`✅ Updated version status and published badges in README.md`);
-            const displayText = isSynced ? `Synced v${publishedVersion}` : `Pending (GitHub v${githubVersion}, GNOME v${publishedVersion})`;
+            console.log('✅ Updated version status and published badges in README.md');
+            const displayText = isSynced ? `Synced v${publishedVersion}` : `Pending (GitHub v${githubVersionValue}, GNOME v${publishedVersion})`;
             console.log(`   Status: ${displayText}`);
         } else {
             // Add badges after the "Status: Live" line
@@ -108,11 +113,11 @@ function updateReadme(githubVersion, publishedVersion) {
                     `$1\n${markdownBlock}\n`
                 );
                 fs.writeFileSync(README_PATH, newContent);
-                console.log(`✅ Added version badges to README.md`);
-                const displayText = isSynced ? `Synced v${publishedVersion}` : `Pending (GitHub v${githubVersion}, GNOME v${publishedVersion})`;
+                console.log('✅ Added version badges to README.md');
+                const displayText = isSynced ? `Synced v${publishedVersion}` : `Pending (GitHub v${githubVersionValue}, GNOME v${publishedVersion})`;
                 console.log(`   Status: ${displayText}`);
             } else {
-                console.warn('⚠️  Could not find "Status: Live" line in README.md');
+                console.warn('⚠️  Could not find \'Status: Live\' line in README.md');
                 console.warn('⚠️  Please add the badges manually or update the script');
             }
         }
