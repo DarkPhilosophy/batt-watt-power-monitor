@@ -661,43 +661,6 @@ function loadChargingSvg(extensionPath, red, green, blue) {
     });
 }
 
-/**
- * Load charging bolt stroke SVG with caching.
- *
- * @param {string} extensionPath - Path to extension directory
- * @returns {object} Cached Cairo ImageSurface or null on error
- */
-function _loadChargingStrokeSvg(extensionPath) {
-    const cacheKey = 'bolt_stroke';
-
-    return getCachedSvg(cacheKey, () => {
-        try {
-            const svgPath = `${extensionPath}/bolt_stroke.svg`;
-            const handle = Rsvg.Handle.new_from_file(svgPath);
-            if (!handle)
-                return null;
-
-
-            const dimensions = handle.get_dimensions();
-            const svgWidth = dimensions.width;
-            const svgHeight = dimensions.height;
-
-            const surface = new Cairo.ImageSurface(Cairo.Format.ARGB32, svgWidth, svgHeight);
-            const context = new Cairo.Context(surface);
-            context.setSourceRGBA(0, 0, 0, 0);
-            context.setOperator(Cairo.Operator.CLEAR);
-            context.paint();
-            context.setOperator(Cairo.Operator.OVER);
-            handle.render_cairo(context);
-
-            return surface;
-        } catch (error) {
-            logDebug(`Failed to load charging stroke icon: ${error.message}`);
-            return null;
-        }
-    });
-}
-
 // Shared function to draw battery icon
 /**
  * Draw battery icon using Cairo.
@@ -788,15 +751,6 @@ function drawBoltIcon(context, extensionPath, centerX, centerY, boltHeight, red,
     context.setSourceSurface(svgSurface, boltX / scale, boltY / scale);
     context.paint();
     context.restore();
-
-    const strokeSurface = _loadChargingStrokeSvg(extensionPath);
-    if (strokeSurface) {
-        context.save();
-        context.scale(scale, scale);
-        context.setSourceSurface(strokeSurface, boltX / scale, boltY / scale);
-        context.paint();
-        context.restore();
-    }
 }
 
 // Based on batteryIcon by slim8916 (MIT). Adapted and integrated here.
@@ -846,15 +800,6 @@ const CircleIndicator = GObject.registerClass(
             context.setSourceSurface(svgSurface, iconX / scale, iconY / scale);
             context.paint();
             context.restore();
-
-            /* const strokeSurface = _loadChargingStrokeSvg(this._extensionPath);
-            if (strokeSurface) {
-                context.save();
-                context.scale(scale, scale);
-                context.setSourceSurface(strokeSurface, iconX / scale, iconY / scale);
-                context.paint();
-                context.restore();
-            }*/
 
             return textX;
         }

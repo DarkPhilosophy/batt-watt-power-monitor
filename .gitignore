@@ -19,6 +19,8 @@ lint_check.sh
 gschemas.compiled
 *.zip
 *.tar.gz
+.lint-output.txt
+.lint-passed
 
 # Dependencies directories
 node_modules/
