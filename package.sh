@@ -16,7 +16,7 @@ echo "Checking code quality..."
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LINT_OUTPUT_FILE="$PROJECT_DIR/.lint-output.txt"
 LINT_PASSED_FILE="$PROJECT_DIR/.lint-passed"
-lint_output=$(npm run lint:fix -- --format stylish 2>&1)
+lint_output=$(npm run lint:fix 2>&1)
 lint_status=$?
 printf "%s\n" "$lint_output" > "$LINT_OUTPUT_FILE"
 if [ $lint_status -eq 0 ]; then

@@ -6,8 +6,12 @@ import Adw from 'gi://Adw';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-01-17T04:25:09.866Z';
+const BUILD_DATE = '2026-01-17T09:23:03.516Z';
 const CHANGELOG = `
+SYNCHRONOUS, VISUALS & CLEANUP
+
+MAJOR REFACTOR & STABILITY RELEASE
+
 Synchronous Core Architecture:
 
 The Change: We completely removed the asynchronous idle_add pattern used in v17. The UI updateUI function is now fully synchronous.
@@ -18,7 +22,65 @@ Trade-off Mitigation: While synchronous drawing on the main thread carries a ris
 
 Global Visibility Logic Refactor:
 
-Previous Flaw: Hiding the indicator in v17 occasionally left "phantom" spacing or failed to override GNOME's native icon fully because the override hook wasn't strictly enforced.`;
+Previous Flaw: Hiding the indicator in v17 occasionally left "phantom" spacing or failed to override GNOME's native icon fully because the override hook wasn't strictly enforced.
+
+The Fix: The sync.js module now enforces a strict "nothing to show" contract. When "Hide when Charging" is active, the extension explicitly returns false to GNOME Shell's visibility checks, ensuring a cleaner panel layout.
+
+Modular Library Architecture:
+
+Refactor: We have moved away from the monolithic extension.js design. Core logic is now split into specific modules under extension/library/: drawing (Cairo/SVG), sync (GNOME overrides), indicators (Battery/Circle), system (Panel), and upower (Device).
+
+Why: This separation of concerns allows for safer feature additions, easier debugging, and reusable components (like the new Logger and Settings modules) without risking the stability of the main extension entry point.
+
+Memory Prevention Strategy:
+
+Refactor: Wired the v17 SVG_CACHE logic directly into the main update loop via purgeSvgCache().
+
+Why: Caching without cleanup is just a memory leak by another name. v18 actively prunes unused surfaces (every 60s) and forces a deep clean on disable. This makes the extension robust enough for weeks of continuous runtime without bloating the heap.
+
+Visual Refinement:
+
+Centered Bolt: The charging bolt icon is now perfectly centered within the battery bar.
+
+Dynamic Text Sizing: Percentage text in the battery bar now adapts to both width and height, maximizing readability while preventing overflow on narrow configurations.
+
+Build & Integrity System:
+
+Schema Validation: Introduced .build-schema.json to enforce strict file inclusion rules. The build pipeline now recursively scans the extension/ directory and fails if any unknown or unexpected files are present.
+
+EGO Compliance: This mechanism guarantees that release artifacts are clean, containing only the files explicitly required by GNOME Shell, adhering to Extension.gnome.org (EGO) review guidelines.
+
+Cleanup:
+
+Renamed:
+
+scripts/ to .scripts/
+
+screenshot/ to .screenshot/
+
+Why: To de-clutter the root directory.
+
+Defaults:
+
+Updated default dimensions to 34x40 (Bar) and 36 (Circle) for better out-of-the-box aesthetics.
+
+Why: These dimensions provide a good balance between visibility and minimalism, ensuring the extension is both functional and aesthetically pleasing.
+
+Refactoring settings:
+
+Added icons and vertical settings panel to use the new Settings module.
+
+Why: This refactoring improves the maintainability and scalability of the settings panel, making it easier to add new options and features in the future.
+
+Upgrading the ESLint config:
+
+ESLint 9.0.0: Upgraded to the latest version of ESLint.
+
+Why: This upgrade ensures that the codebase adheres to the latest best practices and standards, improving code quality and maintainability.
+
+Upgrading the build pipeline:
+
+Why: This upgrade ensures that the codebase adheres to the latest best practices and standards, improving code quality and maintainability.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {
@@ -485,8 +547,18 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         const changelogGroup = new Adw.PreferencesGroup({
             title: _(`Latest Changes`),
-            description: CHANGELOG,
         });
+        const changelogLabel = new Gtk.Label({
+            label: CHANGELOG,
+            wrap: true,
+            xalign: 0,
+            selectable: true,
+            margin_top: 24,
+            margin_bottom: 24,
+            margin_start: 12,
+            margin_end: 12,
+        });
+        changelogGroup.add(changelogLabel);
         changelogPage.add(changelogGroup);
 
         // === PAGE 6: ABOUT ===
@@ -497,8 +569,19 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         const versionName = this.metadata['version-name'] ?? this.metadata.version ?? 'Unknown';
         const projectGroup = new Adw.PreferencesGroup({
             title: _('Project Information'),
-            description: _(`Version: ${versionName}\nBuild Date: ${BUILD_DATE}`),
+            description: _(`Version: ${versionName}`), // Initial value
         });
+
+        // Dynamic update for Build Date
+        const updateAboutInfo = () => {
+            let descriptionText = `Version: ${versionName}`;
+            if (settings.get_boolean('debug')) {
+                descriptionText += `\nBuild Date: ${BUILD_DATE}`;
+            }
+            projectGroup.set_description(_(descriptionText));
+        };
+        settings.connect('changed::debug', updateAboutInfo);
+        updateAboutInfo(); // Set initial state correctly
 
         const linkRow = new Adw.ActionRow({
             title: _('Project Homepage'),

@@ -64,7 +64,14 @@ try {
         const changelogMd = fs.readFileSync(CHANGELOG_PATH, 'utf8');
         const entries = extractChangelogEntries(changelogMd, newVersion);
         if (entries.length > 0) {
-            const latestBlock = `<!-- LATEST-VERSION-START -->\n### Latest Update (v${newVersion})\n${entries.join('\n')}\n<!-- LATEST-VERSION-END -->`;
+            const latestBlock = `<!-- LATEST-VERSION-START -->
+<details open>
+<summary><strong>Latest Update (v${newVersion})</strong></summary>
+
+${entries.join('\n')}
+
+</details>
+<!-- LATEST-VERSION-END -->`;
             const readmeContent = fs.readFileSync(README_PATH, 'utf8');
             const regex = /<!-- LATEST-VERSION-START -->[\s\S]*<!-- LATEST-VERSION-END -->/;
             if (regex.test(readmeContent)) {
@@ -109,29 +116,37 @@ function extractChangelogForVersion(markdown, version) {
     const lines = section.split('\n');
     const entries = [];
 
-    for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('- ')) continue;
+    // Capture the header line (e.g. "SYNCHRONOUS, VISUALS & CLEANUP")
+    const headerLine = markdown.slice(markdown.indexOf(header), markdown.indexOf('\n', markdown.indexOf(header)));
+    const headerText = headerLine.replace(/^##\s*v\d+(\s*\(.*?\))?\s*-\s*/, '').trim();
 
-        let cleaned = trimmed.replace(/^-+\s*/, '');
-        cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
+    if (headerText) entries.push(headerText.toUpperCase());
+
+    for (const line of lines) {
+        // Allow indented bullets AND blockquotes
+        if (!/^\s*[-*]/.test(line) && !/^\s*>/.test(line)) continue;
+
+        let cleaned = line;
+
+        // Handle blockquotes
+        if (cleaned.trim().startsWith('>')) {
+            cleaned = cleaned.replace(/^\s*>\s*/, '');
+        }
+        // Handle bullets
+        else {
+            cleaned = cleaned.replace(/^\s*[-*]\s*/, '');
+        }
+
+        // Remove code ticks but KEEP bolding/italics for emphasis in plain text
         cleaned = cleaned.replace(/`/g, '');
-        if (cleaned) entries.push(cleaned);
+        cleaned = cleaned.replace(/\*\*/g, '');
+
+        if (cleaned.trim()) entries.push(cleaned.trim());
     }
 
     if (entries.length === 0) return '';
 
-    const essentialKeys = [
-        'Memory Leak Fix',
-        'Hard Cache Guard',
-        'Safe Cleanup',
-        'Performance Refactor',
-        'Lint Pipeline',
-        'Bug Fix',
-    ];
-    const essential = entries.filter(item => essentialKeys.some(key => item.includes(key)));
-    const output = essential.length > 0 ? essential : entries.slice(0, 6);
-    return `\n${output.join('\n\n')}`;
+    return `\n${entries.join('\n\n')}`;
 }
 
 /**
@@ -154,9 +169,9 @@ function extractChangelogEntries(markdown, version) {
     const entries = [];
 
     for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed.startsWith('- ')) continue;
-        entries.push(trimmed);
+        // Allow indented bullets
+        if (!/^\s*-/.test(line)) continue;
+        entries.push(line);
     }
 
     return entries;
