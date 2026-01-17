@@ -94,7 +94,7 @@ const CircleIndicator = GObject.registerClass(
                 // This ensures the bolt/text grow even if the panel height is restricting the widget.
                 const targetSize = this._status.size || height;
 
-                let fontSize = Math.round(targetSize * CIRCLE.FONT_SIZE_RATIO);
+                const fontSize = Math.round(targetSize * CIRCLE.FONT_SIZE_RATIO);
 
                 // Proportional Scale Factor based on REQUESTED size
                 const refSize = 24.0;

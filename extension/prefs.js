@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-01-17T09:23:03.516Z';
+const BUILD_DATE = '2026-01-17T12:04:34.878Z';
 const CHANGELOG = `
 SYNCHRONOUS, VISUALS & CLEANUP
 

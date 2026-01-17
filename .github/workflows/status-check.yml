@@ -2,12 +2,13 @@ name: EGO Status Check
 
 on:
     schedule:
-        # Run every 6 hours to check if review passed
-        - cron: '0 */6 * * *'
+        # Run once daily at 00:00
+        - cron: '0 0 * * *'
     workflow_dispatch:
 
 permissions:
     contents: write
+    actions: write
 
 jobs:
     check-status:
@@ -37,4 +38,16 @@ jobs:
                       git push
                   else
                       echo "No status change detected."
+                  fi
+
+            - name: Disable Workflow if Synced
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  # Check if we are now synced by grepping the README
+                  if grep -q "Status-Synced-brightgreen" .github/README.md; then
+                      echo "✅ Extension is synced! Disabling this workflow to stop checking."
+                      gh workflow disable "EGO Status Check"
+                  else
+                      echo "⏳ Still pending. Will check again tomorrow."
                   fi
