@@ -1,0 +1,40 @@
+name: EGO Status Check
+
+on:
+    schedule:
+        # Run every 6 hours to check if review passed
+        - cron: '0 */6 * * *'
+    workflow_dispatch:
+
+permissions:
+    contents: write
+
+jobs:
+    check-status:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Set up Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+
+            - name: Fetch EGO Version & Update README
+              run: node .scripts/fetch-ego-version.js
+
+            - name: Commit Status Update
+              run: |
+                  git config --global user.name 'GitHub Action'
+                  git config --global user.email 'action@github.com'
+
+                  # Check if README changed
+                  if [[ -n $(git status --porcelain .github/README.md) ]]; then
+                      echo "Status changed. Committing..."
+                      git add .github/README.md
+                      git commit -m "chore: Update GNOME Extensions status [skip ci]"
+                      git push
+                  else
+                      echo "No status change detected."
+                  fi
