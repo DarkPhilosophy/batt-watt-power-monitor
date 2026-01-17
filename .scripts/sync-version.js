@@ -1,4 +1,3 @@
-/* eslint-disable no-console, jsdoc/require-jsdoc */
 const fs = require('fs');
 const path = require('path');
 
@@ -70,10 +69,10 @@ try {
             const regex = /<!-- LATEST-VERSION-START -->[\s\S]*<!-- LATEST-VERSION-END -->/;
             if (regex.test(readmeContent)) {
                 let newContent = readmeContent.replace(regex, latestBlock);
-                const badgeRegex = /\[!\[Version [^\]]+\]\(https:\/\/img\.shields\.io\/badge\/Version-[^-]+-green\.svg\)\]\([^)]+\)/;
+                const badgeRegex =
+                    /\[!\[Version [^\]]+\]\(https:\/\/img\.shields\.io\/badge\/Version-[^-]+-green\.svg\)\]\([^)]+\)/;
                 const badge = `[![Version ${newVersion}](https://img.shields.io/badge/Version-${newVersion}-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)`;
-                if (badgeRegex.test(newContent))
-                    newContent = newContent.replace(badgeRegex, badge);
+                if (badgeRegex.test(newContent)) newContent = newContent.replace(badgeRegex, badge);
                 fs.writeFileSync(README_PATH, newContent);
                 console.log('✅ Updated README latest update block');
             } else {
@@ -102,8 +101,7 @@ try {
 function extractChangelogForVersion(markdown, version) {
     const header = `## v${version}`;
     const start = markdown.indexOf(header);
-    if (start === -1)
-        return '';
+    if (start === -1) return '';
 
     const afterHeader = markdown.slice(start + header.length);
     const nextHeaderIndex = afterHeader.search(/\n## v\d+/);
@@ -113,18 +111,15 @@ function extractChangelogForVersion(markdown, version) {
 
     for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed.startsWith('- '))
-            continue;
+        if (!trimmed.startsWith('- ')) continue;
 
         let cleaned = trimmed.replace(/^-+\s*/, '');
         cleaned = cleaned.replace(/\*\*(.*?)\*\*/g, '$1');
         cleaned = cleaned.replace(/`/g, '');
-        if (cleaned)
-            entries.push(cleaned);
+        if (cleaned) entries.push(cleaned);
     }
 
-    if (entries.length === 0)
-        return '';
+    if (entries.length === 0) return '';
 
     const essentialKeys = [
         'Memory Leak Fix',
@@ -146,12 +141,11 @@ function extractChangelogForVersion(markdown, version) {
  * @param {string} version - Version number (major)
  * @returns {string[]} Raw bullet lines
  */
-// eslint-disable-next-line jsdoc/require-jsdoc
+
 function extractChangelogEntries(markdown, version) {
     const header = `## v${version}`;
     const start = markdown.indexOf(header);
-    if (start === -1)
-        return [];
+    if (start === -1) return [];
 
     const afterHeader = markdown.slice(start + header.length);
     const nextHeaderIndex = afterHeader.search(/\n## v\d+/);
@@ -161,8 +155,7 @@ function extractChangelogEntries(markdown, version) {
 
     for (const line of lines) {
         const trimmed = line.trim();
-        if (!trimmed.startsWith('- '))
-            continue;
+        if (!trimmed.startsWith('- ')) continue;
         entries.push(trimmed);
     }
 

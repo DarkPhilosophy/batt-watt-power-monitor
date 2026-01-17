@@ -26,8 +26,8 @@ If applicable, add screenshots to help explain your problem.
 
 ### Environment
 - **GNOME Version**: [e.g., 45, 46, 47, 48, 49]
-- **Extension Version**: [e.g., 14]
-- **Distribution**: [e.g., Fedora 39, Ubuntu 23.10]
+- **Extension Version**: [e.g., 18]
+- **Distribution**: [e.g., Fedora 41, Ubuntu 24.04]
 - **Hardware**: [e.g., Laptop model, Desktop]
 
 ### Additional context

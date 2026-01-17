@@ -4,10 +4,15 @@ set -e
 
 # Parse arguments
 FIX_MODE=false
+FORMAT_MODE=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -fix|--fix)
             FIX_MODE=true
+            shift
+            ;;
+        -format|--format)
+            FORMAT_MODE=true
             shift
             ;;
         -h|--help)
@@ -15,6 +20,7 @@ while [[ $# -gt 0 ]]; do
             echo ""
             echo "Options:"
             echo "  --fix          Auto-fix linting issues before build"
+            echo "  --format       Format code with Prettier before build"
             echo "  -h, --help     Show this help message"
             exit 0
             ;;
@@ -31,9 +37,14 @@ PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LINT_OUTPUT_FILE="$PROJECT_DIR/.lint-output.txt"
 LINT_PASSED_FILE="$PROJECT_DIR/.lint-passed"
 
+if [ "$FORMAT_MODE" = true ]; then
+    echo "Formatting code..."
+    npx prettier --write extension/ .scripts/
+fi
+
 run_lint() {
     local output
-    output=$(npm run lint -- --format stylish 2>&1)
+    output=$(npm run lint 2>&1)
     local status=$?
     printf "%s\n" "$output" > "$LINT_OUTPUT_FILE"
     if [ $status -eq 0 ]; then
@@ -63,11 +74,14 @@ fi
 
 # Sync version from package.json
 echo "Syncing version..."
-node scripts/sync-version.js
+node .scripts/sync-version.js
 
 # Update lint status in README
 echo "Updating lint status..."
-node scripts/update-lint-status.js
+node .scripts/update-lint-status.js
+
+# Validate File Structure
+node .scripts/validate-build.js
 
 EXTENSION_ID="batt-watt-power-monitor@DarkPhilosophy"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_ID"
@@ -103,7 +117,11 @@ mkdir -p "$EXTENSION_DIR/schemas"
 
 # Copy files directly
 echo "Installing files..."
-cp "$PROJECT_DIR/extension/extension.js" "$PROJECT_DIR/extension/prefs.js" "$PROJECT_DIR/extension/metadata.json" "$PROJECT_DIR/extension/bolt.svg" "$EXTENSION_DIR/"
+# Copy files directly
+echo "Installing files..."
+cp "$PROJECT_DIR/extension/"*.js "$PROJECT_DIR/extension/metadata.json" "$PROJECT_DIR/extension/bolt.svg" "$EXTENSION_DIR/"
+mkdir -p "$EXTENSION_DIR/library"
+cp -r "$PROJECT_DIR/extension/library/"* "$EXTENSION_DIR/library/"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$EXTENSION_DIR/schemas/"
 
 BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")

@@ -9,14 +9,14 @@ set -e
 
 # Sync version from package.json
 echo "Syncing version..."
-node scripts/sync-version.js
+node .scripts/sync-version.js
 
 # Lint check (for status update)
 echo "Checking code quality..."
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 LINT_OUTPUT_FILE="$PROJECT_DIR/.lint-output.txt"
 LINT_PASSED_FILE="$PROJECT_DIR/.lint-passed"
-lint_output=$(npm run lint -- --format stylish 2>&1)
+lint_output=$(npm run lint:fix -- --format stylish 2>&1)
 lint_status=$?
 printf "%s\n" "$lint_output" > "$LINT_OUTPUT_FILE"
 if [ $lint_status -eq 0 ]; then
@@ -30,7 +30,10 @@ fi
 
 # Update lint status in README
 echo "Updating lint status..."
-node scripts/update-lint-status.js
+node .scripts/update-lint-status.js
+
+# Validate File Structure
+node .scripts/validate-build.js
 
 echo "🏗️  Building Batt-Watt Power Monitor extension package..."
 
@@ -50,10 +53,11 @@ mkdir -p "$TEMP_DIR/schemas"
 
 # Copy only required files directly to temp root (following EGO guidelines)
 echo "COPY: Extension files..."
-cp "$PROJECT_DIR/extension/extension.js" "$TEMP_DIR/"
-cp "$PROJECT_DIR/extension/prefs.js" "$TEMP_DIR/"
+cp "$PROJECT_DIR/extension/"*.js "$TEMP_DIR/"
 cp "$PROJECT_DIR/extension/metadata.json" "$TEMP_DIR/"
 cp "$PROJECT_DIR/extension/bolt.svg" "$TEMP_DIR/"
+mkdir -p "$TEMP_DIR/library"
+cp -r "$PROJECT_DIR/extension/library/"* "$TEMP_DIR/library/"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$TEMP_DIR/schemas/" 2>/dev/null || true
 
 # Create zip package - files at root level, not in subdirectory

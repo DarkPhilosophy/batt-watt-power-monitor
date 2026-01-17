@@ -19,12 +19,14 @@
       <description></description>
     </key>
     <key type="i" name="batterysize">
-      <default>27</default>
+      <range min="25" max="50"/>
+      <default>34</default>
       <summary>Battery icon width</summary>
       <description>Pixel width for the battery icon.</description>
     </key>
     <key type="i" name="batteryheight">
-      <default>33</default>
+      <range min="25" max="50"/>
+      <default>40</default>
       <summary>Battery icon height</summary>
       <description>Pixel height for the battery icon.</description>
     </key>
@@ -79,7 +81,8 @@
       <description>Replaces the default battery icon with a circular meter indicator.</description>
     </key>
     <key type="i" name="circlesize">
-      <default>27</default>
+      <range min="25" max="50"/>
+      <default>36</default>
       <summary>Circular indicator size</summary>
       <description>Pixel size for the circular indicator.</description>
     </key>
