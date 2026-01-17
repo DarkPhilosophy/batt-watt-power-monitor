@@ -11,7 +11,7 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v16-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v18-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
 <!-- EGO-VERSION-END -->
 
 ## Validation Status
@@ -19,7 +19,7 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-17 09:23:04 UTC  
+> **Last Updated**: 2026-01-17 12:04:36 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -75,6 +75,9 @@
 
 </details>
 <!-- LATEST-VERSION-END -->
+
+
+![Batt-Watt Screenshot](../.screenshot/Screenshot.png)
 
 ## Configuration
 

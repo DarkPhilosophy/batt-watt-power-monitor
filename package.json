@@ -6,6 +6,7 @@
     "lint": "eslint extension .scripts --format stylish",
     "lint:fix": "eslint --fix extension .scripts --format stylish",
     "lint:status": "node .scripts/update-lint-status.js",
+    "validate": "node .scripts/validate-build.js && node .scripts/scan-leaks.js",
     "package": "./package.sh",
     "prepare": "husky install"
   },

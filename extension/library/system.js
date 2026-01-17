@@ -66,7 +66,7 @@ export function cachePowerToggleStyles() {
     }
 }
 
-let _originalLabelColor = null;
+const _originalLabelColor = null;
 
 /**
  * Cache default label color from theme
@@ -102,7 +102,7 @@ export function resetPowerToggleStyles() {
     }
 }
 
-let _stockBatteryWasVisible = null;
+const _stockBatteryWasVisible = null;
 
 /**
  * Hide the default GNOME Shell battery icon.

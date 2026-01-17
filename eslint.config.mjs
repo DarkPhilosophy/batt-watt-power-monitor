@@ -72,6 +72,8 @@ export default [
                 'caughtErrorsIgnorePattern': '^_',
             }],
             'no-implicit-coercion': ['error', { 'allow': ['!!'] }],
+            'no-var': 'error',
+            'prefer-const': 'error',
 
             
             // Re-enabling console warn as per previous config, effectively

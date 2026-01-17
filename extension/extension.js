@@ -48,7 +48,7 @@ export default class BatteryPowerMonitor extends Extension {
             this._updateBatteryVisibility();
         };
 
-        this._settings.connect('changed', () => {
+        this._settingsSignalId = this._settings.connect('changed', () => {
             Logger.debug('Settings changed');
             updateUI();
         });
@@ -89,6 +89,11 @@ export default class BatteryPowerMonitor extends Extension {
         Logger.info('Disabling Batt-Watt...');
 
         disableSyncOverride();
+
+        if (this._settingsSignalId) {
+            this._settings.disconnect(this._settingsSignalId);
+            this._settingsSignalId = null;
+        }
 
         this._settings = null;
         updateUI = null;
