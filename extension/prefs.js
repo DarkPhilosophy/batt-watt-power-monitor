@@ -4,207 +4,155 @@ import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
 
-import {ExtensionPreferences, gettext as _} from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
+import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = null;
+const BUILD_DATE = '2026-01-17T04:25:09.866Z';
 const CHANGELOG = `
-Memory Leak Fix: SVG surfaces were reloaded on every repaint (~5 sec cycle) causing unbounded memory growth, leading to GNOME Shell crash (3.5GB accumulation). Now cached.
+Synchronous Core Architecture:
 
-Safe Cleanup: disable() now explicitly clears SVG cache to prevent memory retention after unload.
+The Change: We completely removed the asynchronous idle_add pattern used in v17. The UI updateUI function is now fully synchronous.
 
-Hard Cache Guard: Added LRU-style cap, surface finish() on eviction, and color quantization to prevent unbounded SVG variants.
+Why Better (Determinism): Asynchronous updates introduced "desync" race conditions where the internal state (battery level) and visual state (icon) could drift apart during rapid changes. Sync updates ensure atomic consistency—what you see is exactly what the system reports, instantly.
 
-Performance Refactor: DRY helpers for indicator status, Cairo clear, widget sizing, and cached sysfs path/status reads to reduce hot-path work.
+Trade-off Mitigation: While synchronous drawing on the main thread carries a risk of UI lag, we mitigated this by enforcing strict SVG Caching. Since heavy rendering is cached, the synchronous update is extremely lightweight (~microsecond scale), giving us the best of both worlds: instant updates with zero performance penalty.
 
-Lint Pipeline: Root ESLint config now covers scripts/*.js; CI lint output is plumbed into lint status updates.
+Global Visibility Logic Refactor:
 
-Bug Fix: Persisted "Show Colored" styling now resets on disable by restoring cached GNOME theme color.`;
+Previous Flaw: Hiding the indicator in v17 occasionally left "phantom" spacing or failed to override GNOME's native icon fully because the override hook wasn't strictly enforced.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
-    fillPreferencesWindow(window) {
-        const settings = this.getSettings();
-        window.default_width = 900;
-        window.set_title(_('Battery Power Monitor: Watts & Time Extension'));
+    _switchToNavigationSplitViews(window) {
+        // Add dummy Adw.PreferencesPage to avoid logs spamming
+        const dummyPrefsPage = new Adw.PreferencesPage();
+        window.add(dummyPrefsPage);
 
-        const page = new Adw.PreferencesPage({
-            title: _('General'),
+        // Add AdwNavigationSplitView and componenents
+        const splitView = new Adw.NavigationSplitView({
+            hexpand: true,
+            vexpand: true,
+            sidebar_width_fraction: 0.3,
         });
-        const modePage = new Adw.PreferencesPage({
-            title: _('Battery Bar'),
+        const breakpointBin = new Adw.BreakpointBin({
+            width_request: 100,
+            height_request: 100,
         });
-        const debugPage = new Adw.PreferencesPage({
-            title: _('Debug'),
-        });
+        const breakpoint = new Adw.Breakpoint();
+        breakpoint.set_condition(Adw.BreakpointCondition.parse('max-width: 600px'));
+        breakpoint.add_setter(splitView, 'collapsed', true);
+        breakpointBin.add_breakpoint(breakpoint);
+        breakpointBin.set_child(splitView);
+        window.set_content(breakpointBin);
 
-        /*
-         * Version Information
-         */
-        const versionName = this.metadata['version-name'] ?? this.metadata.version ?? 'Unknown';
-        const versionLabel = _('Version ') + versionName;
-        const mainGroup = new Adw.PreferencesGroup({
-            title: _('Battery Power Monitor'),
-            description: _(`${versionLabel}`),
+        // AdwNavigationSplitView Sidebar configuration
+        const splitViewSidebar = new Adw.NavigationPage({
+            title: _('Settings'),
         });
-        const updateDescription = () => {
-            if (settings.get_boolean('debug')) {
-                const buildDate = BUILD_DATE ? BUILD_DATE : _('Undefined');
-                mainGroup.description = _(`${versionLabel} - ${_('Build: ')}${buildDate}`);
-            } else {
-                mainGroup.description = _(`${versionLabel}`);
+        const sidebarToolbar = new Adw.ToolbarView();
+        const sidebarHeader = new Adw.HeaderBar();
+        const sidebarBin = new Adw.Bin();
+        this._sidebarListBox = new Gtk.ListBox();
+        this._sidebarListBox.add_css_class('navigation-sidebar');
+        sidebarBin.set_child(this._sidebarListBox);
+        sidebarToolbar.set_content(sidebarBin);
+        sidebarToolbar.add_top_bar(sidebarHeader);
+        splitViewSidebar.set_child(sidebarToolbar);
+        splitView.set_sidebar(splitViewSidebar);
+
+        // Content configuration
+        const splitViewContent = new Adw.NavigationPage();
+        this._contentToastOverlay = new Adw.ToastOverlay();
+        const contentToolbar = new Adw.ToolbarView();
+        const contentHeader = new Adw.HeaderBar();
+        const stack = new Gtk.Stack({
+            transition_type: Gtk.StackTransitionType.CROSSFADE,
+        });
+        contentToolbar.set_content(stack);
+        contentToolbar.add_top_bar(contentHeader);
+        this._contentToastOverlay.set_child(contentToolbar);
+        splitViewContent.set_child(this._contentToastOverlay);
+        splitView.set_content(splitViewContent);
+
+        this._firstPageAdded = false;
+        this._addPage = page => {
+            const row = new Gtk.ListBoxRow();
+            row._name = page.get_name ? page.get_name() : 'page';
+            row._title = page.get_title();
+            row._id = (row._title || 'id').toLowerCase().replace(/\s+/g, '-');
+            const rowIcon = new Gtk.Image({ icon_name: page.get_icon_name() });
+            const rowLabel = new Gtk.Label({ label: row._title, xalign: 0 });
+            const box = new Gtk.Box({
+                spacing: 12,
+                margin_top: 12,
+                margin_bottom: 12,
+                margin_start: 12,
+                margin_end: 12,
+            });
+            box.append(rowIcon);
+            box.append(rowLabel);
+            row.set_child(box);
+            row.set_activatable(true);
+            stack.add_named(page, row._id);
+            this._sidebarListBox.append(row);
+
+            if (!this._firstPageAdded) {
+                splitViewContent.set_title(row._title);
+                this._firstPageAdded = true;
+                // Auto-select first row logic if needed, but 'row-activated' might need manual trigger
             }
         };
-        settings.connect('changed::debug', updateDescription);
-        updateDescription();
-        page.add(mainGroup);
 
-        /*
-         * Project Link
-         */
-        const linkRow = new Adw.ActionRow({
-            title: _('Project Homepage'),
-            subtitle: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
+        this._sidebarListBox.connect('row-activated', (listBox, row) => {
+            if (!row) return;
+            splitView.set_show_content(true);
+            splitViewContent.set_title(row._title);
+            stack.set_visible_child_name(row._id);
+        });
+    }
+
+    fillPreferencesWindow(window) {
+        const settings = this.getSettings();
+
+        // Setup custom sidebar layout
+        window.set_default_size(900, 700);
+        this._switchToNavigationSplitViews(window);
+
+        // Helper to add icon to row
+        const addIcon = (row, iconName) => {
+            const icon = new Gtk.Image({
+                icon_name: iconName,
+            });
+            row.add_prefix(icon);
+        };
+
+        // === PAGE 1: GENERAL ===
+        const generalPage = new Adw.PreferencesPage({
+            title: _('General'),
+            icon_name: 'preferences-system-symbolic',
         });
 
-        const linkButton = new Gtk.LinkButton({
-            uri: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
-            icon_name: 'go-next-symbolic',
-            valign: Gtk.Align.CENTER,
+        // Group: Battery Behavior
+        const behaviorGroup = new Adw.PreferencesGroup({
+            title: _('Behavior'),
         });
-        linkRow.add_suffix(linkButton);
-        mainGroup.add(linkRow);
-
-        /*
-         * Settings
-         */
-        const settingsGroup = new Adw.PreferencesGroup({
-            title: _('Display Settings'),
-        });
-        page.add(settingsGroup);
 
         const intervalRow = new Adw.ActionRow({
-            title: _('Interval (seconds)'),
-            subtitle: _('Refresh rate for battery readings'),
+            title: _('Refresh Interval (seconds)'),
+            subtitle: _('How often to poll battery status'),
         });
-        const intervalAdjustment = new Gtk.Adjustment({
-            lower: 1,
-            upper: 15,
-            step_increment: 1,
-        });
-        const intervalSpinButton = new Gtk.SpinButton({
-            adjustment: intervalAdjustment,
+        addIcon(intervalRow, 'view-refresh-symbolic');
+        const intervalSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ lower: 1, upper: 60, step_increment: 1 }),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('interval', intervalSpinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
-        intervalRow.add_suffix(intervalSpinButton);
-        settingsGroup.add(intervalRow);
-
-        const showIconRow = new Adw.ActionRow({
-            title: _('Show battery icon'),
-            subtitle: _('Toggle the panel icon'),
-        });
-        const showIconSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showicon'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('showicon', showIconSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        showIconRow.add_suffix(showIconSwitch);
-        settingsGroup.add(showIconRow);
-
-        const circleIndicatorRow = new Adw.ActionRow({
-            title: _('Use circular indicator'),
-            subtitle: _('Replace battery icon with a color ring meter'),
-        });
-        const circleIndicatorSwitch = new Gtk.Switch({
-            active: settings.get_boolean('usecircleindicator'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('usecircleindicator', circleIndicatorSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        circleIndicatorRow.add_suffix(circleIndicatorSwitch);
-        settingsGroup.add(circleIndicatorRow);
-
-        const showColoredRow = new Adw.ActionRow({
-            title: _('Show colored'),
-            subtitle: _('Enable colored ring/text for the circle; disable to force monochrome (wastes the color)'),
-        });
-        const showColoredSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showcolored'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('showcolored', showColoredSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        showColoredRow.add_suffix(showColoredSwitch);
-        settingsGroup.add(showColoredRow);
-
-        const percentageRow = new Adw.ActionRow({
-            title: _('Show percentage'),
-            subtitle: _('Show battery percent text in the panel'),
-        });
-        const percentageSwitch = new Gtk.Switch({
-            active: settings.get_boolean('percentage'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('percentage', percentageSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        percentageRow.add_suffix(percentageSwitch);
-        settingsGroup.add(percentageRow);
-
-        const percentageOutsideRow = new Adw.ActionRow({
-            title: _('Show percentage outside icons'),
-            subtitle: _('Show percentage as text outside the icon'),
-        });
-        const percentageOutsideSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showpercentageoutside'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('showpercentageoutside', percentageOutsideSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        percentageOutsideRow.add_suffix(percentageOutsideSwitch);
-        settingsGroup.add(percentageOutsideRow);
-
-        const timeRemainingRow = new Adw.ActionRow({
-            title: _('Show time remaining'),
-            subtitle: _('Show time to full or time to empty'),
-        });
-        const timeRemainingSwitch = new Gtk.Switch({
-            active: (function () {
-                try {
-                    return settings.get_boolean('timeremaining');
-                } catch (e) {
-                    log('batt-watt-power-monitor: missing key timeremaining, using default');
-                    return false;
-                }
-            })(),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        timeRemainingRow.add_suffix(timeRemainingSwitch);
-        settingsGroup.add(timeRemainingRow);
-
-        const showWattsRow = new Adw.ActionRow({
-            title: _('Show watts consumption'),
-            subtitle: _('Show charge/discharge power in Watts'),
-        });
-        const showWattsSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showwatts'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('showwatts', showWattsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        showWattsRow.add_suffix(showWattsSwitch);
-        settingsGroup.add(showWattsRow);
-
-        const showDecimalsRow = new Adw.ActionRow({
-            title: _('Enable 2-digit decimal'),
-            subtitle: _('Display precise wattage (e.g. 15.75W)'),
-        });
-        const showDecimalsSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showdecimals'),
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('showdecimals', showDecimalsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
-        showDecimalsRow.add_suffix(showDecimalsSwitch);
-        settingsGroup.add(showDecimalsRow);
+        settings.bind('interval', intervalSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        intervalRow.add_suffix(intervalSpin);
+        behaviorGroup.add(intervalRow);
 
         const batteryRow = new Adw.ActionRow({
-            title: _('Choose battery'),
-            subtitle: _('Select which battery device to read'),
+            title: _('Battery Device'),
+            subtitle: _('Select specific battery to monitor'),
         });
+        addIcon(batteryRow, 'battery-symbolic');
         const batteryCombo = new Gtk.DropDown({
             valign: Gtk.Align.CENTER,
             model: Gtk.StringList.new(['AUTOMATIC', 'BAT0', 'BAT1', 'BAT2']),
@@ -217,121 +165,246 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             batteryCombo.set_selected(settings.get_int('battery'));
         });
         batteryRow.add_suffix(batteryCombo);
-        settingsGroup.add(batteryRow);
+        behaviorGroup.add(batteryRow);
+        generalPage.add(behaviorGroup);
 
-        const modeGroup = new Adw.PreferencesGroup({
-            title: _('Battery Bar Settings'),
+        // === PAGE 2: APPEARANCE ===
+        const appearancePage = new Adw.PreferencesPage({
+            title: _('Appearance'),
+            icon_name: 'preferences-desktop-display-symbolic',
         });
-        const circleGroup = new Adw.PreferencesGroup({
-            title: _('Battery Circular Settings'),
-        });
-        modePage.add(modeGroup);
-        modePage.add(circleGroup);
 
-        const updateModePage = () => {
-            const useCircle = settings.get_boolean('usecircleindicator');
-            modePage.title = useCircle ? _('Battery Circular') : _('Battery Bar');
-            modeGroup.visible = !useCircle;
-            circleGroup.visible = useCircle;
+        // Group: Panel Elements
+        const elementsGroup = new Adw.PreferencesGroup({
+            title: _('Panel Elements'),
+        });
+
+        // Show Icon
+        const showIconRow = new Adw.ActionRow({
+            title: _('Show Battery Icon'),
+            subtitle: _('Toggle main icon visibility'),
+        });
+        addIcon(showIconRow, 'image-x-generic-symbolic');
+        const showIconSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showicon'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showicon', showIconSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        showIconRow.add_suffix(showIconSwitch);
+        elementsGroup.add(showIconRow);
+
+        // Percentage
+        const percentageRow = new Adw.ActionRow({
+            title: _('Show Percentage'),
+            subtitle: _('Display battery level text'),
+        });
+        addIcon(percentageRow, 'font-x-generic-symbolic');
+        const percentageSwitch = new Gtk.Switch({
+            active: settings.get_boolean('percentage'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('percentage', percentageSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        percentageRow.add_suffix(percentageSwitch);
+        elementsGroup.add(percentageRow);
+
+        const percentageOutsideRow = new Adw.ActionRow({
+            title: _('Percentage Next to Icon'),
+            subtitle: _('Move percentage text outside the icon'),
+        });
+        addIcon(percentageOutsideRow, 'format-justify-left-symbolic');
+        const percentageOutsideSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showpercentageoutside'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showpercentageoutside', percentageOutsideSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        percentageOutsideRow.add_suffix(percentageOutsideSwitch);
+        elementsGroup.add(percentageOutsideRow);
+
+        // Time Remaining
+        const timeRemainingRow = new Adw.ActionRow({
+            title: _('Show Time Remaining'),
+            subtitle: _('Estimated time to empty/full'),
+        });
+        addIcon(timeRemainingRow, 'alarm-symbolic');
+        const timeRemainingSwitch = new Gtk.Switch({
+            active: (function () {
+                try {
+                    return settings.get_boolean('timeremaining');
+                } catch (_e) {
+                    return false;
+                }
+            })(),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        timeRemainingRow.add_suffix(timeRemainingSwitch);
+        elementsGroup.add(timeRemainingRow);
+
+        // Watts
+        const showWattsRow = new Adw.ActionRow({
+            title: _('Show Power (Watts)'),
+            subtitle: _('Current power consumption/charging rate'),
+        });
+        addIcon(showWattsRow, 'thunderbolt-symbolic');
+        const showWattsSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showwatts'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showwatts', showWattsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        showWattsRow.add_suffix(showWattsSwitch);
+        elementsGroup.add(showWattsRow);
+
+        const showDecimalsRow = new Adw.ActionRow({
+            title: _('Precision Mode'),
+            subtitle: _('Show 2 decimal places (e.g., 15.42W)'),
+        });
+        addIcon(showDecimalsRow, 'input-dialpad-symbolic');
+        const showDecimalsSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showdecimals'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showdecimals', showDecimalsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        showDecimalsRow.add_suffix(showDecimalsSwitch);
+        elementsGroup.add(showDecimalsRow);
+
+        appearancePage.add(elementsGroup);
+
+        // === PAGE 3: STYLE & LAYOUT ===
+        const stylePage = new Adw.PreferencesPage({
+            title: _('Style & Layout'),
+            icon_name: 'battery-level-100-symbolic',
+        });
+
+        // Group: Style
+        const styleGroup = new Adw.PreferencesGroup({
+            title: _('Icon Style'),
+        });
+
+        const circleIndicatorRow = new Adw.ActionRow({
+            title: _('Use Circular Indicator'),
+            subtitle: _('Replace standard battery icon with a ring'),
+        });
+        addIcon(circleIndicatorRow, 'media-record-symbolic');
+        const circleIndicatorSwitch = new Gtk.Switch({
+            active: settings.get_boolean('usecircleindicator'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('usecircleindicator', circleIndicatorSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        circleIndicatorRow.add_suffix(circleIndicatorSwitch);
+        styleGroup.add(circleIndicatorRow);
+
+        const showColoredRow = new Adw.ActionRow({
+            title: _('Colored Ring'),
+            subtitle: _('Use colors to indicate charge level'),
+        });
+        addIcon(showColoredRow, 'applications-graphics-symbolic');
+        const showColoredSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showcolored'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showcolored', showColoredSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        showColoredRow.add_suffix(showColoredSwitch);
+        styleGroup.add(showColoredRow);
+
+        // Group: Dimensions (Dynamic visibility)
+        const dimensionsGroup = new Adw.PreferencesGroup({
+            title: _('Dimensions'),
+        });
+
+        // Bar Dimensions
+        const batteryWidthRow = new Adw.ActionRow({ title: _('Icon Width') });
+        addIcon(batteryWidthRow, 'zoom-fit-best-symbolic');
+        const batteryWidthSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ lower: 25, upper: 50, step_increment: 1 }),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('batterysize', batteryWidthSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        batteryWidthRow.add_suffix(batteryWidthSpin);
+        dimensionsGroup.add(batteryWidthRow);
+
+        const batteryHeightRow = new Adw.ActionRow({ title: _('Icon Height') });
+        addIcon(batteryHeightRow, 'view-fullscreen-symbolic');
+        const batteryHeightSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ lower: 25, upper: 50, step_increment: 1 }),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('batteryheight', batteryHeightSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        batteryHeightRow.add_suffix(batteryHeightSpin);
+        dimensionsGroup.add(batteryHeightRow);
+
+        // Circle Dimensions
+        const circleSizeRow = new Adw.ActionRow({ title: _('Circle Diameter') });
+        addIcon(circleSizeRow, 'zoom-original-symbolic');
+        const circleSizeSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ lower: 25, upper: 50, step_increment: 1 }),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('circlesize', circleSizeSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        circleSizeRow.add_suffix(circleSizeSpin);
+        dimensionsGroup.add(circleSizeRow);
+
+        stylePage.add(styleGroup);
+        stylePage.add(dimensionsGroup);
+
+        // Visibility Logic for Dimensions
+        const updateDimensionVisibility = () => {
+            const isCircle = settings.get_boolean('usecircleindicator');
+            batteryWidthRow.visible = !isCircle;
+            batteryHeightRow.visible = !isCircle;
+            circleSizeRow.visible = isCircle;
         };
-        settings.connect('changed::usecircleindicator', updateModePage);
-        updateModePage();
+        settings.connect('changed::usecircleindicator', updateDimensionVisibility);
+        updateDimensionVisibility();
 
-        const hideChargingRow = new Adw.ActionRow({
-            title: _('Hide battery when charging'),
-            subtitle: _('Hide indicator while charging'),
+        // Group: Auto-Hide Rules
+        const visibilityGroup = new Adw.PreferencesGroup({
+            title: _('Automatic Visibility'),
         });
+
+        const hideChargingRow = new Adw.ActionRow({ title: _('Hide When Charging') });
+        addIcon(hideChargingRow, 'battery-level-charging-symbolic'); // Fallback icon
         const hideChargingSwitch = new Gtk.Switch({
             active: settings.get_boolean('hidecharging'),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('hidecharging', hideChargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideChargingRow.add_suffix(hideChargingSwitch);
-        settingsGroup.add(hideChargingRow);
+        visibilityGroup.add(hideChargingRow);
 
-        const hideFullRow = new Adw.ActionRow({
-            title: _('Hide battery when full'),
-            subtitle: _('Hide indicator when fully charged'),
-        });
+        const hideFullRow = new Adw.ActionRow({ title: _('Hide When Full') });
+        addIcon(hideFullRow, 'battery-full-symbolic');
         const hideFullSwitch = new Gtk.Switch({
             active: settings.get_boolean('hidefull'),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('hidefull', hideFullSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideFullRow.add_suffix(hideFullSwitch);
-        settingsGroup.add(hideFullRow);
+        visibilityGroup.add(hideFullRow);
 
-        const hideIdleRow = new Adw.ActionRow({
-            title: _('Hide battery when idle'),
-            subtitle: _('Hide indicator when not charging or discharging'),
-        });
+        const hideIdleRow = new Adw.ActionRow({ title: _('Hide When Idle/Not Present') });
+        addIcon(hideIdleRow, 'battery-missing-symbolic');
         const hideIdleSwitch = new Gtk.Switch({
             active: settings.get_boolean('hideidle'),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('hideidle', hideIdleSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideIdleRow.add_suffix(hideIdleSwitch);
-        settingsGroup.add(hideIdleRow);
+        visibilityGroup.add(hideIdleRow);
 
-        const batterySizeRow = new Adw.ActionRow({
-            title: _('Battery icon width'),
-            subtitle: _('Set custom width for the battery icon'),
-        });
-        const batterySizeAdjustment = new Gtk.Adjustment({
-            lower: 12,
-            upper: 40,
-            step_increment: 1,
-        });
-        const batterySizeSpinButton = new Gtk.SpinButton({
-            adjustment: batterySizeAdjustment,
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('batterysize', batterySizeSpinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
-        batterySizeRow.add_suffix(batterySizeSpinButton);
-        modeGroup.add(batterySizeRow);
+        stylePage.add(visibilityGroup);
 
-        const batteryHeightRow = new Adw.ActionRow({
-            title: _('Battery icon height'),
-            subtitle: _('Set custom height for the battery icon'),
-        });
-        const batteryHeightAdjustment = new Gtk.Adjustment({
-            lower: 12,
-            upper: 40,
-            step_increment: 1,
-        });
-        const batteryHeightSpinButton = new Gtk.SpinButton({
-            adjustment: batteryHeightAdjustment,
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('batteryheight', batteryHeightSpinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
-        batteryHeightRow.add_suffix(batteryHeightSpinButton);
-        modeGroup.add(batteryHeightRow);
-
-        const circleSizeRow = new Adw.ActionRow({
-            title: _('Circular indicator size'),
-            subtitle: _('Set custom size for the circular indicator'),
-        });
-        const circleSizeAdjustment = new Gtk.Adjustment({
-            lower: 12,
-            upper: 40,
-            step_increment: 1,
-        });
-        const circleSizeSpinButton = new Gtk.SpinButton({
-            adjustment: circleSizeAdjustment,
-            valign: Gtk.Align.CENTER,
-        });
-        settings.bind('circlesize', circleSizeSpinButton, 'value', Gio.SettingsBindFlags.DEFAULT);
-        circleSizeRow.add_suffix(circleSizeSpinButton);
-        circleGroup.add(circleSizeRow);
-
-        const debugGroup = new Adw.PreferencesGroup({
+        // === PAGE 4: DEBUG ===
+        const debugPage = new Adw.PreferencesPage({
             title: _('Debug'),
+            icon_name: 'applications-engineering-symbolic',
         });
-        debugPage.add(debugGroup);
+
+        const debugGroup = new Adw.PreferencesGroup({ title: _('Advanced') });
         const debugRow = new Adw.ActionRow({
-            title: _('Enable debug mode'),
-            subtitle: _('Shows build info and enables debug logs'),
+            title: _('Enable Debug Mode'),
+            subtitle: _('Verbose logging and build info'),
         });
+        addIcon(debugRow, 'utilities-terminal-symbolic');
         const debugSwitch = new Gtk.Switch({
             active: settings.get_boolean('debug'),
             valign: Gtk.Align.CENTER,
@@ -341,9 +414,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         debugGroup.add(debugRow);
 
         const forceBoltRow = new Adw.ActionRow({
-            title: _('Persistent bolt icon'),
-            subtitle: _('Always show the charging bolt for testing'),
+            title: _('Force Bolt Icon'),
+            subtitle: _('Always show charging indicator (Test)'),
         });
+        addIcon(forceBoltRow, 'emblem-important-symbolic');
         const forceBoltSwitch = new Gtk.Switch({
             active: settings.get_boolean('forcebolt'),
             valign: Gtk.Align.CENTER,
@@ -351,18 +425,14 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('forcebolt', forceBoltSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         forceBoltRow.add_suffix(forceBoltSwitch);
         debugGroup.add(forceBoltRow);
+        debugPage.add(debugGroup);
 
-        const logLevelRow = new Adw.ActionRow({
-            title: _('Log level'),
-            subtitle: _('Controls log verbosity while debug is enabled'),
-        });
-        const logLevelModel = Gtk.StringList.new([
-            _('Verbose'),
-            _('Debug'),
-            _('Info'),
-            _('Warn'),
-            _('Error'),
-        ]);
+        // Logging Group
+        const loggingGroup = new Adw.PreferencesGroup({ title: _('Logging') });
+
+        const logLevelRow = new Adw.ActionRow({ title: _('Log Level') });
+        addIcon(logLevelRow, 'view-list-symbolic');
+        const logLevelModel = Gtk.StringList.new([_('Verbose'), _('Debug'), _('Info'), _('Warn'), _('Error')]);
         const logLevelDropDown = new Gtk.DropDown({
             valign: Gtk.Align.CENTER,
             model: logLevelModel,
@@ -371,61 +441,99 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         logLevelDropDown.connect('notify::selected', widget => {
             settings.set_int('loglevel', widget.get_selected());
         });
-        settings.connect('changed::loglevel', () => {
-            logLevelDropDown.set_selected(settings.get_int('loglevel'));
-        });
         logLevelRow.add_suffix(logLevelDropDown);
-        debugGroup.add(logLevelRow);
+        loggingGroup.add(logLevelRow);
 
-        const logToFileRow = new Adw.ActionRow({
-            title: _('Log to file'),
-            subtitle: _('Write debug logs to a file'),
-        });
+        const logToFileRow = new Adw.ActionRow({ title: _('Save Logs to File') });
+        addIcon(logToFileRow, 'document-save-symbolic');
         const logToFileSwitch = new Gtk.Switch({
             active: settings.get_boolean('logtofile'),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('logtofile', logToFileSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         logToFileRow.add_suffix(logToFileSwitch);
-        debugGroup.add(logToFileRow);
+        loggingGroup.add(logToFileRow);
 
         const logPathRow = new Adw.ActionRow({
-            title: _('Log file path'),
-            subtitle: _('Leave empty to use the default cache path'),
+            title: _('Log File Path'),
+            subtitle: _('Default: Cache Directory'),
         });
+        addIcon(logPathRow, 'folder-symbolic');
         const logPathEntry = new Gtk.Entry({
             text: settings.get_string('logfilepath'),
             valign: Gtk.Align.CENTER,
         });
-        logPathEntry.connect('changed', () => {
-            settings.set_string('logfilepath', logPathEntry.get_text());
-        });
-        settings.connect('changed::logfilepath', () => {
-            const newValue = settings.get_string('logfilepath');
-            if (logPathEntry.get_text() !== newValue)
-                logPathEntry.set_text(newValue);
-        });
+        logPathEntry.connect('changed', () => settings.set_string('logfilepath', logPathEntry.get_text()));
         logPathRow.add_suffix(logPathEntry);
-        debugGroup.add(logPathRow);
+        loggingGroup.add(logPathRow);
+        debugPage.add(loggingGroup);
 
-        const updateDebugRowsVisibility = () => {
-            const show = settings.get_boolean('debug');
-            logLevelRow.visible = show;
-            logToFileRow.visible = show;
-            logPathRow.visible = show && settings.get_boolean('logtofile');
+        // Visibility Logic for Debug
+        const updateDebugVisibility = () => {
+            const isDebug = settings.get_boolean('debug');
+            loggingGroup.visible = isDebug;
+            logPathRow.visible = isDebug && settings.get_boolean('logtofile');
         };
-        settings.connect('changed::debug', updateDebugRowsVisibility);
-        settings.connect('changed::logtofile', updateDebugRowsVisibility);
-        updateDebugRowsVisibility();
+        settings.connect('changed::debug', updateDebugVisibility);
+        settings.connect('changed::logtofile', updateDebugVisibility);
+        updateDebugVisibility();
 
-        const ChangelogGroup = new Adw.PreferencesGroup({
-            title: _(`Changelog ${versionLabel}`),
-            description: _(`${CHANGELOG}`),
+        // === PAGE 5: CHANGELOG ===
+        const changelogPage = new Adw.PreferencesPage({
+            title: _('Changelog'),
+            icon_name: 'x-office-document-symbolic',
         });
-        debugPage.add(ChangelogGroup);
+        const changelogGroup = new Adw.PreferencesGroup({
+            title: _(`Latest Changes`),
+            description: CHANGELOG,
+        });
+        changelogPage.add(changelogGroup);
 
-        window.add(page);
-        window.add(modePage);
-        window.add(debugPage);
+        // === PAGE 6: ABOUT ===
+        const aboutPage = new Adw.PreferencesPage({
+            title: _('About'),
+            icon_name: 'help-about-symbolic',
+        });
+        const versionName = this.metadata['version-name'] ?? this.metadata.version ?? 'Unknown';
+        const projectGroup = new Adw.PreferencesGroup({
+            title: _('Project Information'),
+            description: _(`Version: ${versionName}\nBuild Date: ${BUILD_DATE}`),
+        });
+
+        const linkRow = new Adw.ActionRow({
+            title: _('Project Homepage'),
+            subtitle: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
+        });
+        addIcon(linkRow, 'web-browser-symbolic');
+        const linkButton = new Gtk.LinkButton({
+            uri: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
+            icon_name: 'external-link-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        linkRow.add_suffix(linkButton);
+        projectGroup.add(linkRow);
+
+        const reportRow = new Adw.ActionRow({
+            title: _('Report an Issue'),
+            subtitle: _('Found a bug? Let us know!'),
+        });
+        addIcon(reportRow, 'tools-check-spelling-symbolic'); // Bug/Report equivalent
+        const reportButton = new Gtk.LinkButton({
+            uri: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor/issues',
+            icon_name: 'external-link-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        reportRow.add_suffix(reportButton);
+        projectGroup.add(reportRow);
+
+        aboutPage.add(projectGroup);
+
+        // Add pages to window
+        this._addPage(generalPage);
+        this._addPage(appearancePage);
+        this._addPage(stylePage);
+        this._addPage(debugPage);
+        this._addPage(changelogPage);
+        this._addPage(aboutPage);
     }
 }

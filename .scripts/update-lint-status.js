@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 const fs = require('fs');
 const path = require('path');
 
@@ -16,8 +15,7 @@ let statusText = 'Passing';
 
 // Check lint result from environment or CI output files
 let lintPassed = process.env.LINT_PASSED === 'true';
-if (!lintOutput && fs.existsSync(lintOutputFile))
-    lintOutput = fs.readFileSync(lintOutputFile, 'utf8');
+if (!lintOutput && fs.existsSync(lintOutputFile)) lintOutput = fs.readFileSync(lintOutputFile, 'utf8');
 if (!process.env.LINT_PASSED && fs.existsSync(lintPassedFile))
     lintPassed = fs.readFileSync(lintPassedFile, 'utf8').trim() === 'true';
 if (!lintPassed) {

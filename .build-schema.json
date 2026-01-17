@@ -1,0 +1,25 @@
+{
+  "allowed_files": [
+    "extension.js",
+    "prefs.js",
+    "metadata.json",
+    "bolt.svg",
+    "schemas/org.gnome.shell.extensions.batt-watt-power-monitor.gschema.xml",
+    "library/constants.js",
+    "library/drawing.js",
+    "library/label.js",
+    "library/logger.js",
+    "library/settings.js",
+    "library/sync.js",
+    "library/system.js",
+    "library/upower.js",
+    "library/utils.js",
+    "library/indicators/battery.js",
+    "library/indicators/circle.js"
+  ],
+  "allowed_directories": [
+    "schemas",
+    "library",
+    "library/indicators"
+  ]
+}
