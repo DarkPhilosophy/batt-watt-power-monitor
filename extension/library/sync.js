@@ -213,7 +213,8 @@ function _powerToggleSyncOverride(settings) {
  * @param {object} settings - Styles/settings object.
  */
 export function enableSyncOverride(settings) {
-    const system = Main.panel.statusArea.quickSettings?._system;
+    const quickSettings = Main.panel?.statusArea?.quickSettings;
+    const system = quickSettings?._system;
 
     if (!system) {
         Logger.warn('System indicator not found, cannot override _sync');
@@ -221,6 +222,10 @@ export function enableSyncOverride(settings) {
     }
 
     const proto = Object.getPrototypeOf(system);
+    if (!proto || typeof proto._sync !== 'function') {
+        Logger.warn('System sync function not available, skipping override');
+        return;
+    }
     if (proto._syncOrig) {
         disableSyncOverride();
     }
@@ -238,8 +243,7 @@ export function enableSyncOverride(settings) {
         const powerToggle = this._systemItem?.powerToggle;
         if (!powerToggle || !settings) return;
 
-        // Ensure caches
-        cachePowerToggleStyles(Main.panel.statusArea.quickSettings?._system);
+        cachePowerToggleStyles(quickSettings?._system);
         cacheDefaultLabelColor();
 
         const overrideFunc = _powerToggleSyncOverride(settings);

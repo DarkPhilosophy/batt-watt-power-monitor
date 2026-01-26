@@ -18,6 +18,16 @@
       <summary></summary>
       <description></description>
     </key>
+    <key type="s" name="bar-orientation">
+      <default>'portrait'</default>
+      <summary>Battery bar orientation</summary>
+      <description>Orientation for the battery bar: 'portrait' or 'landscape'.</description>
+    </key>
+    <key type="s" name="indicator-position">
+      <default>'right'</default>
+      <summary>Indicator position</summary>
+      <description>Where to place the panel indicator: 'left', 'right', or 'default'.</description>
+    </key>
     <key type="i" name="batterysize">
       <range min="25" max="50"/>
       <default>34</default>

@@ -247,6 +247,56 @@ const CircleIndicator = GObject.registerClass(
 let circleIndicator = null;
 let circleIndicatorParent = null;
 let circleIndicatorStockIcon = null;
+let circleIndicatorDefaultParent = null;
+let circleIndicatorDefaultIndex = null;
+
+/**
+ * Capture the default position of the circle indicator.
+ *
+ * @param {St.Widget} indicator - The indicator widget.
+ */
+function captureDefaultPosition(indicator) {
+    if (!indicator) return;
+    const parent = indicator.get_parent();
+    if (!parent || !parent.get_children) return;
+    if (circleIndicatorDefaultParent === parent && circleIndicatorDefaultIndex !== null) return;
+    circleIndicatorDefaultParent = parent;
+    const index = parent.get_children().indexOf(indicator);
+    circleIndicatorDefaultIndex = index >= 0 ? index : null;
+}
+
+/**
+ * Apply the configured indicator position.
+ *
+ * @param {St.Widget} indicator - The indicator widget.
+ * @param {Gio.Settings} settings - The GSettings object.
+ */
+function applyIndicatorPosition(indicator, settings) {
+    if (!indicator || !settings) return;
+    const parent = indicator.get_parent();
+    if (!parent) return;
+    const pos = settings.get_string('indicator-position');
+
+    if (pos === 'left') {
+        if (parent.set_child_above_sibling) {
+            parent.set_child_above_sibling(indicator, null);
+        } else if (parent.set_child_at_index) {
+            parent.set_child_at_index(indicator, 0);
+        }
+    } else if (pos === 'right') {
+        if (parent.set_child_below_sibling) {
+            parent.set_child_below_sibling(indicator, null);
+        } else if (parent.get_n_children) {
+            parent.set_child_at_index(indicator, Math.max(parent.get_n_children() - 1, 0));
+        }
+    } else if (
+        circleIndicatorDefaultParent === parent &&
+        circleIndicatorDefaultIndex !== null &&
+        parent.get_n_children
+    ) {
+        parent.set_child_at_index(indicator, Math.min(circleIndicatorDefaultIndex, parent.get_n_children() - 1));
+    }
+}
 
 /**
  * Destroy circle indicator and restore stock icon.
@@ -261,6 +311,8 @@ export function destroyCircleIndicator() {
 
     circleIndicatorParent = null;
     circleIndicatorStockIcon = null;
+    circleIndicatorDefaultParent = null;
+    circleIndicatorDefaultIndex = null;
 }
 
 /**
@@ -284,22 +336,23 @@ export function ensureCircleIndicator(settings, extensionPath) {
 
     if (circleIndicator) {
         const desiredSize = getCircleSize(settings);
-        if (circleIndicator.width !== desiredSize || circleIndicator.height !== desiredSize) destroyCircleIndicator();
-        else return;
+        if (circleIndicator.width !== desiredSize || circleIndicator.height !== desiredSize) {
+            destroyCircleIndicator();
+        } else {
+            captureDefaultPosition(circleIndicator);
+            applyIndicatorPosition(circleIndicator, settings);
+            return;
+        }
     }
 
-    destroyBatteryIndicator(); // Caution: circular dependency? ensureBatteryIndicator should be imported if needed, but typically they manage each other via enable/disable or settings.
-    // Wait, extension.js calls ensureCircleIndicator and ensureBatteryIndicator sequentially.
-    // And ensureCircleIndicator calls destroyBatteryIndicator.
-    // This implies they are mutually exclusive or at least Circle overrides Battery if needed?
-    // In extension.js: 1367 ensureCircleIndicator, 1368 ensureBatteryIndicator.
-    // ensureCircleIndicator: 805 destroyBatteryIndicator()
-    // ensureBatteryIndicator: 883 if (!batteryIndicatorEnabled) destroy...
-    // I need to be careful. I should probably import destroyBatteryIndicator here or inject it?
-    // Using loose coupling or a manager would be better. For now, I'll assume they are imported.
-    // I'll add `destroyBatteryIndicator` to imports.
+    destroyBatteryIndicator();
 
-    const system = panel.statusArea.quickSettings?._system;
+    const quickSettings = panel?.statusArea?.quickSettings;
+    const system = quickSettings?._system;
+    if (!system) {
+        Logger.debug('Circle indicator: system indicator not available');
+        return;
+    }
     circleIndicatorStockIcon = system?._indicator ?? null;
     circleIndicatorParent = circleIndicatorStockIcon?.get_parent() ?? null;
     circleIndicator = new CircleIndicator(
@@ -318,28 +371,17 @@ export function ensureCircleIndicator(settings, extensionPath) {
         circleIndicatorParent.insert_child_above(circleIndicator, circleIndicatorStockIcon);
     } else if (panel?._rightBox) {
         panel._rightBox.insert_child_at_index(circleIndicator, 0);
+    } else {
+        Logger.debug('Circle indicator: no parent container available');
+        return;
     }
+
+    captureDefaultPosition(circleIndicator);
+    applyIndicatorPosition(circleIndicator, settings);
 }
-
-// Need to import destroyBatteryIndicator from battery.js?
-// If I import it, I might get a cycle if battery.js imports circle.js.
-// Let's check: ensureBatteryIndicator uses destroyBatteryIndicator (self).
-// But extension.js had logic.
-// `ensureCircleIndicator` calls `destroyBatteryIndicator`.
-// `ensureBatteryIndicator` calls `destroyBatteryIndicator`.
-// It doesn't seem `ensureBatteryIndicator` calls `destroyCircleIndicator`.
-
-// To avoid cycles, maybe I should pass `destroyBatteryIndicator` as a callback or have a `manager.js`.
-// Or just import it and hope module system handles it (classes defined before usage).
-// I'll add the import.
 
 import { destroyBatteryIndicator } from './battery.js';
 
-/**
- *
- * @param proxy
- * @param settings
- */
 /**
  * Update the circle indicator status.
  *

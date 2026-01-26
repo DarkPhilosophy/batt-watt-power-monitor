@@ -1,2 +1,13 @@
-npm run lint
+#!/usr/bin/env sh
+
+# Format code with Prettier
+npx prettier --write extension/ .scripts/
+
+# Fix lint issues
+npm run lint:fix
+
+# Validate build and scan for leaks
 npm run validate
+
+# Add changes to the commit (since lint:fix might have modified files)
+git add -u

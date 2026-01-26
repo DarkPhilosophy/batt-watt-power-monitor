@@ -3,6 +3,7 @@ const path = require('path');
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
 const PACKAGE_JSON_PATH = path.join(PROJECT_DIR, 'package.json');
+const PACKAGE_LOCK_PATH = path.join(PROJECT_DIR, 'package-lock.json');
 const METADATA_PATH = path.join(PROJECT_DIR, 'extension', 'metadata.json');
 const VERSION_FILE_PATH = path.join(PROJECT_DIR, 'VERSION');
 const PREFS_PATH = path.join(PROJECT_DIR, 'extension', 'prefs.js');
@@ -15,6 +16,23 @@ try {
     const pkg = require(PACKAGE_JSON_PATH);
     const newVersion = pkg.version.split('.')[0]; // Major version as the extension version
     console.log(`Detected version: ${newVersion}`);
+
+    // 1b. Update package-lock.json to keep name/version in sync
+    console.log('Updating package-lock.json...');
+    try {
+        const lockRaw = fs.readFileSync(PACKAGE_LOCK_PATH, 'utf8');
+        const lock = JSON.parse(lockRaw);
+        const pkgName = pkg.name || lock.name;
+        if (pkgName) lock.name = pkgName;
+        lock.version = pkg.version;
+        if (lock.packages && lock.packages['']) {
+            if (pkgName) lock.packages[''].name = pkgName;
+            lock.packages[''].version = pkg.version;
+        }
+        fs.writeFileSync(PACKAGE_LOCK_PATH, `${JSON.stringify(lock, null, 2)}\n`);
+    } catch (error) {
+        console.log(`ℹ️  Failed to update package-lock.json: ${error.message}`);
+    }
 
     // 2. Update VERSION file
     console.log('Updating VERSION file...');

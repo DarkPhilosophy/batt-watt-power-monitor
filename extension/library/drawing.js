@@ -225,6 +225,75 @@ export function drawBatteryIcon(
 }
 
 /**
+ * Draw battery icon in landscape orientation.
+ *
+ * @param {object} context - Cairo context
+ * @param {number} centerX - X coordinate of center
+ * @param {number} centerY - Y coordinate of center
+ * @param {number} width - Icon width in pixels
+ * @param {number} height - Icon height in pixels
+ * @param {number} percentage - Battery percentage (0-100)
+ * @param {number} red - Red component (0-1)
+ * @param {number} green - Green component (0-1)
+ * @param {number} blue - Blue component (0-1)
+ * @param {number} bodyWidthRatio - Ratio of body width to total width (default: 0.7)
+ * @param {number} bodyHeightRatio - Ratio of body height to total height (default: 0.6)
+ * @param {boolean} showText - Whether to show percentage text (default: false)
+ */
+export function drawBatteryIconLandscape(
+    context,
+    centerX,
+    centerY,
+    width,
+    height,
+    percentage,
+    red,
+    green,
+    blue,
+    bodyWidthRatio = 0.7,
+    bodyHeightRatio = 0.6,
+    showText = false,
+) {
+    const bodyWidth = width * bodyWidthRatio;
+    const bodyHeight = height * bodyHeightRatio;
+    const bodyX = centerX - bodyWidth / 2;
+    const bodyY = centerY - bodyHeight / 2;
+    const nubWidth = bodyWidth * 0.18;
+    const nubHeight = bodyHeight * 0.6;
+    const nubX = bodyX + bodyWidth - nubWidth * 0.1;
+    const nubY = centerY - nubHeight / 2;
+
+    context.save();
+    context.setSourceRGB(red, green, blue);
+    context.setLineWidth(1.2);
+    context.rectangle(bodyX, bodyY, bodyWidth, bodyHeight);
+    context.stroke();
+    context.rectangle(nubX, nubY, nubWidth, nubHeight);
+    context.stroke();
+
+    const pct = Math.max(0, Math.min(100, Math.round(percentage)));
+    const fillWidth = bodyWidth * (pct / 100);
+    const fillX = bodyX;
+    context.rectangle(fillX + 1.5, bodyY + 1.5, Math.max(0, fillWidth - 3), bodyHeight - 3);
+    context.fill();
+
+    if (showText) {
+        context.selectFontFace('Sans', Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
+        context.setFontSize(Math.round(height * 0.32));
+        const text = String(pct);
+        const textExtents = context.textExtents(text);
+        const textX = centerX - textExtents.width / 2;
+        const textY = centerY + textExtents.height / 2;
+        context.setSourceRGB(red, green, blue);
+        context.moveTo(textX, textY);
+        context.showText(text);
+        context.stroke();
+    }
+
+    context.restore();
+}
+
+/**
  * Draw charging bolt icon using Cairo.
  *
  * @param {object} context - Cairo context
