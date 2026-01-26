@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-01-26T19:57:18.621Z';
+const BUILD_DATE = '2026-01-26T22:16:41.312Z';
 const CHANGELOG = `
 PANEL POSITION, ORIENTATION & HARDENING
 
