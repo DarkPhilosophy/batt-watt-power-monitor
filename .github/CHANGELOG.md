@@ -1,5 +1,16 @@
 # Changelog
 
+## v19 (2026-01-26) - PANEL POSITION, ORIENTATION & HARDENING
+
+> **AESTHETICS & LOGGING**
+
+- **Indicator Position**: Added icon position selector in Preferences; left/right/default placement for bar and circle indicators.
+- **Bar Orientation**: Added portrait/landscape battery bar option with new indicator modules.
+- **Settings**: Position and bar orientation selectors in Preferences; interval changes now apply immediately.
+- **Compatibility Hardening**: Added guards for Quick Settings internals and safe fallbacks when unavailable.
+- **Code Cleanup**: Tightened long-form narrative comments inside the codebase.
+- **Re-enabled logger initialization**: Logger for debugging purposes, reenabled from previous version. Logger is still disabled by default, but can be enabled in Preferences (Settings -> Debug -> Enable Debug Mode) and logs will be written to `~/.local/share/batt-watt-power-monitor.log` as default (not recommended for daily use).
+
 ## v18 (2026-01-17) - SYNCHRONOUS, VISUALS & CLEANUP
 
 > **MAJOR REFACTOR & STABILITY RELEASE**
@@ -111,4 +122,3 @@
 - Big restructure: moved extension sources into `extension/` as the single source of truth
 - Updated build/package scripts to use the new layout
 - Removed duplicate extension folder
-

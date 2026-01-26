@@ -6,11 +6,11 @@ import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as Logger from '../logger.js';
 import { BATTERY } from '../constants.js';
 import { getForegroundColor, getRingColor, applyWidgetSize } from '../utils.js';
-import { loadChargingSvg, drawBatteryIcon, clearCairoContext, purgeSvgCache } from '../drawing.js';
+import { loadChargingSvg, drawBatteryIconLandscape, clearCairoContext, purgeSvgCache } from '../drawing.js';
 import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
 
-const BatteryIndicator = GObject.registerClass(
-    class BatteryIndicator extends St.DrawingArea {
+const LandscapeIndicator = GObject.registerClass(
+    class LandscapeIndicator extends St.DrawingArea {
         _init(status) {
             const width = status?.width ?? BATTERY.MIN_SIZE;
             const height = status?.height ?? BATTERY.MIN_SIZE;
@@ -45,7 +45,7 @@ const BatteryIndicator = GObject.registerClass(
         _onRepaint(area) {
             const context = area.get_context();
             const [width, height] = area.get_surface_size();
-            Logger.debug(`_onRepaint: surfW=${width}, statusBatW=${this._status.batteryWidth}`);
+            Logger.debug(`_onRepaint (landscape): surfW=${width}, statusBatW=${this._status.batteryWidth}`);
 
             const desiredHeight = this._status.height ?? height;
             const drawHeight = Math.min(height, desiredHeight);
@@ -78,10 +78,9 @@ const BatteryIndicator = GObject.registerClass(
             if (rawBatteryW === undefined) rawBatteryW = this._status?.width ?? width;
             const batteryDrawWidth = rawBatteryW * 0.9;
 
-            const batteryCenterX = centerX;
-            drawBatteryIcon(
+            drawBatteryIconLandscape(
                 context,
-                batteryCenterX,
+                centerX,
                 centerY,
                 batteryDrawWidth,
                 iconHeight,
@@ -89,13 +88,12 @@ const BatteryIndicator = GObject.registerClass(
                 red,
                 green,
                 blue,
+                0.8,
                 0.7,
-                0.75,
                 false,
             );
 
             if (boltWidth > 0 && svgSurface) {
-                // Center the bolt icon in the middle of the battery
                 const iconX = centerX - boltWidth / 2;
                 const iconY = centerY - boltHeight / 2;
 
@@ -126,13 +124,11 @@ const BatteryIndicator = GObject.registerClass(
 
             if (this._status.showText) {
                 context.selectFontFace('Sans', Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
-                // Dynamic font size logic (height & width aware)
-                // Start with a generous height-based size (45%, up from 28%)
                 let fontSize = Math.round(height * 0.45);
                 context.setFontSize(fontSize);
 
                 const text = String(this._status.percentage);
-                const maxTextWidth = batteryDrawWidth * 0.8; // Max 80% of battery width
+                const maxTextWidth = batteryDrawWidth * 0.8;
                 const currentExtents = context.textExtents(text);
 
                 if (currentExtents.width > maxTextWidth) {
@@ -140,7 +136,7 @@ const BatteryIndicator = GObject.registerClass(
                     context.setFontSize(fontSize);
                 }
                 const textExtents = context.textExtents(text);
-                const textX = batteryCenterX - textExtents.width / 2;
+                const textX = centerX - textExtents.width / 2;
                 const textY = centerY + textExtents.height / 2;
 
                 context.setSourceRGB(0, 0, 0);
@@ -176,14 +172,14 @@ const BatteryIndicator = GObject.registerClass(
     },
 );
 
-let batteryIndicator = null;
-let batteryIndicatorParent = null;
-let batteryIndicatorStockIcon = null;
-let batteryIndicatorDefaultParent = null;
-let batteryIndicatorDefaultIndex = null;
+let landscapeIndicator = null;
+let landscapeIndicatorParent = null;
+let landscapeIndicatorStockIcon = null;
+let landscapeIndicatorDefaultParent = null;
+let landscapeIndicatorDefaultIndex = null;
 
 /**
- * Capture the default position of the battery indicator.
+ * Capture the default position of the landscape indicator.
  *
  * @param {St.Widget} indicator - The indicator widget.
  */
@@ -191,10 +187,10 @@ function captureDefaultPosition(indicator) {
     if (!indicator) return;
     const parent = indicator.get_parent();
     if (!parent || !parent.get_children) return;
-    if (batteryIndicatorDefaultParent === parent && batteryIndicatorDefaultIndex !== null) return;
-    batteryIndicatorDefaultParent = parent;
+    if (landscapeIndicatorDefaultParent === parent && landscapeIndicatorDefaultIndex !== null) return;
+    landscapeIndicatorDefaultParent = parent;
     const index = parent.get_children().indexOf(indicator);
-    batteryIndicatorDefaultIndex = index >= 0 ? index : null;
+    landscapeIndicatorDefaultIndex = index >= 0 ? index : null;
 }
 
 /**
@@ -222,84 +218,81 @@ function applyIndicatorPosition(indicator, settings) {
             parent.set_child_at_index(indicator, Math.max(parent.get_n_children() - 1, 0));
         }
     } else if (
-        batteryIndicatorDefaultParent === parent &&
-        batteryIndicatorDefaultIndex !== null &&
+        landscapeIndicatorDefaultParent === parent &&
+        landscapeIndicatorDefaultIndex !== null &&
         parent.get_n_children
     ) {
-        parent.set_child_at_index(indicator, Math.min(batteryIndicatorDefaultIndex, parent.get_n_children() - 1));
+        parent.set_child_at_index(indicator, Math.min(landscapeIndicatorDefaultIndex, parent.get_n_children() - 1));
     }
 }
 
 /**
- * Destroy battery indicator and restore stock icon.
+ * Destroy the landscape indicator and reset state.
  */
-export function destroyBatteryIndicator() {
-    if (!batteryIndicator) return;
+export function destroyLandscapeIndicator() {
+    if (!landscapeIndicator) return;
 
-    batteryIndicator.destroy();
-    batteryIndicator = null;
+    landscapeIndicator.destroy();
+    landscapeIndicator = null;
 
-    batteryIndicator = null;
-
-    batteryIndicatorParent = null;
-    batteryIndicatorStockIcon = null;
-    batteryIndicatorDefaultParent = null;
-    batteryIndicatorDefaultIndex = null;
+    landscapeIndicatorParent = null;
+    landscapeIndicatorStockIcon = null;
+    landscapeIndicatorDefaultParent = null;
+    landscapeIndicatorDefaultIndex = null;
 }
 
 /**
- * Check if battery indicator should be shown.
+ * Check if the landscape indicator should be enabled.
  *
- * @param {object} settings - GSettings object
- * @returns {boolean} True if battery indicator is enabled
+ * @param {Gio.Settings} settings - The GSettings object.
+ * @returns {boolean} True if enabled.
  */
-function batteryIndicatorEnabled(settings) {
+function landscapeIndicatorEnabled(settings) {
     return settings && settings.get_boolean('showicon') && !settings.get_boolean('usecircleindicator');
 }
 
 /**
- * Ensure battery indicator exists and is properly configured.
+ * Ensure the landscape indicator exists and is properly configured.
  *
- * @param {object} settings - GSettings object
- * @param {string} extensionPath - Path to extension directory
+ * @param {Gio.Settings} settings - The GSettings object.
+ * @param {string} extensionPath - Path to the extension directory.
  */
-export function ensureBatteryIndicator(settings, extensionPath) {
-    if (!batteryIndicatorEnabled(settings)) {
-        destroyBatteryIndicator();
-        // If we are disabled, destroyBatteryIndicator handles unhiding stock icon if necessary.
+export function ensureLandscapeIndicator(settings, extensionPath) {
+    if (!landscapeIndicatorEnabled(settings)) {
+        destroyLandscapeIndicator();
         return;
     }
 
-    if (batteryIndicator) {
+    if (landscapeIndicator) {
         const desiredWidth = getBatteryWidth(settings);
         const desiredHeight = getBatteryHeight(settings);
-        applyWidgetSize(batteryIndicator, desiredWidth, desiredHeight);
-        batteryIndicator.update({
-            percentage: batteryIndicator._status?.percentage ?? 0,
-            isCharging: batteryIndicator._status?.isCharging ?? false,
-            showText: batteryIndicator._status?.showText ?? false,
-            useColor: batteryIndicator._status?.useColor ?? false,
-            extensionPath: batteryIndicator._extensionPath,
+        applyWidgetSize(landscapeIndicator, desiredWidth, desiredHeight);
+        landscapeIndicator.update({
+            percentage: landscapeIndicator._status?.percentage ?? 0,
+            isCharging: landscapeIndicator._status?.isCharging ?? false,
+            showText: landscapeIndicator._status?.showText ?? false,
+            useColor: landscapeIndicator._status?.useColor ?? false,
+            extensionPath: landscapeIndicator._extensionPath,
             width: desiredWidth,
             height: desiredHeight,
             batteryWidth: desiredWidth,
-            settings, // Pass settings for direct access
+            settings,
         });
-        captureDefaultPosition(batteryIndicator);
-        applyIndicatorPosition(batteryIndicator, settings);
+        captureDefaultPosition(landscapeIndicator);
+        applyIndicatorPosition(landscapeIndicator, settings);
         return;
     }
 
     const quickSettings = panel?.statusArea?.quickSettings;
     const system = quickSettings?._system;
     if (!system) {
-        Logger.debug('Battery indicator: system indicator not available');
+        Logger.debug('Landscape indicator: system indicator not available');
         return;
     }
-    batteryIndicatorStockIcon = system?._indicator ?? null;
-    batteryIndicatorParent = batteryIndicatorStockIcon?.get_parent() ?? null;
+    landscapeIndicatorStockIcon = system?._indicator ?? null;
+    landscapeIndicatorParent = landscapeIndicatorStockIcon?.get_parent() ?? null;
     const batteryW = getBatteryWidth(settings);
-    batteryIndicator = new BatteryIndicator({
+    landscapeIndicator = new LandscapeIndicator({
         percentage: 0,
         isCharging: false,
         showText: false,
@@ -307,41 +300,41 @@ export function ensureBatteryIndicator(settings, extensionPath) {
         forceBolt: settings.get_boolean('forcebolt'),
         width: batteryW,
         batteryWidth: batteryW,
-        settings, // Pass settings for direct access
+        settings,
         extensionPath,
     });
 
-    if (batteryIndicatorParent && batteryIndicatorStockIcon) {
-        batteryIndicatorParent.insert_child_above(batteryIndicator, batteryIndicatorStockIcon);
+    if (landscapeIndicatorParent && landscapeIndicatorStockIcon) {
+        landscapeIndicatorParent.insert_child_above(landscapeIndicator, landscapeIndicatorStockIcon);
     } else if (panel?._rightBox) {
-        panel._rightBox.insert_child_at_index(batteryIndicator, 0);
+        panel._rightBox.insert_child_at_index(landscapeIndicator, 0);
     } else {
-        Logger.debug('Battery indicator: no parent container available');
+        Logger.debug('Landscape indicator: no parent container available');
         return;
     }
 
-    captureDefaultPosition(batteryIndicator);
-    applyIndicatorPosition(batteryIndicator, settings);
+    captureDefaultPosition(landscapeIndicator);
+    applyIndicatorPosition(landscapeIndicator, settings);
 }
 
 /**
- * Update the battery indicator status.
+ * Update the landscape indicator status.
  *
- * @param {object} proxy - UPower proxy object with State and Percentage.
- * @param {object} settings - GSettings object.
+ * @param {object} proxy - UPower proxy object.
+ * @param {Gio.Settings} settings - The GSettings object.
  */
-export function updateBatteryIndicatorStatus(proxy, settings) {
-    if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy) return;
+export function updateLandscapeIndicatorStatus(proxy, settings) {
+    if (!landscapeIndicatorEnabled(settings) || !landscapeIndicator || !proxy) return;
 
     const { percentage, status, isCharging, showText, useColor, forceBolt } = buildIndicatorStatus(proxy, settings);
-    Logger.debug(`Bar status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
+    Logger.debug(`Landscape status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
     const height = getBatteryHeight(settings);
     const desiredWidth = batteryW;
 
-    applyWidgetSize(batteryIndicator, desiredWidth, height);
-    batteryIndicator.update({
+    applyWidgetSize(landscapeIndicator, desiredWidth, height);
+    landscapeIndicator.update({
         percentage,
         useColor,
         showText,

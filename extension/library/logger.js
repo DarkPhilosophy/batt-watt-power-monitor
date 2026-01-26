@@ -137,10 +137,8 @@ function appendLogLine(path, line) {
  * @param {number} level - LogLevel
  */
 function logMessage(msg, level) {
-    // If not debug mode, strictly silence everything unless it's a critical error we forced?
-    // Actually, usually extensions output warnings/errors regardless of debug mode,
-    // but the user's previous logic had: if (!DEBUG) return;
-    // So we invoke that strictness here too.
+    // If not debug mode, strictly silence everything unless
+    // Debug is enabled, then log based on loglevel
     if (!_debug) return;
 
     if (level < _logLevel) return;

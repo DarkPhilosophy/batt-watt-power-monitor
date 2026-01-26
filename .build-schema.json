@@ -15,7 +15,9 @@
     "library/upower.js",
     "library/utils.js",
     "library/indicators/battery.js",
-    "library/indicators/circle.js"
+    "library/indicators/circle.js",
+    "library/indicators/landscape.js",
+    "library/indicators/portrait.js"
   ],
   "allowed_directories": [
     "schemas",

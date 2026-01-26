@@ -12,10 +12,15 @@ import {
     updateCircleIndicatorStatus,
 } from './library/indicators/circle.js';
 import {
-    ensureBatteryIndicator,
-    destroyBatteryIndicator,
-    updateBatteryIndicatorStatus,
-} from './library/indicators/battery.js';
+    ensurePortraitIndicator,
+    destroyPortraitIndicator,
+    updatePortraitIndicatorStatus,
+} from './library/indicators/portrait.js';
+import {
+    ensureLandscapeIndicator,
+    destroyLandscapeIndicator,
+    updateLandscapeIndicatorStatus,
+} from './library/indicators/landscape.js';
 import {
     cachePowerToggleStyles,
     resetPowerToggleStyles,
@@ -29,27 +34,31 @@ import { clearSvgCache, purgeSvgCache } from './library/drawing.js';
 // Global debug flag (managed via Logger now, but might be used for other logic if needed)
 // Usage of `DEBUG` var in original: passed to logging functions.
 // Refactoring replaced logging with Logger.debug/warn.
-// So explicit DEBUG var might not be needed unless logic depends on it.
-// Checking previous view: DEBUG was used for `if (DEBUG) ...` checks?
-// The Logger module handles the check internally usually, or we can use `Logger.debug`.
-// So we can probably remove the global DEBUG variable.
 
 let updateUI;
 
 export default class BatteryPowerMonitor extends Extension {
     enable() {
-        Logger.info('Enabling Batt-Watt Power Monitor...');
         this._settings = this.getSettings();
 
+        // 1. Initialize Logger
+        Logger.init('Batt-Watt Power Monitor');
+        Logger.updateSettings(this._settings);
+
+        Logger.info('Enabling Batt-Watt Power Monitor...');
+
         // Initialize queue function (debouncer)
-        // Synchronous update function (as per user request: "we do not and never do anything async")
         updateUI = () => {
             if (!this._settings) return;
             this._updateBatteryVisibility();
         };
 
-        this._settingsSignalId = this._settings.connect('changed', () => {
+        this._settingsSignalId = this._settings.connect('changed', (_settings, key) => {
             Logger.debug('Settings changed');
+            if (key === 'interval') {
+                const refreshInterval = this._settings.get_int('interval') || 3;
+                this._updateInterval(refreshInterval);
+            }
             updateUI();
         });
 
@@ -116,7 +125,8 @@ export default class BatteryPowerMonitor extends Extension {
         }
 
         destroyCircleIndicator();
-        destroyBatteryIndicator();
+        destroyPortraitIndicator();
+        destroyLandscapeIndicator();
         resetPowerToggleStyles(Main.panel.statusArea.quickSettings?._system, true);
         restoreStockBattery();
         restoreLabel();
@@ -181,15 +191,24 @@ export default class BatteryPowerMonitor extends Extension {
 
         // If "Show Battery Icon" is disabled, destroy it if it exists and return.
         if (!this._settings.get_boolean('showicon')) {
-            destroyBatteryIndicator();
+            destroyPortraitIndicator();
+            destroyLandscapeIndicator();
         } else {
             // Logic continues: if showicon is TRUE, ensure it exists.
-            ensureBatteryIndicator(this._settings, extPath);
+            const barOrientation = this._settings.get_string('bar-orientation') || 'portrait';
+            if (barOrientation === 'landscape') {
+                destroyPortraitIndicator();
+                ensureLandscapeIndicator(this._settings, extPath);
+            } else {
+                destroyLandscapeIndicator();
+                ensurePortraitIndicator(this._settings, extPath);
+            }
         }
 
         if (proxy) {
             updateCircleIndicatorStatus(proxy, this._settings);
-            updateBatteryIndicatorStatus(proxy, this._settings);
+            updatePortraitIndicatorStatus(proxy, this._settings);
+            updateLandscapeIndicatorStatus(proxy, this._settings);
 
             // Force the system indicator to sync immediately to reflect setting changes
             forceSync();
