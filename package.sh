@@ -10,6 +10,8 @@ set -e
 # Sync version from package.json
 echo "Syncing version..."
 node .scripts/sync-version.js
+echo "Formatting JSON..."
+node .scripts/format-json.js
 
 # Lint check (for status update)
 echo "Checking code quality..."

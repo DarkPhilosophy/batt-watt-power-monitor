@@ -1,28 +1,6 @@
 {
-  "name": "batt-watt-power-monitor",
-  "version": "20.0.0",
-  "description": "GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.",
-  "scripts": {
-    "lint": "eslint extension .scripts --format stylish",
-    "lint:fix": "eslint --fix extension .scripts --format stylish",
-    "lint:status": "node .scripts/update-lint-status.js",
-    "validate": "node .scripts/validate-build.js && node .scripts/scan-leaks.js",
-    "package": "./package.sh",
-    "prepare": "husky install"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/DarkPhilosophy/batt-watt-power-monitor.git"
-  },
-  "keywords": [
-    "gnome",
-    "extension",
-    "battery",
-    "power",
-    "monitor"
-  ],
   "author": "DarkPhilosophy",
-  "license": "GPL-3.0-or-later",
+  "description": "GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.",
   "devDependencies": {
     "@eslint/js": "^9.39.2",
     "eslint": "^9.39.2",
@@ -32,5 +10,21 @@
     "globals": "^17.0.0",
     "husky": "^9.1.7",
     "prettier": "^3.8.0"
-  }
+  },
+  "keywords": ["gnome", "extension", "battery", "power", "monitor"],
+  "license": "GPL-3.0-or-later",
+  "name": "batt-watt-power-monitor",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DarkPhilosophy/batt-watt-power-monitor.git"
+  },
+  "scripts": {
+    "lint": "eslint extension .scripts --format stylish",
+    "lint:fix": "eslint --fix extension .scripts --format stylish",
+    "lint:status": "node .scripts/update-lint-status.js",
+    "package": "./package.sh",
+    "prepare": "husky install",
+    "validate": "node .scripts/validate-build.js && node .scripts/scan-leaks.js"
+  },
+  "version": "20.0.0"
 }

@@ -1,5 +1,9 @@
 {
     "description": "Battery Power Monitor - Shows percentage, time remaining, and watts in the GNOME Shell panel. Real-time power consumption monitoring with smart display options.",
+    "donations": {
+        "github": "DarkPhilosophy",
+        "kofi": "darkphilosophy"
+    },
     "gettext-domain": "batt-watt-power-monitor",
     "name": "Battery Power Monitor: Watts & Time",
     "settings-schema": "org.gnome.shell.extensions.batt-watt-power-monitor",
@@ -7,9 +11,5 @@
     "url": "https://github.com/DarkPhilosophy/batt-watt-power-monitor",
     "uuid": "batt-watt-power-monitor@DarkPhilosophy",
     "version": 20,
-    "version-name": "20",
-    "donations": {
-        "github": "DarkPhilosophy",
-        "kofi": "darkphilosophy"
-    }
+    "version-name": "20"
 }

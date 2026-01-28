@@ -76,6 +76,10 @@ fi
 echo "Syncing version..."
 node .scripts/sync-version.js
 
+# Format all JSON files (sorted keys, 2 spaces)
+echo "Formatting JSON..."
+node .scripts/format-json.js
+
 # Update EGO published version badge
 echo "Updating EGO published version badge..."
 node .scripts/fetch-ego-version.js
