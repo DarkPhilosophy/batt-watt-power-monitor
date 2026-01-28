@@ -76,6 +76,10 @@ fi
 echo "Syncing version..."
 node .scripts/sync-version.js
 
+# Update EGO published version badge
+echo "Updating EGO published version badge..."
+node .scripts/fetch-ego-version.js
+
 # Update lint status in README
 echo "Updating lint status..."
 node .scripts/update-lint-status.js
@@ -137,7 +141,10 @@ mkdir -p "$EXTENSION_DIR/schemas"
 echo "Installing files..."
 # Copy files directly
 echo "Installing files..."
-cp "$PROJECT_DIR/extension/"*.js "$PROJECT_DIR/extension/metadata.json" "$PROJECT_DIR/extension/bolt.svg" "$EXTENSION_DIR/"
+cp "$PROJECT_DIR/extension/"*.js "$PROJECT_DIR/extension/metadata.json" "$EXTENSION_DIR/"
+if [ -f "$PROJECT_DIR/extension/bolt.svg" ]; then
+    cp "$PROJECT_DIR/extension/bolt.svg" "$EXTENSION_DIR/"
+fi
 mkdir -p "$EXTENSION_DIR/library"
 cp -r "$PROJECT_DIR/extension/library/"* "$EXTENSION_DIR/library/"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$EXTENSION_DIR/schemas/"
