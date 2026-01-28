@@ -10,7 +10,7 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v18-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v20-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
 <!-- EGO-VERSION-END -->
 
 ## Features
@@ -26,15 +26,15 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-28 10:40:42 UTC  
+> **Last Updated**: 2026-01-28 10:58:16 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@20.0.0 lint
-> eslint extension .scripts --format stylish
+> batt-watt-power-monitor@20.0.0 lint:fix
+> eslint --fix extension .scripts --format stylish
 ```
 
 </details>
