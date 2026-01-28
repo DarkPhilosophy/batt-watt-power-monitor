@@ -6,7 +6,7 @@ import Adw from 'gi://Adw';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-01-28T11:21:17.930Z';
+const BUILD_DATE = '2026-01-28T12:11:12.833Z';
 const CHANGELOG = `
 CLEANUP & DEDUPLICATION
 
@@ -15,8 +15,6 @@ MAINTENANCE & OPTIMIZATION
 Cleanup: Removed unused exports in utils.js.
 
 Deduplication: Reused the shared settings snapshot in sync.js to avoid drift.
-
-Repo Hygiene: Moved backup artifacts to a top-level backup/ folder (outside extension/).
 
 Bug Fix: Hide custom indicators and restore stock status when no battery is detected (prevents empty battery icon on desktops).`;
 

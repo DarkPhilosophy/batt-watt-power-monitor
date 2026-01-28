@@ -1,5 +1,5 @@
 {
-    "uniqueNames": [],
+    "ignoreNames": [],
     "uniqueNamePatterns": ["^get.*Snapshot$"],
-    "ignoreNames": []
+    "uniqueNames": []
 }

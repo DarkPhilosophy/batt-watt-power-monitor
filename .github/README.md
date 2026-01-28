@@ -26,7 +26,7 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-28 11:21:19 UTC  
+> **Last Updated**: 2026-01-28 12:11:14 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -46,7 +46,6 @@
 
 - **Cleanup**: Removed unused exports in `utils.js`.
 - **Deduplication**: Reused the shared settings snapshot in `sync.js` to avoid drift.
-- **Repo Hygiene**: Moved backup artifacts to a top-level `backup/` folder (outside `extension/`).
 - **Bug Fix**: Hide custom indicators and restore stock status when no battery is detected (prevents empty battery icon on desktops).
 
 </details>
