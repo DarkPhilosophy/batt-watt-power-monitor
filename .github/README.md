@@ -10,7 +10,7 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v19-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v18-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
 <!-- EGO-VERSION-END -->
 
 ## Features
@@ -26,15 +26,15 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-26 22:16:43 UTC  
+> **Last Updated**: 2026-01-28 10:40:42 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@19.0.0 lint:fix
-> eslint --fix extension .scripts --format stylish
+> batt-watt-power-monitor@20.0.0 lint
+> eslint extension .scripts --format stylish
 ```
 
 </details>
@@ -42,14 +42,12 @@
 
 <!-- LATEST-VERSION-START -->
 <details open>
-<summary><strong>Latest Update (v19)</strong></summary>
+<summary><strong>Latest Update (v20)</strong></summary>
 
-- **Indicator Position**: Added icon position selector in Preferences; left/right/default placement for bar and circle indicators.
-- **Bar Orientation**: Added portrait/landscape battery bar option with new indicator modules.
-- **Settings**: Position and bar orientation selectors in Preferences; interval changes now apply immediately.
-- **Compatibility Hardening**: Added guards for Quick Settings internals and safe fallbacks when unavailable.
-- **Code Cleanup**: Tightened long-form narrative comments inside the codebase.
-- **Re-enabled logger initialization**: Logger for debugging purposes, reenabled from previous version. Logger is still disabled by default, but can be enabled in Preferences (Settings -> Debug -> Enable Debug Mode) and logs will be written to `~/.local/share/batt-watt-power-monitor.log` as default (not recommended for daily use).
+- **Cleanup**: Removed unused exports in `utils.js`.
+- **Deduplication**: Reused the shared settings snapshot in `sync.js` to avoid drift.
+- **Repo Hygiene**: Moved backup artifacts to a top-level `backup/` folder (outside `extension/`).
+- **Bug Fix**: Hide custom indicators and restore stock status when no battery is detected (prevents empty battery icon on desktops).
 
 </details>
 <!-- LATEST-VERSION-END -->

@@ -12,7 +12,7 @@ function checkFile(filePath) {
     return fs.readFileSync(filePath, 'utf8');
 }
 
-// 1. Check for Signal and Timeout Leaks in extension.js
+// Check for Signal and Timeout Leaks in extension.js
 function checkLifecycleLeaks() {
     console.log('🔍 Scanning extension.js for lifecycle leaks...');
     const content = checkFile(EXTENSION_FILE);
@@ -92,7 +92,7 @@ function checkLifecycleLeaks() {
     }
 }
 
-// 2. Check for Forbidden Imports
+// Check for Forbidden Imports
 function checkForbiddenImports() {
     console.log('🔍 Checking for forbidden imports...');
 

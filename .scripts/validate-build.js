@@ -23,6 +23,7 @@ function validateBuild() {
 
     const foundFiles = [];
     const unexpectedItems = [];
+    const backupItems = [];
 
     function scanDirectory(dir, relativePath = '') {
         const items = fs.readdirSync(dir);
@@ -38,6 +39,9 @@ function validateBuild() {
                 }
                 scanDirectory(fullPath, relativeItemPath);
             } else {
+                if (item.includes('.backup-')) {
+                    backupItems.push(`File: ${relativeItemPath}`);
+                }
                 if (!allowedFiles.has(relativeItemPath)) {
                     unexpectedItems.push(`File: ${relativeItemPath}`);
                 } else {
@@ -63,6 +67,13 @@ function validateBuild() {
     if (unexpectedItems.length > 0) {
         console.error(`${RED}❌ Unexpected items found (not in schema):${RESET}`);
         unexpectedItems.forEach(i => console.error(`   - ${i}`));
+        hasError = true;
+    }
+
+    if (backupItems.length > 0) {
+        console.error(`${RED}❌ Backup files found inside extension/:${RESET}`);
+        backupItems.forEach(i => console.error(`   - ${i}`));
+        console.error(`${RED}Move backups to ./backup (e.g. node .scripts/move-backups.js).${RESET}`);
         hasError = true;
     }
 

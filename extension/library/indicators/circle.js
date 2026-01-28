@@ -120,7 +120,7 @@ const CircleIndicator = GObject.registerClass(
                 // LAYER 2: Draw Text (Foreground)
                 // Text is always centered now.
 
-                // 3. Draw Text (Updated Logic: Simulated Stroke to match Bolt - Proportional)
+                // Draw Text (Updated Logic: Simulated Stroke to match Bolt - Proportional)
 
                 // Draw Stroke (Black)
                 context.setSourceRGB(0, 0, 0);
@@ -174,7 +174,7 @@ const CircleIndicator = GObject.registerClass(
                         context.save();
                         context.scale(bScale, bScale);
 
-                        // 1. Draw Simulated Stroke (Black Bolt)
+                        // Draw Simulated Stroke (Black Bolt)
                         const blackSurface = loadChargingSvg(this._extensionPath, 0, 0, 0);
                         if (blackSurface) {
                             const step = 1 / bScale;
@@ -192,7 +192,7 @@ const CircleIndicator = GObject.registerClass(
                             }
                         }
 
-                        // 2. Draw Colored Bolt
+                        // Draw Colored Bolt
                         context.setSourceSurface(svgSurface, bX / bScale, bY / bScale);
                         context.paint();
                         context.restore();
@@ -210,12 +210,12 @@ const CircleIndicator = GObject.registerClass(
 
             // Visibility Logic
             let shouldHide = false;
-            // 1. Hide if Charging setting is ON and we are charging
+            // Hide if Charging setting is ON and we are charging
             if (status.hideCharging && status.isCharging) shouldHide = true;
-            // 2. Hide if Full setting is ON and battery is full (== 100%)
+            // Hide if Full setting is ON and battery is full (== 100%)
             //    (Maybe check status.status === UPower.DeviceState.FULLY_CHARGED too?)
             if (status.hideFull && status.percentage >= 99) shouldHide = true;
-            // 3. Hide if Idle setting is ON and we are idle (not charging, not discharging)
+            // Hide if Idle setting is ON and we are idle (not charging, not discharging)
             //    UPower State: 0=Unknown, 1=Charging, 2=Discharging, 3=Empty, 4=Fully Charged, 5=Pending Charge, 6=Pending Discharge
             //    We can check if generic "status" indicates idle?
             //    Actually, simpler check: if not charging and not discharging?
