@@ -7,6 +7,7 @@ import { getBatteryCorrection, getPower, getStatus } from './upower.js';
 import { updateCircleIndicatorStatus } from './indicators/circle.js';
 import { cachePowerToggleStyles, cacheDefaultLabelColor, hideStockBattery, restoreStockBattery } from './system.js';
 import { getLabelStyleFromPercentage } from './utils.js';
+import { getSettingsSnapshot } from './settings.js';
 
 // Global tracking for cleanup
 let _originalSync = null;
@@ -14,41 +15,6 @@ let lastOverrideTime = 0;
 let overrideCallCount = 0;
 const MAX_CALLS_PER_SECOND = 10;
 let batteryCorrection = null;
-
-/**
- * Snapshot settings used by hot-path display logic.
- *
- * @param {object} settings - GSettings object
- * @returns {object} Snapshot of settings values
- */
-function getSettingsSnapshot(settings) {
-    const showPercentage = settings.get_boolean('percentage');
-    const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
-    const showTimeRemaining = settings.get_boolean('timeremaining');
-    const showWatts = settings.get_boolean('showwatts');
-    const showIcon = settings.get_boolean('showicon');
-    const showCircle = settings.get_boolean('usecircleindicator');
-    const showColored = settings.get_boolean('showcolored');
-    const forceBolt = settings.get_boolean('forcebolt');
-    const hideCharging = settings.get_boolean('hidecharging');
-    const hideFull = settings.get_boolean('hidefull');
-    const hideIdle = settings.get_boolean('hideidle');
-    return {
-        showPercentage,
-        showPercentageOutside,
-        showPercentageText: showPercentageOutside,
-        showTimeRemaining,
-        showWatts,
-        showIcon,
-        showCircle,
-        showColored,
-        forceBolt,
-        hideCharging,
-        hideFull,
-        hideIdle,
-        showText: showPercentage && !showPercentageOutside,
-    };
-}
 
 /**
  * Format power value as string with optional decimals.
@@ -234,12 +200,12 @@ export function enableSyncOverride(settings) {
 
     // The Override
     proto._sync = function () {
-        // 1. Call original
+        // Call original
         if (_originalSync) {
             _originalSync.call(this);
         }
 
-        // 2. Helper Logic
+        // Helper Logic
         const powerToggle = this._systemItem?.powerToggle;
         if (!powerToggle || !settings) return;
 
@@ -249,7 +215,7 @@ export function enableSyncOverride(settings) {
         const overrideFunc = _powerToggleSyncOverride(settings);
         const hasOverride = overrideFunc.call(powerToggle);
 
-        // 3. Visibility Logic (from original extension.js override block)
+        // Visibility Logic (from original extension.js override block)
         const snapshot = getSettingsSnapshot(settings); // Re-get for visibility logic
 
         // Logic from line 2392 of original

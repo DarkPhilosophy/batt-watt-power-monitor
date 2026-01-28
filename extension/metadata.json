@@ -6,8 +6,8 @@
     "shell-version": ["45", "46", "47", "48", "49"],
     "url": "https://github.com/DarkPhilosophy/batt-watt-power-monitor",
     "uuid": "batt-watt-power-monitor@DarkPhilosophy",
-    "version": 19,
-    "version-name": "19",
+    "version": 20,
+    "version-name": "20",
     "donations": {
         "github": "DarkPhilosophy",
         "kofi": "darkphilosophy"

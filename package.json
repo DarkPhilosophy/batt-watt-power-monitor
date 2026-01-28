@@ -1,6 +1,6 @@
 {
   "name": "batt-watt-power-monitor",
-  "version": "19.0.0",
+  "version": "20.0.0",
   "description": "GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.",
   "scripts": {
     "lint": "eslint extension .scripts --format stylish",

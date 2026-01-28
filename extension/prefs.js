@@ -6,23 +6,19 @@ import Adw from 'gi://Adw';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-01-26T22:16:41.312Z';
+const BUILD_DATE = '2026-01-28T10:40:42.713Z';
 const CHANGELOG = `
-PANEL POSITION, ORIENTATION & HARDENING
+CLEANUP & DEDUPLICATION
 
-AESTHETICS & LOGGING
+MAINTENANCE & OPTIMIZATION
 
-Indicator Position: Added icon position selector in Preferences; left/right/default placement for bar and circle indicators.
+Cleanup: Removed unused exports in utils.js.
 
-Bar Orientation: Added portrait/landscape battery bar option with new indicator modules.
+Deduplication: Reused the shared settings snapshot in sync.js to avoid drift.
 
-Settings: Position and bar orientation selectors in Preferences; interval changes now apply immediately.
+Repo Hygiene: Moved backup artifacts to a top-level backup/ folder (outside extension/).
 
-Compatibility Hardening: Added guards for Quick Settings internals and safe fallbacks when unavailable.
-
-Code Cleanup: Tightened long-form narrative comments inside the codebase.
-
-Re-enabled logger initialization: Logger for debugging purposes, reenabled from previous version. Logger is still disabled by default, but can be enabled in Preferences (Settings -> Debug -> Enable Debug Mode) and logs will be written to ~/.local/share/batt-watt-power-monitor.log as default (not recommended for daily use).`;
+Bug Fix: Hide custom indicators and restore stock status when no battery is detected (prevents empty battery icon on desktops).`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {

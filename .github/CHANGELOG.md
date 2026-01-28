@@ -1,5 +1,14 @@
 # Changelog
 
+## v20 (2026-01-28) - CLEANUP & DEDUPLICATION
+
+> **MAINTENANCE & OPTIMIZATION**
+
+- **Cleanup**: Removed unused exports in `utils.js`.
+- **Deduplication**: Reused the shared settings snapshot in `sync.js` to avoid drift.
+- **Repo Hygiene**: Moved backup artifacts to a top-level `backup/` folder (outside `extension/`).
+- **Bug Fix**: Hide custom indicators and restore stock status when no battery is detected (prevents empty battery icon on desktops).
+
 ## v19 (2026-01-26) - PANEL POSITION, ORIENTATION & HARDENING
 
 > **AESTHETICS & LOGGING**

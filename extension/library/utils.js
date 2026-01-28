@@ -11,17 +11,6 @@ export function clamp01(value) {
 }
 
 /**
- * Get the key name of an object value.
- *
- * @param {object} obj - The object to search.
- * @param {unknown} value - Value to find.
- * @returns {string|null} Key name or null if not found.
- */
-export function getObjectKey(obj, value) {
-    return Object.keys(obj).find(key => obj[key] === value) || null;
-}
-
-/**
  * Format time in seconds to HH:MM format.
  *
  * @param {number} seconds - Time in seconds.
@@ -183,5 +172,3 @@ export function applyWidgetSize(widget, width, height) {
     widget.set_style(`width: ${width}px; height: ${height}px; min-width: ${width}px; min-height: ${height}px;`);
     widget.queue_relayout();
 }
-
-export const TEXT_DECODER = new TextDecoder('utf-8');

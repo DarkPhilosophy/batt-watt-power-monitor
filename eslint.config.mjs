@@ -3,6 +3,7 @@ import js from '@eslint/js';
 import jsdoc from 'eslint-plugin-jsdoc';
 import prettier from 'eslint-config-prettier';
 import pluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import noDecorativeComments from './.scripts/eslint-rules/no-decorative-comments.js';
 
 export default [
     js.configs.recommended,
@@ -58,9 +59,17 @@ export default [
         },
         plugins: {
             jsdoc,
+            local_rules: {
+                rules: {
+                    'no-decorative-comments': noDecorativeComments,
+                },
+            },
         },
         rules: {
             // === FORMATTING & STYLE ===
+            // Custom local rule for comment formatting
+            'local_rules/no-decorative-comments': 'warn',
+
             // Delegated to Prettier (via eslint-plugin-prettier)
 
             // === CODE QUALITY ===

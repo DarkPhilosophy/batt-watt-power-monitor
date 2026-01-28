@@ -31,17 +31,13 @@ import { enableSyncOverride, disableSyncOverride, forceSync } from './library/sy
 import { restoreLabel } from './library/label.js';
 import { clearSvgCache, purgeSvgCache } from './library/drawing.js';
 
-// Global debug flag (managed via Logger now, but might be used for other logic if needed)
-// Usage of `DEBUG` var in original: passed to logging functions.
-// Refactoring replaced logging with Logger.debug/warn.
-
 let updateUI;
 
 export default class BatteryPowerMonitor extends Extension {
     enable() {
         this._settings = this.getSettings();
 
-        // 1. Initialize Logger
+        // Initialize Logger
         Logger.init('Batt-Watt Power Monitor');
         Logger.updateSettings(this._settings);
 
@@ -181,6 +177,15 @@ export default class BatteryPowerMonitor extends Extension {
 
         const proxy = this._getBattery();
 
+        if (!proxy) {
+            restoreStockBattery();
+            destroyCircleIndicator();
+            destroyPortraitIndicator();
+            destroyLandscapeIndicator();
+            Logger.debug('No battery device found. Restoring stock indicator.');
+            return;
+        }
+
         // Cache toggle styles on first run or update
         cachePowerToggleStyles(Main.panel.statusArea.quickSettings?._system);
         hideStockBattery();
@@ -205,15 +210,11 @@ export default class BatteryPowerMonitor extends Extension {
             }
         }
 
-        if (proxy) {
-            updateCircleIndicatorStatus(proxy, this._settings);
-            updatePortraitIndicatorStatus(proxy, this._settings);
-            updateLandscapeIndicatorStatus(proxy, this._settings);
+        updateCircleIndicatorStatus(proxy, this._settings);
+        updatePortraitIndicatorStatus(proxy, this._settings);
+        updateLandscapeIndicatorStatus(proxy, this._settings);
 
-            // Force the system indicator to sync immediately to reflect setting changes
-            forceSync();
-        } else {
-            Logger.debug('No battery device found.');
-        }
+        // Force the system indicator to sync immediately to reflect setting changes
+        forceSync();
     }
 }

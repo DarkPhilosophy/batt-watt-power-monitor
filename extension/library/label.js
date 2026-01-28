@@ -50,12 +50,12 @@ export function updateLabel(proxy, settings) {
     const timeFull = proxy.time_to_full ?? proxy.TimeToFull;
     const energyRate = proxy.energy_rate ?? proxy.EnergyRate; // Watts
 
-    // 1. Percentage (if outside)
+    // Percentage (if outside)
     if (snapshot.showPercentageOutside) {
         parts.push(`${Math.round(pct)}%`);
     }
 
-    // 2. Time Remaining
+    // Time Remaining
     if (snapshot.showTimeRemaining) {
         let timeSeconds = 0;
         if (state === 2) {
@@ -72,7 +72,7 @@ export function updateLabel(proxy, settings) {
         }
     }
 
-    // 3. Watts
+    // Watts
     if (snapshot.showWatts) {
         let watts = 0;
         // Try native property first

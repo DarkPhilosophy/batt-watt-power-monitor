@@ -11,7 +11,7 @@ const CHANGELOG_PATH = path.join(PROJECT_DIR, '.github', 'CHANGELOG.md');
 const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
 
 try {
-    // 1. Read source of truth: package.json
+    // Read source of truth: package.json
     console.log('Reading package.json...');
     const pkg = require(PACKAGE_JSON_PATH);
     const newVersion = pkg.version.split('.')[0]; // Major version as the extension version
@@ -34,18 +34,18 @@ try {
         console.log(`ℹ️  Failed to update package-lock.json: ${error.message}`);
     }
 
-    // 2. Update VERSION file
+    // Update VERSION file
     console.log('Updating VERSION file...');
     fs.writeFileSync(VERSION_FILE_PATH, `${newVersion}\n`);
 
-    // 3. Update metadata.json
+    // Update metadata.json
     console.log('Updating extension/metadata.json...');
     const meta = require(METADATA_PATH);
     meta.version = parseInt(newVersion, 10);
     meta['version-name'] = newVersion;
     fs.writeFileSync(METADATA_PATH, `${JSON.stringify(meta, null, 2)}\n`);
 
-    // 4. Update prefs.js - Update BUILD_DATE constant + changelog
+    // Update prefs.js - Update BUILD_DATE constant + changelog
     console.log('Updating extension/prefs.js...');
     let prefsContent = fs.readFileSync(PREFS_PATH, 'utf8');
     const buildDate = new Date().toISOString();

@@ -80,6 +80,13 @@ node .scripts/sync-version.js
 echo "Updating lint status..."
 node .scripts/update-lint-status.js
 
+# Move backup artifacts to /backup
+echo "Moving backup artifacts..."
+node .scripts/move-backups.js
+
+# Detect duplicate unique symbols
+node .scripts/detect-duplicate-symbols.js
+
 # Validate File Structure
 node .scripts/validate-build.js
 
@@ -89,14 +96,25 @@ GLIB_SCHEMA_DIR="$HOME/.local/share/glib-2.0/schemas"
 
 echo "Building $EXTENSION_ID..."
 
-# Check if extension is enabled
-ENABLED=$(gnome-extensions list | grep -c "$EXTENSION_ID" || true)
+WAS_ENABLED=false
+if gnome-extensions list --enabled | grep -q "$EXTENSION_ID"; then
+    WAS_ENABLED=true
+fi
 
-# Disable if enabled
-if [ $ENABLED -gt 0 ]; then
+restore_extension() {
+    if [ "$WAS_ENABLED" = true ]; then
+        echo "Re-enabling extension..."
+        gnome-extensions enable "$EXTENSION_ID" || true
+        sleep 2
+    fi
+}
+
+trap restore_extension EXIT
+
+if [ "$WAS_ENABLED" = true ]; then
     echo "Disabling extension..."
     gnome-extensions disable "$EXTENSION_ID" || true
-    sleep 1
+    sleep 2
 fi
 
 if [ -d "$EXTENSION_DIR" ]; then
@@ -137,11 +155,6 @@ echo "Installing schemas to user glib directory..."
 mkdir -p "$GLIB_SCHEMA_DIR"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$GLIB_SCHEMA_DIR/"
 glib-compile-schemas "$GLIB_SCHEMA_DIR/"
-
-# Re-enable extension
-echo "Enabling extension..."
-gnome-extensions enable "$EXTENSION_ID" || true
-sleep 2
 
 echo "Extension built and installed successfully!"
 echo ""
