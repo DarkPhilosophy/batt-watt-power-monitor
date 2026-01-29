@@ -7,7 +7,7 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-01-29T14:56:03.171Z';
+const BUILD_DATE = '2026-01-29T14:56:49.360Z';
 const CHANGELOG = `
 PREFERENCES & LOGGING REFINEMENTS
 
