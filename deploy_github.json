@@ -1,0 +1,6 @@
+{
+  "branch": "main",
+  "build_command": "./package.sh",
+  "git_user_email": "action@github.com",
+  "git_user_name": "GitHub Action"
+}

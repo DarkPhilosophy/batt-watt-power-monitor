@@ -44,6 +44,9 @@ EXTENSION_UUID="batt-watt-power-monitor@DarkPhilosophy"
 PACKAGE_NAME="${EXTENSION_UUID}.zip"
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Remove old package to avoid stale contents
+rm -f "$PROJECT_DIR/$PACKAGE_NAME"
+
 # Create temporary directory for packaging
 TEMP_DIR=$(mktemp -d)
 trap "rm -rf $TEMP_DIR" EXIT
@@ -66,6 +69,49 @@ cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$TEMP_DIR/schemas/" 2>/dev/nu
 echo "ZIP: Creating package..."
 cd "$TEMP_DIR"
 zip -r -q "$PROJECT_DIR/${PACKAGE_NAME}" ./*
+
+# Validate ZIP contents against schema
+ZIP_PATH="$PROJECT_DIR/${PACKAGE_NAME}"
+SCHEMA_PATH="$PROJECT_DIR/.build-schema.json"
+echo "🔍 Validating ZIP contents against schema..."
+ZIP_PATH="$ZIP_PATH" SCHEMA_PATH="$SCHEMA_PATH" node - <<'NODE'
+const fs = require('fs');
+const { execSync } = require('child_process');
+const zipPath = process.env.ZIP_PATH;
+const schemaPath = process.env.SCHEMA_PATH;
+if (!fs.existsSync(schemaPath)) {
+  console.error(`❌ Schema file not found: ${schemaPath}`);
+  process.exit(1);
+}
+const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
+const allowedFiles = new Set(schema.allowed_files);
+const allowedDirs = new Set(schema.allowed_directories);
+const list = execSync(`unzip -Z1 "${zipPath}"`).toString().trim().split('\n').filter(Boolean);
+const unexpected = [];
+const foundFiles = [];
+for (const entry of list) {
+  if (entry.endsWith('/')) {
+    const dir = entry.replace(/\/$/, '');
+    if (dir && !allowedDirs.has(dir)) unexpected.push(`Directory: ${dir}`);
+  } else {
+    if (!allowedFiles.has(entry)) unexpected.push(`File: ${entry}`);
+    else foundFiles.push(entry);
+  }
+}
+const missing = [...allowedFiles].filter(f => !foundFiles.includes(f));
+if (missing.length || unexpected.length) {
+  if (missing.length) {
+    console.error('❌ Missing expected files:');
+    missing.forEach(f => console.error(`   - ${f}`));
+  }
+  if (unexpected.length) {
+    console.error('❌ Unexpected items in ZIP:');
+    unexpected.forEach(i => console.error(`   - ${i}`));
+  }
+  process.exit(1);
+}
+console.log('✅ ZIP contents validated against schema.');
+NODE
 
 echo ""
 echo "✅ Extension package ready!"

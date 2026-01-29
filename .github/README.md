@@ -10,7 +10,7 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v20-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v21-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
 <!-- EGO-VERSION-END -->
 
 ## Features
@@ -26,14 +26,14 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-01-28 12:11:14 UTC  
+> **Last Updated**: 2026-01-29 14:56:05 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@20.0.0 lint:fix
+> batt-watt-power-monitor@21.0.0 lint:fix
 > eslint --fix extension .scripts --format stylish
 ```
 
@@ -42,11 +42,11 @@
 
 <!-- LATEST-VERSION-START -->
 <details open>
-<summary><strong>Latest Update (v20)</strong></summary>
+<summary><strong>Latest Update (v21)</strong></summary>
 
-- **Cleanup**: Removed unused exports in `utils.js`.
-- **Deduplication**: Reused the shared settings snapshot in `sync.js` to avoid drift.
-- **Bug Fix**: Hide custom indicators and restore stock status when no battery is detected (prevents empty battery icon on desktops).
+- Attach the first real PreferencesPage to the window (avoids Adw warnings without dummy pages).
+- Logging UI: Open Log Folder + Clear Log File actions (shown only when debug + file logging enabled).
+- Log file path resolution now respects custom paths and defaults to cache directory when empty.
 
 </details>
 <!-- LATEST-VERSION-END -->
