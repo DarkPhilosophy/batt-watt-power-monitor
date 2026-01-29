@@ -60,11 +60,22 @@ export function updateSettings(settings) {
  */
 function resolveLogFilePath() {
     const configured = (_logPath || '').trim();
-    if (configured.length === 0)
-        return `${GLib.get_user_cache_dir()}/${_prefix.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.log`;
+    const baseName = _prefix.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    let fullPath = '';
+    if (configured.length === 0) {
+        fullPath = `${GLib.get_user_cache_dir()}/${baseName}.log`;
+    } else if (configured.startsWith('/')) {
+        fullPath = configured;
+    } else {
+        fullPath = `${GLib.get_home_dir()}/${configured}`;
+    }
 
-    if (configured.startsWith('/')) return configured;
-    return `${GLib.get_home_dir()}/${configured}`;
+    if (GLib.file_test(fullPath, GLib.FileTest.IS_DIR)) {
+        const base = fullPath.replace(/\/$/, '');
+        return `${base}/${baseName}.log`;
+    }
+
+    return fullPath;
 }
 
 /**

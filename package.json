@@ -26,5 +26,5 @@
     "prepare": "husky install",
     "validate": "node .scripts/validate-build.js && node .scripts/scan-leaks.js"
   },
-  "version": "20.0.0"
+  "version": "21.0.0"
 }
