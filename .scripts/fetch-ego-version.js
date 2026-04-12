@@ -5,6 +5,7 @@ const path = require('path');
 const PROJECT_DIR = path.resolve(__dirname, '..');
 const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
 const PACKAGE_JSON_PATH = path.join(PROJECT_DIR, 'package.json');
+const METADATA_PATH = path.join(PROJECT_DIR, 'extension', 'metadata.json');
 const EGO_URL = 'https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/';
 const EGO_INFO_URL = 'https://extensions.gnome.org/extension-info/';
 
@@ -78,6 +79,33 @@ function extractExtensionId(url) {
     return match ? match[1] : null;
 }
 
+function getShellVersionBadgeBlock() {
+    let shellVersions;
+    try {
+        const metadata = JSON.parse(fs.readFileSync(METADATA_PATH, 'utf8'));
+        shellVersions = Array.isArray(metadata['shell-version']) ? metadata['shell-version'] : [];
+    } catch (error) {
+        console.warn(`⚠️  Could not read metadata shell-version: ${error.message}`);
+        shellVersions = [];
+    }
+
+    const parsedVersions = shellVersions
+        .map(value => Number.parseInt(value, 10))
+        .filter(Number.isFinite)
+        .sort((left, right) => left - right);
+
+    const label = parsedVersions.length
+        ? parsedVersions[0] === parsedVersions.at(-1)
+            ? `${parsedVersions[0]}`
+            : `${parsedVersions[0]}--${parsedVersions.at(-1)}`
+        : 'unknown';
+    const badgeText = parsedVersions.length
+        ? `GNOME ${parsedVersions[0]}-${parsedVersions.at(-1)}`
+        : 'GNOME';
+
+    return `<!-- GNOME-SHELL-VERSIONS-START -->\n[![${badgeText}](https://img.shields.io/badge/GNOME-${label}-blue.svg)](https://www.gnome.org/)\n<!-- GNOME-SHELL-VERSIONS-END -->`;
+}
+
 // Fetch HTML from GNOME Extensions (fallback to extension-info JSON)
 fetchHtml(EGO_URL, html => {
     try {
@@ -137,6 +165,7 @@ fetchHtml(EGO_URL, html => {
 function updateReadme(githubVersionValue, publishedVersion) {
     try {
         const readmeContent = fs.readFileSync(README_PATH, 'utf8');
+        const shellVersionBlock = getShellVersionBadgeBlock();
 
         // Determine status color and message
         const hasPublished = Number.isFinite(publishedVersion);
@@ -155,9 +184,17 @@ function updateReadme(githubVersionValue, publishedVersion) {
 
         const regex = /<!-- EGO-VERSION-START -->.*?<!-- EGO-VERSION-END -->/s;
 
-        if (regex.test(readmeContent)) {
+        let newContent = readmeContent;
+
+        const shellVersionRegex =
+            /<!-- GNOME-SHELL-VERSIONS-START -->[\s\S]*<!-- GNOME-SHELL-VERSIONS-END -->/;
+        if (shellVersionRegex.test(newContent)) {
+            newContent = newContent.replace(shellVersionRegex, shellVersionBlock);
+        }
+
+        if (regex.test(newContent)) {
             // Update existing badges
-            const newContent = readmeContent.replace(regex, markdownBlock);
+            newContent = newContent.replace(regex, markdownBlock);
             fs.writeFileSync(README_PATH, newContent);
             console.log('✅ Updated version status and published badges in README.md');
             const displayText = isSynced
@@ -168,8 +205,8 @@ function updateReadme(githubVersionValue, publishedVersion) {
             // Add badges after the "Status: Live" line
             const statusLineRegex = /(\*\*Status\*\*: \*\*Live\*\* on GNOME Extensions \(ID: 9023\)\.\s*)/;
 
-            if (statusLineRegex.test(readmeContent)) {
-                const newContent = readmeContent.replace(statusLineRegex, `$1\n${markdownBlock}\n`);
+            if (statusLineRegex.test(newContent)) {
+                newContent = newContent.replace(statusLineRegex, `$1\n${markdownBlock}\n`);
                 fs.writeFileSync(README_PATH, newContent);
                 console.log('✅ Added version badges to README.md');
                 const displayText = isSynced
