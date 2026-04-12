@@ -99,9 +99,7 @@ function getShellVersionBadgeBlock() {
             ? `${parsedVersions[0]}`
             : `${parsedVersions[0]}--${parsedVersions.at(-1)}`
         : 'unknown';
-    const badgeText = parsedVersions.length
-        ? `GNOME ${parsedVersions[0]}-${parsedVersions.at(-1)}`
-        : 'GNOME';
+    const badgeText = parsedVersions.length ? `GNOME ${parsedVersions[0]}-${parsedVersions.at(-1)}` : 'GNOME';
 
     return `<!-- GNOME-SHELL-VERSIONS-START -->\n[![${badgeText}](https://img.shields.io/badge/GNOME-${label}-blue.svg)](https://www.gnome.org/)\n<!-- GNOME-SHELL-VERSIONS-END -->`;
 }
@@ -186,10 +184,11 @@ function updateReadme(githubVersionValue, publishedVersion) {
 
         let newContent = readmeContent;
 
-        const shellVersionRegex =
-            /<!-- GNOME-SHELL-VERSIONS-START -->[\s\S]*<!-- GNOME-SHELL-VERSIONS-END -->/;
+        const shellVersionRegex = /<!-- GNOME-SHELL-VERSIONS-START -->[\s\S]*<!-- GNOME-SHELL-VERSIONS-END -->/;
         if (shellVersionRegex.test(newContent)) {
             newContent = newContent.replace(shellVersionRegex, shellVersionBlock);
+        } else {
+            console.warn('⚠️  GNOME shell version marker block not found in README.md');
         }
 
         if (regex.test(newContent)) {

@@ -9,14 +9,13 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
-
-path_instructions:
-  - path: ".github/**"
-    instructions: "Treat .github/README.md as generated-by-blocks documentation. Prefer script-driven updates over manual hardcoded status or badge edits."
-  - path: ".scripts/**"
-    instructions: "Prioritize automation, edge-case handling, and avoiding drift between metadata, README badges, and generated status blocks."
-  - path: "extension/**"
-    instructions: "GNOME Shell compatibility must remain synchronized with extension/metadata.json and any generated README compatibility badges."
+  path_instructions:
+    - path: ".github/**"
+      instructions: "Treat .github/README.md as generated-by-blocks documentation. Prefer script-driven updates over manual hardcoded status or badge edits."
+    - path: ".scripts/**"
+      instructions: "Prioritize automation, edge-case handling, and avoiding drift between metadata, README badges, and generated status blocks."
+    - path: "extension/**"
+      instructions: "GNOME Shell compatibility must remain synchronized with extension/metadata.json and any generated README compatibility badges."
 
 chat:
   auto_reply: true
