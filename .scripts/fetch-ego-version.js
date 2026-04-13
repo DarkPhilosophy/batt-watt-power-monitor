@@ -86,7 +86,7 @@ function getShellVersionBadgeBlock() {
         shellVersions = Array.isArray(metadata['shell-version']) ? metadata['shell-version'] : [];
     } catch (error) {
         console.warn(`⚠️  Could not read metadata shell-version: ${error.message}`);
-        shellVersions = [];
+        return null;
     }
 
     const parsedVersions = shellVersions
@@ -94,14 +94,38 @@ function getShellVersionBadgeBlock() {
         .filter(Number.isFinite)
         .sort((left, right) => left - right);
 
-    const label = parsedVersions.length
-        ? parsedVersions[0] === parsedVersions.at(-1)
-            ? `${parsedVersions[0]}`
-            : `${parsedVersions[0]}--${parsedVersions.at(-1)}`
-        : 'unknown';
-    const badgeText = parsedVersions.length ? `GNOME ${parsedVersions[0]}-${parsedVersions.at(-1)}` : 'GNOME';
+    if (!parsedVersions.length) {
+        console.warn('⚠️  No valid shell-version entries found in metadata.json; skipping GNOME badge update');
+        return null;
+    }
+
+    const uniqueVersions = [...new Set(parsedVersions)];
+    const formattedVersions = formatVersionRanges(uniqueVersions);
+    const label = encodeURIComponent(formattedVersions.replace(/, /g, ',')).replace(/-/g, '--');
+    const badgeText = `GNOME ${formattedVersions}`;
 
     return `<!-- GNOME-SHELL-VERSIONS-START -->\n[![${badgeText}](https://img.shields.io/badge/GNOME-${label}-blue.svg)](https://www.gnome.org/)\n<!-- GNOME-SHELL-VERSIONS-END -->`;
+}
+
+function formatVersionRanges(versions) {
+    const ranges = [];
+    let start = versions[0];
+    let end = versions[0];
+
+    for (let index = 1; index < versions.length; index += 1) {
+        const value = versions[index];
+        if (value === end + 1) {
+            end = value;
+            continue;
+        }
+
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        start = value;
+        end = value;
+    }
+
+    ranges.push(start === end ? `${start}` : `${start}-${end}`);
+    return ranges.join(', ');
 }
 
 // Fetch HTML from GNOME Extensions (fallback to extension-info JSON)
@@ -185,8 +209,10 @@ function updateReadme(githubVersionValue, publishedVersion) {
         let newContent = readmeContent;
 
         const shellVersionRegex = /<!-- GNOME-SHELL-VERSIONS-START -->[\s\S]*<!-- GNOME-SHELL-VERSIONS-END -->/;
-        if (shellVersionRegex.test(newContent)) {
+        if (shellVersionBlock && shellVersionRegex.test(newContent)) {
             newContent = newContent.replace(shellVersionRegex, shellVersionBlock);
+        } else if (!shellVersionBlock) {
+            console.warn('⚠️  Skipping GNOME shell badge replacement due to invalid metadata');
         } else {
             console.warn('⚠️  GNOME shell version marker block not found in README.md');
         }

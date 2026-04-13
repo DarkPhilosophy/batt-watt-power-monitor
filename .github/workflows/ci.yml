@@ -18,7 +18,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.head_ref || github.ref_name }}
+                  ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref_name }}
 
             - name: Set up Node.js
               uses: actions/setup-node@v4
@@ -63,7 +63,7 @@ jobs:
             - name: Checkout repository
               uses: actions/checkout@v4
               with:
-                  ref: ${{ github.head_ref || github.ref_name }}
+                  ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref_name }}
 
             - name: Set up Node.js
               uses: actions/setup-node@v4
@@ -98,13 +98,15 @@ jobs:
               run: ./package.sh
 
             - name: Commit Changes
+              if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
               run: |
                   git config --global user.name 'GitHub Action'
                   git config --global user.email 'action@github.com'
                   if [[ -n $(git status --porcelain) ]]; then
+                    target_ref='${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}'
                     git add .
                     git commit -m "chore: Sync version, badges, and lint status [skip ci]"
-                    git push origin HEAD:${{ github.head_ref || github.ref_name }}
+                    git push origin "HEAD:${target_ref}"
                   else
                     echo "No changes to commit"
                   fi
