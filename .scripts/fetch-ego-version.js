@@ -157,14 +157,17 @@ fetchHtml(EGO_URL, html => {
             .replace(/&lt;/g, '<')
             .replace(/&gt;/g, '>');
 
-        // Parse JSON
+        // Parse JSON and use the highest published version across shell entries.
         const versions = JSON.parse(versionData);
+        const publishedVersion = Object.values(versions)
+            .flatMap(shellMap => Object.values(shellMap))
+            .map(entry => parseInt(entry.version, 10))
+            .filter(Number.isFinite)
+            .reduce((maxVersion, value) => Math.max(maxVersion, value), Number.NEGATIVE_INFINITY);
 
-        // Get the first shell version's data (they should all have the same extension version)
-        const firstShellVersion = Object.keys(versions)[0];
-        const versionInfo = versions[firstShellVersion];
-        const firstVersionKey = Object.keys(versionInfo)[0];
-        const publishedVersion = parseInt(versionInfo[firstVersionKey].version, 10);
+        if (!Number.isFinite(publishedVersion)) {
+            throw new Error('No valid published version found in data-versions map');
+        }
 
         console.log(`✅ Found published version on GNOME Extensions: ${publishedVersion}`);
 
