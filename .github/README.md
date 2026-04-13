@@ -28,15 +28,15 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-13 00:52:15 UTC  
+> **Last Updated**: 2026-04-13 00:56:21 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@22.0.0 lint
-> eslint extension .scripts --format stylish
+> batt-watt-power-monitor@22.0.0 lint:fix
+> eslint --fix extension .scripts --format stylish
 ```
 
 </details>
