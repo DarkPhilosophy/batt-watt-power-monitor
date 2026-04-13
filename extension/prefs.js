@@ -7,7 +7,7 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-13T01:07:04.795Z';
+const BUILD_DATE = '2026-04-13T01:20:25.057Z';
 const CHANGELOG = `
 STOCK ICON MODE & CHARGING COLOR TUNING
 
