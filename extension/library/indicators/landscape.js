@@ -5,7 +5,7 @@ import Cairo from 'cairo';
 import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as Logger from '../logger.js';
 import { BATTERY } from '../constants.js';
-import { getForegroundColor, getRingColor, applyWidgetSize } from '../utils.js';
+import { getIndicatorRgb, applyWidgetSize } from '../utils.js';
 import { loadChargingSvg, drawBatteryIconLandscape, clearCairoContext, purgeSvgCache } from '../drawing.js';
 import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
 
@@ -35,11 +35,7 @@ const LandscapeIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            if (!this._status.useColor) {
-                const fg = getForegroundColor(this);
-                return [fg.red / 255, fg.green / 255, fg.blue / 255];
-            }
-            return getRingColor(this._status.percentage);
+            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.isCharging);
         }
 
         _onRepaint(area) {
@@ -248,7 +244,12 @@ export function destroyLandscapeIndicator() {
  * @returns {boolean} True if enabled.
  */
 function landscapeIndicatorEnabled(settings) {
-    return settings && settings.get_boolean('showicon') && !settings.get_boolean('usecircleindicator');
+    return (
+        settings &&
+        settings.get_boolean('showicon') &&
+        !settings.get_boolean('usecircleindicator') &&
+        !settings.get_boolean('use-stock-icon')
+    );
 }
 
 /**

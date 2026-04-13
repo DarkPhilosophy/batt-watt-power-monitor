@@ -1,5 +1,14 @@
 # Changelog
 
+## v22 (2026-04-13) - STOCK ICON MODE & CHARGING COLOR TUNING
+
+> **VISUAL FLEXIBILITY & PANEL COHERENCE**
+
+- **Stock Icon Mode**: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
+- **Charging Color Tuning**: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.
+- **Panel Sync**: The stock icon path now respects the same panel visibility flow as the custom indicators.
+- **Version Art**: Added a dedicated `v22` SVG concept icon under `assets/`.
+
 ## v21 (2026-01-29) - PREFERENCES & LOGGING REFINEMENTS
 
 > **PREFERENCES & LOGGING REFINEMENTS**

@@ -91,7 +91,7 @@ export function updateLabel(proxy, settings) {
 
     const labelText = parts.join(' ');
     const showLabel = parts.length > 0;
-    const style = getLabelStyleFromPercentage(pct, snapshot.showColored);
+    const style = getLabelStyleFromPercentage(pct, snapshot.showColored, state === 1);
 
     Logger.debug(`Label Update: text="${labelText}" visible=${showLabel}`);
 

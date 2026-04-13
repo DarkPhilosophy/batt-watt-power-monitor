@@ -5,7 +5,13 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 import * as Logger from './logger.js';
 import { getBatteryCorrection, getPower, getStatus } from './upower.js';
 import { updateCircleIndicatorStatus } from './indicators/circle.js';
-import { cachePowerToggleStyles, cacheDefaultLabelColor, hideStockBattery, restoreStockBattery } from './system.js';
+import {
+    cachePowerToggleStyles,
+    cacheDefaultLabelColor,
+    hideStockBattery,
+    restoreStockBattery,
+    setStockBatteryStyle,
+} from './system.js';
 import { getLabelStyleFromPercentage } from './utils.js';
 import { getSettingsSnapshot } from './settings.js';
 
@@ -226,18 +232,22 @@ export function enableSyncOverride(settings) {
 
         // Re-implementing lines 2392-2417 of original extension.js
         const percentageValue = this._proxy?.Percentage ?? powerToggle?._proxy?.Percentage;
-        const labelStyle = getLabelStyleFromPercentage(percentageValue, settings.get_boolean('showcolored'));
+        const stockState = this._proxy?.State ?? powerToggle?._proxy?.State;
+        const labelStyle = getLabelStyleFromPercentage(
+            percentageValue,
+            settings.get_boolean('showcolored'),
+            stockState === UPower.DeviceState.CHARGING,
+        );
 
-        // Fix: Hide stock icon if ANY custom indicator is enabled.
-        const showStockIcon = !snapshot.showIcon && !snapshot.showCircle;
+        const showStockIcon = snapshot.useStockIcon ? snapshot.showIcon : !snapshot.showIcon && !snapshot.showCircle;
 
         if (showStockIcon) {
-            // Restore stock icon if needed
             restoreStockBattery();
         } else {
-            // Force hide stock battery using system.js helper
             hideStockBattery();
         }
+
+        setStockBatteryStyle(snapshot.useStockIcon && showStockIcon ? labelStyle : null);
 
         // Removed local targeting logic as it was flaky.
         // const stockIcon = this._icon || this._indicator?._icon;
