@@ -8,12 +8,13 @@ import { isChargingState } from './utils.js';
  * @returns {object} Snapshot of settings values
  */
 export function getSettingsSnapshot(settings) {
+    const useStockIcon = settings.get_boolean('use-stock-icon');
     const showPercentage = settings.get_boolean('percentage');
     const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
     const showTimeRemaining = settings.get_boolean('timeremaining');
     const showWatts = settings.get_boolean('showwatts');
     const showIcon = settings.get_boolean('showicon');
-    const showCircle = settings.get_boolean('usecircleindicator');
+    const showCircle = settings.get_boolean('usecircleindicator') && !useStockIcon;
     const showColored = settings.get_boolean('showcolored');
     const forceBolt = settings.get_boolean('forcebolt');
     const hideCharging = settings.get_boolean('hidecharging');
@@ -27,6 +28,7 @@ export function getSettingsSnapshot(settings) {
         showWatts,
         showIcon,
         showCircle,
+        useStockIcon,
         showColored,
         forceBolt,
         hideCharging,

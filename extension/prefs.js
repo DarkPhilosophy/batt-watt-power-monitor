@@ -7,17 +7,19 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-13T00:52:13.029Z';
+const BUILD_DATE = '2026-04-13T00:56:18.710Z';
 const CHANGELOG = `
-PREFERENCES & LOGGING REFINEMENTS
+STOCK ICON MODE & CHARGING COLOR TUNING
 
-PREFERENCES & LOGGING REFINEMENTS
+VISUAL FLEXIBILITY & PANEL COHERENCE
 
-Attach the first real PreferencesPage to the window (avoids Adw warnings without dummy pages).
+Stock Icon Mode: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
 
-Logging UI: Open Log Folder + Clear Log File actions (shown only when debug + file logging enabled).
+Charging Color Tuning: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.
 
-Log file path resolution now respects custom paths and defaults to cache directory when empty.`;
+Panel Sync: The stock icon path now respects the same panel visibility flow as the custom indicators.
+
+Version Art: Added a dedicated v22 SVG concept icon under assets/.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {
@@ -354,6 +356,19 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         circleIndicatorRow.add_suffix(circleIndicatorSwitch);
         styleGroup.add(circleIndicatorRow);
 
+        const useStockIconRow = new Adw.ActionRow({
+            title: _('Use GNOME Stock Icon'),
+            subtitle: _('Use the default GNOME battery icon instead of the custom drawn icon'),
+        });
+        addIcon(useStockIconRow, 'battery-symbolic');
+        const useStockIconSwitch = new Gtk.Switch({
+            active: settings.get_boolean('use-stock-icon'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('use-stock-icon', useStockIconSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        useStockIconRow.add_suffix(useStockIconSwitch);
+        styleGroup.add(useStockIconRow);
+
         const showColoredRow = new Adw.ActionRow({
             title: _('Colored Ring'),
             subtitle: _('Use colors to indicate charge level'),
@@ -428,12 +443,15 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         // Visibility Logic for Dimensions
         const updateDimensionVisibility = () => {
             const isCircle = settings.get_boolean('usecircleindicator');
-            barOrientationRow.visible = !isCircle;
-            batteryWidthRow.visible = !isCircle;
-            batteryHeightRow.visible = !isCircle;
-            circleSizeRow.visible = isCircle;
+            const isStock = settings.get_boolean('use-stock-icon');
+            barOrientationRow.visible = !isCircle && !isStock;
+            batteryWidthRow.visible = !isCircle && !isStock;
+            batteryHeightRow.visible = !isCircle && !isStock;
+            circleSizeRow.visible = isCircle && !isStock;
+            circleIndicatorRow.sensitive = !isStock;
         };
         settings.connect('changed::usecircleindicator', updateDimensionVisibility);
+        settings.connect('changed::use-stock-icon', updateDimensionVisibility);
         updateDimensionVisibility();
 
         // Group: Auto-Hide Rules

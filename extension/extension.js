@@ -26,6 +26,7 @@ import {
     resetPowerToggleStyles,
     hideStockBattery,
     restoreStockBattery,
+    setStockBatteryStyle,
 } from './library/system.js';
 import { enableSyncOverride, disableSyncOverride, forceSync } from './library/sync.js';
 import { restoreLabel } from './library/label.js';
@@ -124,6 +125,7 @@ export default class BatteryPowerMonitor extends Extension {
         destroyPortraitIndicator();
         destroyLandscapeIndicator();
         resetPowerToggleStyles(Main.panel.statusArea.quickSettings?._system, true);
+        setStockBatteryStyle(null);
         restoreStockBattery();
         restoreLabel();
         resetBatteryCorrection();
@@ -178,6 +180,7 @@ export default class BatteryPowerMonitor extends Extension {
         const proxy = this._getBattery();
 
         if (!proxy) {
+            setStockBatteryStyle(null);
             restoreStockBattery();
             destroyCircleIndicator();
             destroyPortraitIndicator();
@@ -188,6 +191,23 @@ export default class BatteryPowerMonitor extends Extension {
 
         // Cache toggle styles on first run or update
         cachePowerToggleStyles(Main.panel.statusArea.quickSettings?._system);
+
+        if (this._settings.get_boolean('use-stock-icon')) {
+            destroyCircleIndicator();
+            destroyPortraitIndicator();
+            destroyLandscapeIndicator();
+
+            if (this._settings.get_boolean('showicon')) {
+                restoreStockBattery();
+            } else {
+                hideStockBattery();
+            }
+
+            forceSync();
+            return;
+        }
+
+        setStockBatteryStyle(null);
         hideStockBattery();
 
         const extPath = this.path;
