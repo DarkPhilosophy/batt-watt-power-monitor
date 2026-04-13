@@ -1,6 +1,7 @@
 # Battery Power Monitor for GNOME Shell
 
 [![Extension CI](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml)
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/DarkPhilosophy/batt-watt-power-monitor?utm_source=oss&utm_medium=github&utm_campaign=DarkPhilosophy%2Fbatt-watt-power-monitor&labelColor=171717&color=FF570A&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 [![GNOME Extensions](https://img.shields.io/badge/GNOME-Extensions-orange.svg)](https://extensions.gnome.org/extension/9023/battery-power-monitor/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 <!-- GNOME-SHELL-VERSIONS-START -->
