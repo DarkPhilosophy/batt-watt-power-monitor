@@ -141,6 +141,20 @@ export function restoreStockBattery() {
     }
 }
 
+/**
+ * Apply or clear style on the stock GNOME battery icon.
+ *
+ * @param {string|null} style - CSS style string or null.
+ */
+export function setStockBatteryStyle(style) {
+    const quickSettings = Main.panel.statusArea.quickSettings;
+    const indicator = quickSettings?._system?._indicator;
+
+    if (indicator) {
+        indicator.set_style(style ?? null);
+    }
+}
+
 // Deprecated or unused helpers can be kept if needed by other modules,
 // or removed if clean-up is desired.
 // For now, keeping only format helper required by others.

@@ -5,7 +5,7 @@ import Cairo from 'cairo';
 import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as Logger from '../logger.js';
 import { CIRCLE } from '../constants.js';
-import { getForegroundColor, getRingColor } from '../utils.js';
+import { getIndicatorRgb } from '../utils.js';
 import { loadChargingSvg, drawBatteryIcon, clearCairoContext } from '../drawing.js';
 import { getCircleSize, buildIndicatorStatus } from '../settings.js';
 
@@ -29,11 +29,7 @@ const CircleIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            if (!this._status.useColor) {
-                const fg = getForegroundColor(this);
-                return [fg.red / 255, fg.green / 255, fg.blue / 255];
-            }
-            return getRingColor(this._status.percentage);
+            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.isCharging);
         }
 
         _drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue) {
@@ -322,7 +318,7 @@ export function destroyCircleIndicator() {
  * @param {string} extensionPath - Path to extension directory
  */
 export function ensureCircleIndicator(settings, extensionPath) {
-    if (!settings.get_boolean('usecircleindicator')) {
+    if (!settings.get_boolean('usecircleindicator') || settings.get_boolean('use-stock-icon')) {
         destroyCircleIndicator();
         return;
     }
@@ -389,7 +385,13 @@ import { destroyBatteryIndicator } from './battery.js';
  * @param {object} settings - GSettings object.
  */
 export function updateCircleIndicatorStatus(proxy, settings) {
-    if (!settings.get_boolean('usecircleindicator') || !circleIndicator || !proxy) return;
+    if (
+        !settings.get_boolean('usecircleindicator') ||
+        settings.get_boolean('use-stock-icon') ||
+        !circleIndicator ||
+        !proxy
+    )
+        return;
 
     const size = getCircleSize(settings);
     const { percentage, status, isCharging, showText, useColor, forceBolt, hideCharging, hideFull, hideIdle } =

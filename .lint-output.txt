@@ -1,3 +1,4 @@
 
-> batt-watt-power-monitor@21.0.0 lint:fix
-> eslint --fix extension .scripts --format stylish
+> batt-watt-power-monitor@22.0.0 lint
+> eslint extension .scripts --format stylish
+
