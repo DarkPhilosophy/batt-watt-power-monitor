@@ -29,18 +29,18 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-14 02:56:39 UTC  
+> **Last Updated**: 2026-04-14 03:02:56 UTC  
 > **Summary**: 0 errors, 1 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@22.0.0 lint
-> eslint extension .scripts --format stylish
+> batt-watt-power-monitor@22.0.0 lint:fix
+> eslint --fix extension .scripts --format stylish
 
 
-/var/home/alexa/Projects/batt-watt-power-monitor/extension/library/settings.js
+/home/runner/work/batt-watt-power-monitor/batt-watt-power-monitor/extension/library/settings.js
    5:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
    7:1  warning  Missing JSDoc @param "value" description     jsdoc/require-param-description
    7:1  warning  Missing JSDoc @param "value" type            jsdoc/require-param-type
@@ -59,7 +59,7 @@
   50:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
   50:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
 
-/var/home/alexa/Projects/batt-watt-power-monitor/extension/library/system.js
+/home/runner/work/batt-watt-power-monitor/batt-watt-power-monitor/extension/library/system.js
   11:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
   13:1  warning  Missing JSDoc @param "priority" description  jsdoc/require-param-description
   13:1  warning  Missing JSDoc @param "priority" type         jsdoc/require-param-type
