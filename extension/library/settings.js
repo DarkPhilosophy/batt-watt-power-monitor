@@ -1,5 +1,86 @@
+import UPower from 'gi://UPowerGlib';
 import { getBatteryStatus } from './upower.js';
 import { isChargingState } from './utils.js';
+
+/**
+ *
+ * @param value
+ */
+function clampPercent(value) {
+    return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+/**
+ *
+ * @param settings
+ */
+function getFakeChargeRange(settings) {
+    const first = clampPercent(settings.get_int('fakechargemin'));
+    const second = clampPercent(settings.get_int('fakechargemax'));
+    return first <= second ? [first, second] : [second, first];
+}
+
+/**
+ *
+ * @param settings
+ */
+function getFakeChargePercentage(settings) {
+    const [min, max] = getFakeChargeRange(settings);
+    if (min === max) return min;
+
+    const span = max - min + 1;
+    return min + (Math.floor(Date.now() / 1000) % span);
+}
+
+/**
+ *
+ * @param settings
+ */
+function getFakeDischargePercentage(settings) {
+    const [min, max] = getFakeChargeRange(settings);
+    if (min === max) return min;
+
+    const span = max - min + 1;
+    return max - (Math.floor(Date.now() / 1000) % span);
+}
+
+/**
+ *
+ * @param proxy
+ * @param settings
+ */
+export function getEffectiveBatteryValues(proxy, settings) {
+    const rawPercentage = proxy.percentage ?? proxy.Percentage ?? 0;
+    const rawState = proxy.state ?? proxy.State;
+    const debug = settings.get_boolean('debug');
+    const fakeCharging = debug && settings.get_boolean('fakecharging');
+    const fakeDischarging = debug && settings.get_boolean('fakedischarging');
+
+    if (!fakeCharging && !fakeDischarging) {
+        return {
+            percentage: Math.round(rawPercentage),
+            state: rawState,
+            fakeCharging: false,
+            fakeDischarging: false,
+        };
+    }
+
+    if (fakeCharging) {
+        return {
+            percentage: getFakeChargePercentage(settings),
+            state: UPower.DeviceState.CHARGING,
+            fakeCharging: true,
+            fakeDischarging: false,
+        };
+    }
+
+    return {
+        percentage: getFakeDischargePercentage(settings),
+        state: UPower.DeviceState.DISCHARGING,
+        fakeCharging: false,
+        fakeDischarging: true,
+    };
+}
 
 /**
  * Snapshot settings used by hot-path display logic.
@@ -30,6 +111,8 @@ export function getSettingsSnapshot(settings) {
         showCircle,
         useStockIcon,
         showColored,
+        fakeCharging: settings.get_boolean('debug') && settings.get_boolean('fakecharging'),
+        fakeDischarging: settings.get_boolean('debug') && settings.get_boolean('fakedischarging'),
         forceBolt,
         hideCharging,
         hideFull,
@@ -46,17 +129,18 @@ export function getSettingsSnapshot(settings) {
  * @returns {object} Status data for indicators
  */
 export function buildIndicatorStatus(proxy, settings) {
-    // Handle both GObject (snake_case) and DBus Proxy (PascalCase) properties
-    const rawPercentage = proxy.percentage ?? proxy.Percentage;
-    const percentage = Math.round(rawPercentage);
+    const { percentage, state, fakeCharging, fakeDischarging } = getEffectiveBatteryValues(proxy, settings);
     const status = getBatteryStatus();
     const snapshot = getSettingsSnapshot(settings);
+    const realCharging = isChargingState({ state, State: state }, status);
 
-    // proxy.state is a UPower.DeviceState enum
     return {
         percentage,
-        status,
-        isCharging: isChargingState(proxy, status) || snapshot.forceBolt,
+        state,
+        isCharging: fakeCharging || realCharging,
+        useChargingColor: fakeCharging || realCharging,
+        showBolt: snapshot.forceBolt || fakeCharging || realCharging,
+        fakeDischarging,
         showText: snapshot.showText,
         useColor: snapshot.showColored,
         forceBolt: snapshot.forceBolt,

@@ -7,7 +7,7 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-13T01:20:25.057Z';
+const BUILD_DATE = '2026-04-14T03:02:53.825Z';
 const CHANGELOG = `
 STOCK ICON MODE & CHARGING COLOR TUNING
 
@@ -290,13 +290,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(timeRemainingRow, 'alarm-symbolic');
         const timeRemainingSwitch = new Gtk.Switch({
-            active: (function () {
-                try {
-                    return settings.get_boolean('timeremaining');
-                } catch (_e) {
-                    return false;
-                }
-            })(),
+            active: settings.get_boolean('timeremaining'),
             valign: Gtk.Align.CENTER,
         });
         settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
@@ -358,7 +352,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         const useStockIconRow = new Adw.ActionRow({
             title: _('Use GNOME Stock Icon'),
-            subtitle: _('Use the default GNOME battery icon instead of the custom drawn icon'),
+            subtitle: _('Use the native GNOME battery icon instead of the custom bar or circle'),
         });
         addIcon(useStockIconRow, 'battery-symbolic');
         const useStockIconSwitch = new Gtk.Switch({
@@ -460,7 +454,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
 
         const hideChargingRow = new Adw.ActionRow({ title: _('Hide When Charging') });
-        addIcon(hideChargingRow, 'battery-level-charging-symbolic'); // Fallback icon
+        addIcon(hideChargingRow, 'battery-full-charging-symbolic');
         const hideChargingSwitch = new Gtk.Switch({
             active: settings.get_boolean('hidecharging'),
             valign: Gtk.Align.CENTER,
@@ -523,6 +517,65 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('forcebolt', forceBoltSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         forceBoltRow.add_suffix(forceBoltSwitch);
         debugGroup.add(forceBoltRow);
+
+        const fakeChargingRow = new Adw.ActionRow({
+            title: _('Fake Charging'),
+            subtitle: _('Force charging state and animate a synthetic battery percentage for testing'),
+        });
+        addIcon(fakeChargingRow, 'battery-full-charging-symbolic');
+        const fakeChargingSwitch = new Gtk.Switch({
+            active: settings.get_boolean('fakecharging'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('fakecharging', fakeChargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        fakeChargingRow.add_suffix(fakeChargingSwitch);
+        fakeChargingSwitch.connect('notify::active', widget => {
+            if (widget.active) settings.set_boolean('fakedischarging', false);
+        });
+        debugGroup.add(fakeChargingRow);
+
+        const fakeDischargingRow = new Adw.ActionRow({
+            title: _('Fake Discharging'),
+            subtitle: _('Force discharging state and animate a synthetic battery percentage for testing'),
+        });
+        addIcon(fakeDischargingRow, 'battery-level-40-symbolic');
+        const fakeDischargingSwitch = new Gtk.Switch({
+            active: settings.get_boolean('fakedischarging'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('fakedischarging', fakeDischargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        fakeDischargingRow.add_suffix(fakeDischargingSwitch);
+        fakeDischargingSwitch.connect('notify::active', widget => {
+            if (widget.active) settings.set_boolean('fakecharging', false);
+        });
+        debugGroup.add(fakeDischargingRow);
+
+        const fakeChargeMinRow = new Adw.ActionRow({
+            title: _('Fake Charge Min'),
+            subtitle: _('Lower bound for the synthetic charging percentage'),
+        });
+        addIcon(fakeChargeMinRow, 'go-bottom-symbolic');
+        const fakeChargeMinSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ lower: 0, upper: 100, step_increment: 1 }),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('fakechargemin', fakeChargeMinSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        fakeChargeMinRow.add_suffix(fakeChargeMinSpin);
+        debugGroup.add(fakeChargeMinRow);
+
+        const fakeChargeMaxRow = new Adw.ActionRow({
+            title: _('Fake Charge Max'),
+            subtitle: _('Upper bound for the synthetic charging percentage'),
+        });
+        addIcon(fakeChargeMaxRow, 'go-top-symbolic');
+        const fakeChargeMaxSpin = new Gtk.SpinButton({
+            adjustment: new Gtk.Adjustment({ lower: 0, upper: 100, step_increment: 1 }),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('fakechargemax', fakeChargeMaxSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        fakeChargeMaxRow.add_suffix(fakeChargeMaxSpin);
+        debugGroup.add(fakeChargeMaxRow);
+
         debugPage.add(debugGroup);
 
         // Logging Group
@@ -610,13 +663,20 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         const updateDebugVisibility = () => {
             const isDebug = settings.get_boolean('debug');
             const logToFile = settings.get_boolean('logtofile');
+            const fakeCharging = settings.get_boolean('fakecharging') || settings.get_boolean('fakedischarging');
             loggingGroup.visible = isDebug;
+            fakeChargingRow.visible = isDebug;
+            fakeDischargingRow.visible = isDebug;
+            fakeChargeMinRow.visible = isDebug && fakeCharging;
+            fakeChargeMaxRow.visible = isDebug && fakeCharging;
             logPathRow.visible = isDebug && logToFile;
             browseBtn.visible = isDebug && logToFile;
             openReq.visible = isDebug && logToFile;
             clearReq.visible = isDebug && logToFile;
         };
         settings.connect('changed::debug', updateDebugVisibility);
+        settings.connect('changed::fakecharging', updateDebugVisibility);
+        settings.connect('changed::fakedischarging', updateDebugVisibility);
         settings.connect('changed::logtofile', updateDebugVisibility);
         updateDebugVisibility();
 

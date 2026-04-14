@@ -29,8 +29,8 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-13 01:20:27 UTC  
-> **Summary**: 0 errors, 0 warnings
+> **Last Updated**: 2026-04-14 03:02:56 UTC  
+> **Summary**: 0 errors, 1 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
@@ -38,6 +38,35 @@
 ```
 > batt-watt-power-monitor@22.0.0 lint:fix
 > eslint --fix extension .scripts --format stylish
+
+
+/home/runner/work/batt-watt-power-monitor/batt-watt-power-monitor/extension/library/settings.js
+   5:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+   7:1  warning  Missing JSDoc @param "value" description     jsdoc/require-param-description
+   7:1  warning  Missing JSDoc @param "value" type            jsdoc/require-param-type
+  13:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  15:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  15:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+  23:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  25:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  25:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+  35:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  37:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  37:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+  47:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  49:1  warning  Missing JSDoc @param "proxy" description     jsdoc/require-param-description
+  49:1  warning  Missing JSDoc @param "proxy" type            jsdoc/require-param-type
+  50:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  50:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+
+/home/runner/work/batt-watt-power-monitor/batt-watt-power-monitor/extension/library/system.js
+  11:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  13:1  warning  Missing JSDoc @param "priority" description  jsdoc/require-param-description
+  13:1  warning  Missing JSDoc @param "priority" type         jsdoc/require-param-type
+  14:1  warning  Missing JSDoc @param "callback" description  jsdoc/require-param-description
+  14:1  warning  Missing JSDoc @param "callback" type         jsdoc/require-param-type
+
+✖ 22 problems (0 errors, 22 warnings)
 ```
 
 </details>

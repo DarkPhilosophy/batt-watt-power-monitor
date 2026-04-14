@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Battery Power Monitor v22 icon</title>
+  <desc id="desc">Rounded battery monitor icon with watt pulse and version marker.</desc>
+  <defs>
+    <linearGradient id="bg" x1="24" x2="232" y1="24" y2="232" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#101827"/>
+      <stop offset="1" stop-color="#1f2937"/>
+    </linearGradient>
+    <linearGradient id="charge" x1="74" x2="182" y1="96" y2="160" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#fb7185"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <rect x="58" y="74" width="126" height="108" rx="24" fill="none" stroke="#e5e7eb" stroke-width="14"/>
+  <rect x="182" y="108" width="20" height="40" rx="8" fill="#e5e7eb"/>
+  <path d="M78 128h20l16-24 18 46 16-28h18" fill="none" stroke="url(#charge)" stroke-linecap="round" stroke-linejoin="round" stroke-width="14"/>
+  <circle cx="186" cy="66" r="28" fill="#f97316"/>
+  <text x="186" y="74" fill="#fff7ed" font-family="Cantarell, Noto Sans, sans-serif" font-size="22" font-weight="700" text-anchor="middle">22</text>
+</svg>

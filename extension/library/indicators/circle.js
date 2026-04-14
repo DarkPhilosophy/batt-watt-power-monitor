@@ -29,7 +29,7 @@ const CircleIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.isCharging);
+            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
         }
 
         _drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue) {
@@ -109,7 +109,7 @@ const CircleIndicator = GObject.registerClass(
                 const textX = centerX - textExtents.width / 2;
 
                 // LAYER 1: Draw Bolt (Background)
-                if (this._status.isCharging || this._status.forceBolt) {
+                if (this._status.showBolt) {
                     this._drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue);
                 }
 
@@ -216,7 +216,7 @@ const CircleIndicator = GObject.registerClass(
             //    We can check if generic "status" indicates idle?
             //    Actually, simpler check: if not charging and not discharging?
             //    Let's trust the 'status' enum from UPower if possible, or just use the simplified check.
-            if (status.hideIdle && status.status !== 1 && status.status !== 2) shouldHide = true; // 1=Charging, 2=Discharging
+            if (status.hideIdle && status.state !== 1 && status.state !== 2) shouldHide = true; // 1=Charging, 2=Discharging
 
             // Debug overriding visibility? No, let's respect the user's logic.
             Logger.debug(
@@ -394,13 +394,26 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         return;
 
     const size = getCircleSize(settings);
-    const { percentage, status, isCharging, showText, useColor, forceBolt, hideCharging, hideFull, hideIdle } =
-        buildIndicatorStatus(proxy, settings);
-    Logger.debug(`Circle status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
+    const {
+        percentage,
+        state,
+        isCharging,
+        useChargingColor,
+        showBolt,
+        showText,
+        useColor,
+        forceBolt,
+        hideCharging,
+        hideFull,
+        hideIdle,
+    } = buildIndicatorStatus(proxy, settings);
+    Logger.debug(`Circle status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
     circleIndicator.update({
         percentage,
-        status, // Pass generic status enum/string if needed by update logic (e.g. for hideIdle check)
+        state,
         isCharging,
+        useChargingColor,
+        showBolt,
         showText,
         useColor,
         forceBolt,
