@@ -29,15 +29,33 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-13 01:20:27 UTC  
-> **Summary**: 0 errors, 0 warnings
+> **Last Updated**: 2026-04-14 00:17:55 UTC  
+> **Summary**: 0 errors, 1 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@22.0.0 lint:fix
-> eslint --fix extension .scripts --format stylish
+> batt-watt-power-monitor@22.0.0 lint
+> eslint extension .scripts --format stylish
+
+
+/var/home/alexa/Projects/batt-watt-power-monitor/extension/library/settings.js
+   5:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
+   9:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
+  15:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
+  23:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
+  31:8  warning  Missing JSDoc comment  jsdoc/require-jsdoc
+
+/var/home/alexa/Projects/batt-watt-power-monitor/extension/library/system.js
+  11:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  13:1  warning  Missing JSDoc @param "priority" description  jsdoc/require-param-description
+  13:1  warning  Missing JSDoc @param "priority" type         jsdoc/require-param-type
+  14:1  warning  Missing JSDoc @param "callback" description  jsdoc/require-param-description
+  14:1  warning  Missing JSDoc @param "callback" type         jsdoc/require-param-type
+
+✖ 10 problems (0 errors, 10 warnings)
+  0 errors and 5 warnings potentially fixable with the `--fix` option.
 ```
 
 </details>

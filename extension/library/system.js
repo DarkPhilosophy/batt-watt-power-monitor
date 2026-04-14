@@ -9,6 +9,22 @@ const pendingReads = new Set();
 const TEXT_DECODER = new TextDecoder('utf-8');
 
 /**
+ *
+ * @param priority
+ * @param callback
+ */
+function scheduleIdle(priority, callback) {
+    if (typeof GLib.idle_add_once === 'function') {
+        return GLib.idle_add_once(priority, callback);
+    }
+
+    return GLib.idle_add(priority, () => {
+        callback();
+        return GLib.SOURCE_REMOVE;
+    });
+}
+
+/**
  * Read a file safely with caching and async refresh.
  *
  * @param {string} filePath - Path to file.
@@ -115,12 +131,11 @@ export function hideStockBattery() {
         Logger.debug('Hiding stock battery icon (Original Logic)');
 
         // Use idle_add to ensure it hides even if GNOME tries to show it during update cycles
-        GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+        scheduleIdle(GLib.PRIORITY_DEFAULT, () => {
             if (indicator) {
                 indicator.hide();
                 indicator.visible = false; // Force property update too
             }
-            return GLib.SOURCE_REMOVE;
         });
     } else {
         Logger.debug('Stock battery icon not found for hiding');

@@ -88,7 +88,7 @@
     <key type="b" name="use-stock-icon">
       <default>false</default>
       <summary>Use GNOME stock battery icon</summary>
-      <description>Use the default GNOME battery icon instead of the custom drawn bar or circular indicator.</description>
+      <description>Use the native GNOME battery icon instead of the custom drawn bar or circular indicator.</description>
     </key>
     <key type="b" name="usecircleindicator">
       <default>false</default>
@@ -110,6 +110,28 @@
       <default>false</default>
       <summary>Force bolt icon</summary>
       <description>Always show the charging bolt for testing.</description>
+    </key>
+    <key type="b" name="fakecharging">
+      <default>false</default>
+      <summary>Fake charging mode</summary>
+      <description>Force charging state and animate a synthetic percentage for testing visual behavior.</description>
+    </key>
+    <key type="b" name="fakedischarging">
+      <default>false</default>
+      <summary>Fake discharging mode</summary>
+      <description>Force discharging state and animate a synthetic percentage for testing visual behavior.</description>
+    </key>
+    <key type="i" name="fakechargemin">
+      <range min="0" max="100"/>
+      <default>20</default>
+      <summary>Fake charge minimum</summary>
+      <description>Lower bound for the synthetic charging percentage in debug mode.</description>
+    </key>
+    <key type="i" name="fakechargemax">
+      <range min="0" max="100"/>
+      <default>80</default>
+      <summary>Fake charge maximum</summary>
+      <description>Upper bound for the synthetic charging percentage in debug mode.</description>
     </key>
     <key type="i" name="loglevel">
       <default>1</default>

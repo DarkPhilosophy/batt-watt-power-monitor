@@ -123,11 +123,11 @@ function getGradientRGB(percentage) {
  *
  * @param {number} percentage - Battery percentage.
  * @param {boolean} useColor - Whether to apply color.
- * @param {boolean} isCharging - Whether the device is charging.
+ * @param {boolean} _isCharging - Unused. Kept for call-site compatibility.
  * @returns {string|null} CSS string or null.
  */
-export function getLabelStyleFromPercentage(percentage, useColor, isCharging = false) {
-    if (!useColor || isCharging) return null;
+export function getLabelStyleFromPercentage(percentage, useColor, _isCharging = false) {
+    if (!useColor) return null;
     const rgb = getGradientRGB(percentage);
     return `color: ${rgbToHex(rgb)};`;
 }
@@ -162,17 +162,14 @@ export function getRingColor(percentage) {
 /**
  * Resolve indicator color for the active display mode.
  *
- * Charging uses the theme foreground color to avoid warning-like red/orange states
- * while the battery is recovering.
- *
  * @param {object} actor - St widget
  * @param {number} percentage - Battery percentage
  * @param {boolean} useColor - Whether colored mode is enabled
- * @param {boolean} isCharging - Whether the device is charging
+ * @param {boolean} _isCharging - Unused. Kept for call-site compatibility.
  * @returns {Array<number>} [r, g, b]
  */
-export function getIndicatorRgb(actor, percentage, useColor, isCharging) {
-    if (!useColor || isCharging) {
+export function getIndicatorRgb(actor, percentage, useColor, _isCharging) {
+    if (!useColor) {
         const fg = getForegroundColor(actor);
         return [fg.red / 255, fg.green / 255, fg.blue / 255];
     }

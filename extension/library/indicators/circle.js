@@ -29,7 +29,7 @@ const CircleIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.isCharging);
+            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
         }
 
         _drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue) {
@@ -109,7 +109,7 @@ const CircleIndicator = GObject.registerClass(
                 const textX = centerX - textExtents.width / 2;
 
                 // LAYER 1: Draw Bolt (Background)
-                if (this._status.isCharging || this._status.forceBolt) {
+                if (this._status.showBolt) {
                     this._drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue);
                 }
 
@@ -394,13 +394,26 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         return;
 
     const size = getCircleSize(settings);
-    const { percentage, status, isCharging, showText, useColor, forceBolt, hideCharging, hideFull, hideIdle } =
-        buildIndicatorStatus(proxy, settings);
+    const {
+        percentage,
+        status,
+        isCharging,
+        useChargingColor,
+        showBolt,
+        showText,
+        useColor,
+        forceBolt,
+        hideCharging,
+        hideFull,
+        hideIdle,
+    } = buildIndicatorStatus(proxy, settings);
     Logger.debug(`Circle status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
     circleIndicator.update({
         percentage,
         status, // Pass generic status enum/string if needed by update logic (e.g. for hideIdle check)
         isCharging,
+        useChargingColor,
+        showBolt,
         showText,
         useColor,
         forceBolt,
