@@ -216,7 +216,7 @@ const CircleIndicator = GObject.registerClass(
             //    We can check if generic "status" indicates idle?
             //    Actually, simpler check: if not charging and not discharging?
             //    Let's trust the 'status' enum from UPower if possible, or just use the simplified check.
-            if (status.hideIdle && status.status !== 1 && status.status !== 2) shouldHide = true; // 1=Charging, 2=Discharging
+            if (status.hideIdle && status.state !== 1 && status.state !== 2) shouldHide = true; // 1=Charging, 2=Discharging
 
             // Debug overriding visibility? No, let's respect the user's logic.
             Logger.debug(
@@ -396,7 +396,7 @@ export function updateCircleIndicatorStatus(proxy, settings) {
     const size = getCircleSize(settings);
     const {
         percentage,
-        status,
+        state,
         isCharging,
         useChargingColor,
         showBolt,
@@ -407,10 +407,10 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         hideFull,
         hideIdle,
     } = buildIndicatorStatus(proxy, settings);
-    Logger.debug(`Circle status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
+    Logger.debug(`Circle status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
     circleIndicator.update({
         percentage,
-        status, // Pass generic status enum/string if needed by update logic (e.g. for hideIdle check)
+        state,
         isCharging,
         useChargingColor,
         showBolt,

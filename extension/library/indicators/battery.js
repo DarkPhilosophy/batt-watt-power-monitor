@@ -334,9 +334,9 @@ export function ensureBatteryIndicator(settings, extensionPath) {
 export function updateBatteryIndicatorStatus(proxy, settings) {
     if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy) return;
 
-    const { percentage, status, isCharging, useChargingColor, showBolt, showText, useColor, forceBolt } =
+    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, forceBolt } =
         buildIndicatorStatus(proxy, settings);
-    Logger.debug(`Bar status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
+    Logger.debug(`Bar status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
     const height = getBatteryHeight(settings);

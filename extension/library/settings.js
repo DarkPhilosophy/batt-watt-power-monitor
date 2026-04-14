@@ -136,7 +136,7 @@ export function buildIndicatorStatus(proxy, settings) {
 
     return {
         percentage,
-        status,
+        state,
         isCharging: fakeCharging || realCharging,
         useChargingColor: fakeCharging || realCharging,
         showBolt: snapshot.forceBolt || fakeCharging || realCharging,

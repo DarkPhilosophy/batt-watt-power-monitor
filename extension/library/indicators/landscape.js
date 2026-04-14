@@ -327,9 +327,9 @@ export function ensureLandscapeIndicator(settings, extensionPath) {
 export function updateLandscapeIndicatorStatus(proxy, settings) {
     if (!landscapeIndicatorEnabled(settings) || !landscapeIndicator || !proxy) return;
 
-    const { percentage, status, isCharging, useChargingColor, showBolt, showText, useColor, forceBolt } =
+    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, forceBolt } =
         buildIndicatorStatus(proxy, settings);
-    Logger.debug(`Landscape status: state=${proxy.State} status=${status} charging=${isCharging} pct=${percentage}`);
+    Logger.debug(`Landscape status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
     const height = getBatteryHeight(settings);

@@ -29,7 +29,7 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-14 00:17:55 UTC  
+> **Last Updated**: 2026-04-14 02:56:39 UTC  
 > **Summary**: 0 errors, 1 warnings
 
 <details>
@@ -41,11 +41,23 @@
 
 
 /var/home/alexa/Projects/batt-watt-power-monitor/extension/library/settings.js
-   5:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
-   9:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
-  15:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
-  23:1  warning  Missing JSDoc comment  jsdoc/require-jsdoc
-  31:8  warning  Missing JSDoc comment  jsdoc/require-jsdoc
+   5:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+   7:1  warning  Missing JSDoc @param "value" description     jsdoc/require-param-description
+   7:1  warning  Missing JSDoc @param "value" type            jsdoc/require-param-type
+  13:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  15:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  15:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+  23:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  25:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  25:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+  35:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  37:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  37:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
+  47:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
+  49:1  warning  Missing JSDoc @param "proxy" description     jsdoc/require-param-description
+  49:1  warning  Missing JSDoc @param "proxy" type            jsdoc/require-param-type
+  50:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
+  50:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
 
 /var/home/alexa/Projects/batt-watt-power-monitor/extension/library/system.js
   11:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
@@ -54,8 +66,7 @@
   14:1  warning  Missing JSDoc @param "callback" description  jsdoc/require-param-description
   14:1  warning  Missing JSDoc @param "callback" type         jsdoc/require-param-type
 
-✖ 10 problems (0 errors, 10 warnings)
-  0 errors and 5 warnings potentially fixable with the `--fix` option.
+✖ 22 problems (0 errors, 22 warnings)
 ```
 
 </details>

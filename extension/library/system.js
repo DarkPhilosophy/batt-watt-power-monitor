@@ -14,10 +14,6 @@ const TEXT_DECODER = new TextDecoder('utf-8');
  * @param callback
  */
 function scheduleIdle(priority, callback) {
-    if (typeof GLib.idle_add_once === 'function') {
-        return GLib.idle_add_once(priority, callback);
-    }
-
     return GLib.idle_add(priority, () => {
         callback();
         return GLib.SOURCE_REMOVE;

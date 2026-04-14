@@ -123,11 +123,14 @@ function getGradientRGB(percentage) {
  *
  * @param {number} percentage - Battery percentage.
  * @param {boolean} useColor - Whether to apply color.
- * @param {boolean} _isCharging - Unused. Kept for call-site compatibility.
+ * @param {boolean} _isCharging - When true, use theme foreground instead of gradient.
  * @returns {string|null} CSS string or null.
  */
 export function getLabelStyleFromPercentage(percentage, useColor, _isCharging = false) {
     if (!useColor) return null;
+    if (_isCharging) {
+        return 'color: var(--theme-fg-color);';
+    }
     const rgb = getGradientRGB(percentage);
     return `color: ${rgbToHex(rgb)};`;
 }
