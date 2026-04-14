@@ -1,5 +1,5 @@
 
-> batt-watt-power-monitor@22.0.0 lint
-> eslint extension .scripts --format stylish || true; echo LINT_DONE
+> batt-watt-power-monitor@22.0.0 lint:fix
+> eslint --fix extension .scripts --format stylish || true; echo LINT_DONE
 
 LINT_DONE
