@@ -454,7 +454,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
 
         const hideChargingRow = new Adw.ActionRow({ title: _('Hide When Charging') });
-        addIcon(hideChargingRow, 'battery-level-charging-symbolic'); // Fallback icon
+        addIcon(hideChargingRow, 'battery-full-charging-symbolic');
         const hideChargingSwitch = new Gtk.Switch({
             active: settings.get_boolean('hidecharging'),
             valign: Gtk.Align.CENTER,
@@ -522,7 +522,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('Fake Charging'),
             subtitle: _('Force charging state and animate a synthetic battery percentage for testing'),
         });
-        addIcon(fakeChargingRow, 'battery-level-charging-symbolic');
+        addIcon(fakeChargingRow, 'battery-full-charging-symbolic');
         const fakeChargingSwitch = new Gtk.Switch({
             active: settings.get_boolean('fakecharging'),
             valign: Gtk.Align.CENTER,
