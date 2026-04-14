@@ -3,16 +3,20 @@ import { getBatteryStatus } from './upower.js';
 import { isChargingState } from './utils.js';
 
 /**
+ * Clamp percentage to 0-100 range.
  *
- * @param value
+ * @param {number} value - The value to clamp
+ * @returns {number} The clamped value
  */
 function clampPercent(value) {
     return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 /**
+ * Get fake charge range from settings.
  *
- * @param settings
+ * @param {object} settings - GSettings object
+ * @returns {[number, number]} [min, max] range
  */
 function getFakeChargeRange(settings) {
     const first = clampPercent(settings.get_int('fakechargemin'));
@@ -21,8 +25,10 @@ function getFakeChargeRange(settings) {
 }
 
 /**
+ * Get fake charge percentage (ascending).
  *
- * @param settings
+ * @param {object} settings - GSettings object
+ * @returns {number} The calculated percentage
  */
 function getFakeChargePercentage(settings) {
     const [min, max] = getFakeChargeRange(settings);
@@ -33,8 +39,10 @@ function getFakeChargePercentage(settings) {
 }
 
 /**
+ * Get fake discharge percentage (descending).
  *
- * @param settings
+ * @param {object} settings - GSettings object
+ * @returns {number} The calculated percentage
  */
 function getFakeDischargePercentage(settings) {
     const [min, max] = getFakeChargeRange(settings);
@@ -45,9 +53,11 @@ function getFakeDischargePercentage(settings) {
 }
 
 /**
+ * Get effective battery values with fake overrides.
  *
- * @param proxy
- * @param settings
+ * @param {object} proxy - UPower proxy object
+ * @param {object} settings - GSettings object
+ * @returns {object} Effective battery values
  */
 export function getEffectiveBatteryValues(proxy, settings) {
     const rawPercentage = proxy.percentage ?? proxy.Percentage ?? 0;
