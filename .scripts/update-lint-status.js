@@ -26,11 +26,10 @@ if (!lintPassed) {
 // Format the output
 const timestamp = `${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC`;
 
-// Count errors and warnings (extract from lint_check.sh output)
-const errorMatch = lintOutput.match(/(\d+)\s+error/);
-const warningMatch = lintOutput.match(/(\d+)\s+warning/);
-const errorCount = errorMatch ? errorMatch[1] : '0';
-const warningCount = warningMatch ? warningMatch[1] : '0';
+// Count errors and warnings from summary line (last occurrence)
+const summaryMatch = lintOutput.match(/\((\d+)\s+errors?,\s+(\d+)\s+warnings?\)/);
+const errorCount = summaryMatch ? summaryMatch[1] : '0';
+const warningCount = summaryMatch ? summaryMatch[2] : '0';
 
 const markdownBlock = `<!-- LINT-RESULT-START -->
 ### Linting Status
