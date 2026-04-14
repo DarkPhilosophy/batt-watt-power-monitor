@@ -6,12 +6,13 @@ import * as Logger from './logger.js';
 
 const fileCache = new Map();
 const pendingReads = new Set();
-const TEXT_DECODER = new TextDecoder('utf-8');
 
 /**
+ * Schedule callback on idle.
  *
- * @param priority
- * @param callback
+ * @param {number} priority - GLib priority
+ * @param {() => void} callback - Function to call
+ * @returns {number} Source ID
  */
 function scheduleIdle(priority, callback) {
     return GLib.idle_add(priority, () => {
@@ -29,6 +30,7 @@ function scheduleIdle(priority, callback) {
  * @returns {string} File content or default.
  */
 export function readFileSafely(filePath, defaultValue, onUpdate) {
+    const TEXT_DECODER = new TextDecoder('utf-8');
     // Get current cached value (or default)
     const currentVal = fileCache.has(filePath) ? fileCache.get(filePath) : defaultValue;
 

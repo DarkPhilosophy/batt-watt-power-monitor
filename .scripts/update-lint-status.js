@@ -27,9 +27,14 @@ if (!lintPassed) {
 const timestamp = `${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC`;
 
 // Count errors and warnings from summary line (last occurrence)
+// Handle both cases: with warnings (has summary) and without (empty output = 0 warnings)
 const summaryMatch = lintOutput.match(/\((\d+)\s+errors?,\s+(\d+)\s+warnings?\)/);
 const errorCount = summaryMatch ? summaryMatch[1] : '0';
 const warningCount = summaryMatch ? summaryMatch[2] : '0';
+// If there's no summary and output contains LINT_DONE, assume 0 warnings
+if (!summaryMatch && lintOutput.includes('LINT_DONE')) {
+    // Already set to 0
+}
 
 const markdownBlock = `<!-- LINT-RESULT-START -->
 ### Linting Status

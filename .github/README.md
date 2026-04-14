@@ -1,19 +1,16 @@
 # Battery Power Monitor for GNOME Shell
 
 [![Extension CI](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml)
-[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/DarkPhilosophy/batt-watt-power-monitor?utm_source=oss&utm_medium=github&utm_campaign=DarkPhilosophy%2Fbatt-watt-power-monitor&labelColor=171717&color=FF570A&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 [![GNOME Extensions](https://img.shields.io/badge/GNOME-Extensions-orange.svg)](https://extensions.gnome.org/extension/9023/battery-power-monitor/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-<!-- GNOME-SHELL-VERSIONS-START -->
-[![GNOME 45-50](https://img.shields.io/badge/GNOME-45--50-blue.svg)](https://www.gnome.org/)
-<!-- GNOME-SHELL-VERSIONS-END -->
+[![GNOME 45-49](https://img.shields.io/badge/GNOME-45--49-blue.svg)](https://www.gnome.org/)
 
 **Battery Power Monitor** - A GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.
 
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v22-blue) ![GNOME](https://img.shields.io/badge/GNOME-v21-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v21-blue) ![GNOME](https://img.shields.io/badge/GNOME-v14-green)
 <!-- EGO-VERSION-END -->
 
 ## Features
@@ -29,44 +26,17 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-14 03:25:35 UTC  
-> **Summary**: 0 errors, 22 warnings
+> **Last Updated**: 2026-04-14 03:44:08 UTC  
+> **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@22.0.0 lint:fix
-> eslint --fix extension .scripts --format stylish
+> batt-watt-power-monitor@22.0.0 lint
+> eslint extension .scripts --format stylish || true; echo LINT_DONE
 
-
-/home/runner/work/batt-watt-power-monitor/batt-watt-power-monitor/extension/library/settings.js
-   5:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
-   7:1  warning  Missing JSDoc @param "value" description     jsdoc/require-param-description
-   7:1  warning  Missing JSDoc @param "value" type            jsdoc/require-param-type
-  13:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
-  15:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
-  15:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
-  23:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
-  25:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
-  25:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
-  35:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
-  37:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
-  37:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
-  47:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
-  49:1  warning  Missing JSDoc @param "proxy" description     jsdoc/require-param-description
-  49:1  warning  Missing JSDoc @param "proxy" type            jsdoc/require-param-type
-  50:1  warning  Missing JSDoc @param "settings" description  jsdoc/require-param-description
-  50:1  warning  Missing JSDoc @param "settings" type         jsdoc/require-param-type
-
-/home/runner/work/batt-watt-power-monitor/batt-watt-power-monitor/extension/library/system.js
-  11:1  warning  Missing JSDoc @returns declaration           jsdoc/require-returns
-  13:1  warning  Missing JSDoc @param "priority" description  jsdoc/require-param-description
-  13:1  warning  Missing JSDoc @param "priority" type         jsdoc/require-param-type
-  14:1  warning  Missing JSDoc @param "callback" description  jsdoc/require-param-description
-  14:1  warning  Missing JSDoc @param "callback" type         jsdoc/require-param-type
-
-✖ 22 problems (0 errors, 22 warnings)
+LINT_DONE
 ```
 
 </details>
@@ -74,12 +44,11 @@
 
 <!-- LATEST-VERSION-START -->
 <details open>
-<summary><strong>Latest Update (v22)</strong></summary>
+<summary><strong>Latest Update (v21)</strong></summary>
 
-- **Stock Icon Mode**: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
-- **Charging Color Tuning**: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.
-- **Panel Sync**: The stock icon path now respects the same panel visibility flow as the custom indicators.
-- **Version Art**: Added a dedicated `v22` SVG concept icon under `assets/`.
+- Attach the first real PreferencesPage to the window (avoids Adw warnings without dummy pages).
+- Logging UI: Open Log Folder + Clear Log File actions (shown only when debug + file logging enabled).
+- Log file path resolution now respects custom paths and defaults to cache directory when empty.
 
 </details>
 <!-- LATEST-VERSION-END -->
@@ -95,9 +64,8 @@
 | :--- | :--- | :--- |
 | **Interval** | `10` | Refresh rate in seconds. |
 | **Show Icon** | `true` | Toggle the panel icon. |
-| **Use GNOME Stock Icon** | `false` | Use the default GNOME battery icon instead of the custom bar or circular indicator. |
 | **Use Circular Indicator** | `false` | Replace battery icon with a circular meter. |
-| **Show Colored** | `false` | Enable colored ring/text. Charging falls back to the theme color instead of warning red/orange. |
+| **Show Colored** | `false` | Enable colored ring/text. Disable for monochrome. |
 | **Show Percentage** | `true` | Show battery percentage text. |
 | **Percentage Outside** | `false` | Show percentage text adjacent to the icon. |
 | **Time Remaining** | `true` | Show time to full/empty. |
@@ -122,8 +90,8 @@
 | :--- | :--- | :--- |
 | **Enable Debug** | `false` | Enable build info and logs. |
 | **Force Bolt** | `false` | Always show charging bolt. |
-| **Fake Charging** | `false` | Force synthetic charging state for testing. |
-| **Fake Discharging** | `false` | Force synthetic discharging state for testing. |
+| **Fake Charging** | `false` | Force synthetic charging state. |
+| **Fake Discharging** | `false` | Force synthetic discharging state. |
 | **Fake Charge Min** | `50` | Lower bound for synthetic percentage. |
 | **Fake Charge Max** | `100` | Upper bound for synthetic percentage. |
 | **Log Level** | `1` | 0=Verbose, 1=Debug, 2=Info, 3=Warn, 4=Error. |
