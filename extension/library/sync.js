@@ -5,15 +5,9 @@ import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.j
 import * as Logger from './logger.js';
 import { getBatteryCorrection, getPower, getStatus } from './upower.js';
 import { updateCircleIndicatorStatus } from './indicators/circle.js';
-import {
-    cachePowerToggleStyles,
-    cacheDefaultLabelColor,
-    hideStockBattery,
-    restoreStockBattery,
-    setStockBatteryStyle,
-} from './system.js';
+import { cachePowerToggleStyles, cacheDefaultLabelColor } from './system.js';
 import { getLabelStyleFromPercentage } from './utils.js';
-import { getSettingsSnapshot } from './settings.js';
+import { getSettingsSnapshot, getEffectiveBatteryValues } from './settings.js';
 
 // Global tracking for cleanup
 let _originalSync = null;
@@ -81,8 +75,9 @@ function _powerToggleSyncOverride(settings) {
         if (!this._proxy.IsPresent) return false;
 
         batteryCorrection = getBatteryCorrection();
-        const percentage = `${Math.round(this._proxy.Percentage)}%`;
-        const state = this._proxy.State;
+        const effective = getEffectiveBatteryValues(this._proxy, settings);
+        const percentage = `${effective.percentage}%`;
+        const state = effective.state;
         const status = getStatus(batteryCorrection);
         const snapshot = getSettingsSnapshot(settings);
 
@@ -231,23 +226,12 @@ export function enableSyncOverride(settings) {
             snapshot.showWatts;
 
         // Re-implementing lines 2392-2417 of original extension.js
-        const percentageValue = this._proxy?.Percentage ?? powerToggle?._proxy?.Percentage;
-        const stockState = this._proxy?.State ?? powerToggle?._proxy?.State;
+        const effective = getEffectiveBatteryValues(this._proxy ?? powerToggle?._proxy, settings);
         const labelStyle = getLabelStyleFromPercentage(
-            percentageValue,
+            effective.percentage,
             settings.get_boolean('showcolored'),
-            stockState === UPower.DeviceState.CHARGING,
+            effective.state === UPower.DeviceState.CHARGING,
         );
-
-        const showStockIcon = snapshot.useStockIcon ? snapshot.showIcon : !snapshot.showIcon && !snapshot.showCircle;
-
-        if (showStockIcon) {
-            restoreStockBattery();
-        } else {
-            hideStockBattery();
-        }
-
-        setStockBatteryStyle(snapshot.useStockIcon && showStockIcon ? labelStyle : null);
 
         // Removed local targeting logic as it was flaky.
         // const stockIcon = this._icon || this._indicator?._icon;

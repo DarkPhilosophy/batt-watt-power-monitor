@@ -1,6 +1,7 @@
 import UPower from 'gi://UPowerGlib';
 import GLib from 'gi://GLib';
 
+import St from 'gi://St';
 import { Extension, gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
@@ -67,7 +68,7 @@ export default class BatteryPowerMonitor extends Extension {
         this._updateInterval(refreshInterval);
 
         // System theme changes (e.g. for color updates)
-        const themeContext = imports.gi.St.ThemeContext.get_for_stage(global.stage);
+        const themeContext = St.ThemeContext.get_for_stage(global.stage);
         this._themeSignalId = themeContext.connect('changed', () => {
             Logger.debug('Theme changed, clearing SVG cache');
             clearSvgCache();
@@ -110,7 +111,7 @@ export default class BatteryPowerMonitor extends Extension {
         }
 
         if (this._themeSignalId) {
-            const themeContext = imports.gi.St.ThemeContext.get_for_stage(global.stage);
+            const themeContext = St.ThemeContext.get_for_stage(global.stage);
             themeContext.disconnect(this._themeSignalId);
             this._themeSignalId = null;
         }
@@ -151,6 +152,9 @@ export default class BatteryPowerMonitor extends Extension {
     // Removed _bindBattery as it is replaced by _overrideSync which hooks into GNOME's event loop directly.
 
     _getBattery() {
+        const quickSettings = Main.panel?.statusArea?.quickSettings;
+        const powerToggleProxy = quickSettings?._system?._systemItem?.powerToggle?._proxy;
+
         // Use UPower client display device if available and appropriate
         if (this._upClient) {
             // display_device is often the composite battery
@@ -168,6 +172,13 @@ export default class BatteryPowerMonitor extends Extension {
                 }
             }
         }
+
+        // GNOME can still expose a usable power toggle proxy even when UPower
+        // does not report a BATTERY-kind device. Older releases relied on this path.
+        if (powerToggleProxy) {
+            return powerToggleProxy;
+        }
+
         return null;
     }
 
@@ -197,6 +208,8 @@ export default class BatteryPowerMonitor extends Extension {
             destroyPortraitIndicator();
             destroyLandscapeIndicator();
 
+            setStockBatteryStyle(null);
+
             if (this._settings.get_boolean('showicon')) {
                 restoreStockBattery();
             } else {
@@ -207,7 +220,6 @@ export default class BatteryPowerMonitor extends Extension {
             return;
         }
 
-        setStockBatteryStyle(null);
         hideStockBattery();
 
         const extPath = this.path;
