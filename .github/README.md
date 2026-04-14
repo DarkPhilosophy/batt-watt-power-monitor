@@ -26,17 +26,14 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-14 03:44:08 UTC  
-> **Summary**: 0 errors, 0 warnings
+> **Last Updated**: 2026-04-14 03:25:35 UTC  
+> **Summary**: 666 errors, 666 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```
-> batt-watt-power-monitor@22.0.0 lint
-> eslint extension .scripts --format stylish || true; echo LINT_DONE
-
-LINT_DONE
+TEST
 ```
 
 </details>
