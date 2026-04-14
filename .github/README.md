@@ -122,6 +122,10 @@
 | :--- | :--- | :--- |
 | **Enable Debug** | `false` | Enable build info and logs. |
 | **Force Bolt** | `false` | Always show charging bolt. |
+| **Fake Charging** | `false` | Force synthetic charging state for testing. |
+| **Fake Discharging** | `false` | Force synthetic discharging state for testing. |
+| **Fake Charge Min** | `50` | Lower bound for synthetic percentage. |
+| **Fake Charge Max** | `100` | Upper bound for synthetic percentage. |
 | **Log Level** | `1` | 0=Verbose, 1=Debug, 2=Info, 3=Warn, 4=Error. |
 | **Log to File** | `true` | Write debug logs to file. |
 | **Log File Path** | `''` | Custom path (empty = default cache). |
