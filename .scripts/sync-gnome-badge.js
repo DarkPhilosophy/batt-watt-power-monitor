@@ -59,7 +59,7 @@ function syncGnomeBadge() {
         throw new Error('README.md is missing GNOME shell version markers');
     }
 
-    const replacement = `${START_MARKER}\n${getBadgeMarkdown(metadata['shell-version'])}\n${END_MARKER}`;
+    const replacement = `${START_MARKER} ${getBadgeMarkdown(metadata['shell-version'])} ${END_MARKER}`;
     const updated = readme.replace(new RegExp(`${START_MARKER}[\\s\\S]*?${END_MARKER}`), replacement);
 
     fs.writeFileSync(README_PATH, updated);
