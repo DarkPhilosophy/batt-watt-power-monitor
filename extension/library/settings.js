@@ -107,6 +107,7 @@ export function getSettingsSnapshot(settings) {
     const showIcon = settings.get_boolean('showicon');
     const showCircle = settings.get_boolean('usecircleindicator') && !useStockIcon;
     const showColored = settings.get_boolean('showcolored');
+    const textStroke = settings.get_boolean('textstroke');
     const forceBolt = settings.get_boolean('forcebolt');
     const hideCharging = settings.get_boolean('hidecharging');
     const hideFull = settings.get_boolean('hidefull');
@@ -121,6 +122,7 @@ export function getSettingsSnapshot(settings) {
         showCircle,
         useStockIcon,
         showColored,
+        textStroke,
         fakeCharging: settings.get_boolean('debug') && settings.get_boolean('fakecharging'),
         fakeDischarging: settings.get_boolean('debug') && settings.get_boolean('fakedischarging'),
         forceBolt,
@@ -153,6 +155,7 @@ export function buildIndicatorStatus(proxy, settings) {
         fakeDischarging,
         showText: snapshot.showText,
         useColor: snapshot.showColored,
+        textStroke: snapshot.textStroke,
         forceBolt: snapshot.forceBolt,
         hideCharging: snapshot.hideCharging,
         hideFull: snapshot.hideFull,

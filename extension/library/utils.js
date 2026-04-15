@@ -39,7 +39,7 @@ export function formatTimeRemaining(seconds) {
  * @returns {string} Formatted watts string.
  */
 export function formatWatts(watts, settings) {
-    const decimals = settings.get_int('watts-decimals');
+    const decimals = settings?.get_boolean('showdecimals') ? 2 : 0;
     return watts.toFixed(decimals);
 }
 
@@ -134,8 +134,6 @@ export function getLabelStyleFromPercentage(percentage, useColor, _isCharging = 
     const rgb = getGradientRGB(percentage);
     return `color: ${rgbToHex(rgb)};`;
 }
-
-// ... existing exports ...
 
 /**
  * Get foreground color of an actor.
