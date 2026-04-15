@@ -83,6 +83,10 @@ export default [
             'no-implicit-coercion': ['error', { 'allow': ['!!'] }],
             'no-var': 'error',
             'prefer-const': 'error',
+            'no-warning-comments': ['error', {
+                'terms': ['todo', 'fixme', 'xxx', 'hack', 'temp', 'refactor', 'dry'],
+                'location': 'anywhere',
+            }],
 
             
             // Re-enabling console warn as per previous config, effectively

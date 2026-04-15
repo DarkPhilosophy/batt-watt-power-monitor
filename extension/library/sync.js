@@ -3,9 +3,10 @@ import UPower from 'gi://UPowerGlib';
 import { gettext as _ } from 'resource:///org/gnome/shell/extensions/extension.js';
 
 import * as Logger from './logger.js';
+import { MAX_CALLS_PER_SECOND } from './constants.js';
 import { getBatteryCorrection, getPower, getStatus } from './upower.js';
 import { updateCircleIndicatorStatus } from './indicators/circle.js';
-import { cachePowerToggleStyles, cacheDefaultLabelColor } from './system.js';
+import { cachePowerToggleStyles } from './system.js';
 import { getLabelStyleFromPercentage } from './utils.js';
 import { getSettingsSnapshot, getEffectiveBatteryValues } from './settings.js';
 
@@ -13,7 +14,6 @@ import { getSettingsSnapshot, getEffectiveBatteryValues } from './settings.js';
 let _originalSync = null;
 let lastOverrideTime = 0;
 let overrideCallCount = 0;
-const MAX_CALLS_PER_SECOND = 10;
 let batteryCorrection = null;
 
 /**
@@ -211,8 +211,6 @@ export function enableSyncOverride(settings) {
         if (!powerToggle || !settings) return;
 
         cachePowerToggleStyles(quickSettings?._system);
-        cacheDefaultLabelColor();
-
         const overrideFunc = _powerToggleSyncOverride(settings);
         const hasOverride = overrideFunc.call(powerToggle);
 

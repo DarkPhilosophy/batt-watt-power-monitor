@@ -9,12 +9,14 @@ const VERSION_FILE_PATH = path.join(PROJECT_DIR, 'VERSION');
 const PREFS_PATH = path.join(PROJECT_DIR, 'extension', 'prefs.js');
 const CHANGELOG_PATH = path.join(PROJECT_DIR, '.github', 'CHANGELOG.md');
 const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
+const syncGnomeBadge = require('./sync-gnome-badge.js');
 
 try {
     // Read source of truth: package.json
     console.log('Reading package.json...');
     const pkg = require(PACKAGE_JSON_PATH);
     const newVersion = pkg.version.split('.')[0]; // Major version as the extension version
+    const repoUrl = pkg.url || pkg.repository?.url?.replace(/^git\+/, '').replace(/\.git$/, '') || null;
     console.log(`Detected version: ${newVersion}`);
 
     // 1b. Update package-lock.json to keep name/version in sync
@@ -31,7 +33,13 @@ try {
         }
         fs.writeFileSync(PACKAGE_LOCK_PATH, `${JSON.stringify(lock, null, 2)}\n`);
     } catch (error) {
-        console.log(`ℹ️  Failed to update package-lock.json: ${error.message}`);
+        if (error.code === 'ENOENT') {
+            console.log('ℹ️  package-lock.json not found, skipping lockfile sync');
+        } else {
+            console.error('❌ Failed to update package-lock.json');
+            console.error(error.stack || error);
+            process.exit(1);
+        }
     }
 
     // Update VERSION file
@@ -96,8 +104,10 @@ ${entries.join('\n')}
                 let newContent = readmeContent.replace(regex, latestBlock);
                 const badgeRegex =
                     /\[!\[Version [^\]]+\]\(https:\/\/img\.shields\.io\/badge\/Version-[^-]+-green\.svg\)\]\([^)]+\)/;
-                const badge = `[![Version ${newVersion}](https://img.shields.io/badge/Version-${newVersion}-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)`;
-                if (badgeRegex.test(newContent)) newContent = newContent.replace(badgeRegex, badge);
+                if (repoUrl) {
+                    const badge = `[![Version ${newVersion}](https://img.shields.io/badge/Version-${newVersion}-green.svg)](${repoUrl})`;
+                    if (badgeRegex.test(newContent)) newContent = newContent.replace(badgeRegex, badge);
+                }
                 fs.writeFileSync(README_PATH, newContent);
                 console.log('✅ Updated README latest update block');
             } else {
@@ -109,6 +119,9 @@ ${entries.join('\n')}
     } catch (error) {
         console.log(`ℹ️  Failed to update README latest update block: ${error.message}`);
     }
+
+    console.log('Syncing GNOME badge...');
+    syncGnomeBadge();
 
     console.log('✅ Version sync complete!');
 } catch (error) {

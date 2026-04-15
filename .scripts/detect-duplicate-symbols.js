@@ -3,9 +3,8 @@ const path = require('path');
 
 const PROJECT_ROOT = path.join(__dirname, '..');
 const EXTENSION_DIR = path.join(PROJECT_ROOT, 'extension');
-const CONFIG_PATH = path.join(__dirname, 'duplicate-symbols.json');
+const CONFIG_PATH = path.join(PROJECT_ROOT, '.duplicate-symbols.json');
 const EXCLUDE_DIRS = new Set(['.git', 'node_modules', 'backup']);
-
 const DEFAULT_CONFIG = {
     uniqueNames: [],
     uniqueNamePatterns: ['^get.*Snapshot$'],

@@ -45,7 +45,7 @@ const markdownBlock = `<!-- LINT-RESULT-START -->
 <details>
 <summary>Click to view full lint output</summary>
 
-\`\`\`
+\`\`\`text
 ${lintOutput.trim()}
 \`\`\`
 
