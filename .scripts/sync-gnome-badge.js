@@ -13,8 +13,9 @@ function getBadgeMarkdown(versions) {
     }
 
     const numeric = versions
+        .map(version => (typeof version === 'string' ? version.trim() : String(version)))
+        .filter(version => /^\d+$/.test(version))
         .map(version => Number.parseInt(version, 10))
-        .filter(version => Number.isFinite(version))
         .sort((a, b) => a - b);
 
     if (numeric.length === 0) {

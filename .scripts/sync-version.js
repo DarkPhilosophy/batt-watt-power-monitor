@@ -33,7 +33,13 @@ try {
         }
         fs.writeFileSync(PACKAGE_LOCK_PATH, `${JSON.stringify(lock, null, 2)}\n`);
     } catch (error) {
-        console.log(`ℹ️  Failed to update package-lock.json: ${error.message}`);
+        if (error.code === 'ENOENT') {
+            console.log('ℹ️  package-lock.json not found, skipping lockfile sync');
+        } else {
+            console.error('❌ Failed to update package-lock.json');
+            console.error(error.stack || error);
+            process.exit(1);
+        }
     }
 
     // Update VERSION file
