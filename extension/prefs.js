@@ -7,7 +7,7 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-15T16:30:07.122Z';
+const BUILD_DATE = '2026-04-15T17:05:41.496Z';
 const CHANGELOG = `
 TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
@@ -27,7 +27,9 @@ DRY Stroke Helpers: Extracted duplicated stroke-rendering logic into reusable dr
 
 Circular Font Size: Increased CIRCLE.FONT_SIZE_RATIO from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
 
-Bolt Stroke Fix: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.`;
+Bolt Stroke Fix: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
+
+Preferences Cleanup: Added close-request handler to destroy Gtk.ListBox and Adw.ToastOverlay objects when the preferences window closes, fixing EGO-L-006 warning.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {
@@ -128,6 +130,18 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         // Setup custom sidebar layout
         window.set_default_size(900, 700);
         this._switchToNavigationSplitViews(window);
+
+        // Clean up window-scoped objects on close to avoid EGO-L-006 warnings
+        window.connect('close-request', () => {
+            if (this._sidebarListBox) {
+                this._sidebarListBox.destroy();
+                this._sidebarListBox = null;
+            }
+            if (this._contentToastOverlay) {
+                this._contentToastOverlay.destroy();
+                this._contentToastOverlay = null;
+            }
+        });
 
         // Helper to add icon to row
         const addIcon = (row, iconName) => {
