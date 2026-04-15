@@ -225,8 +225,6 @@ export function destroyBatteryIndicator() {
     batteryIndicator.destroy();
     batteryIndicator = null;
 
-    batteryIndicator = null;
-
     batteryIndicatorParent = null;
     batteryIndicatorStockIcon = null;
     batteryIndicatorDefaultParent = null;
