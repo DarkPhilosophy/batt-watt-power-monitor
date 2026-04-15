@@ -12,6 +12,7 @@
 - **DRY Stroke Helpers**: Extracted duplicated stroke-rendering logic into reusable `drawTextStroke()` and `drawBoltStroke()` helpers in `drawing.js`, eliminating ~150 lines of inline duplicate code across indicator modules.
 - **Circular Font Size**: Increased `CIRCLE.FONT_SIZE_RATIO` from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
 - **Bolt Stroke Fix**: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
+- **Preferences Cleanup**: Added `close-request` handler to destroy `Gtk.ListBox` and `Adw.ToastOverlay` objects when the preferences window closes, fixing EGO-L-006 warning.
 
 ## v21 (2026-01-29) - PREFERENCES & LOGGING REFINEMENTS
 
