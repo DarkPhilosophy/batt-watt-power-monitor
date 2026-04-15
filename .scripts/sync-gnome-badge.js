@@ -21,12 +21,33 @@ function getBadgeMarkdown(versions) {
         throw new Error('metadata.json shell-version does not contain valid numeric versions');
     }
 
-    const min = numeric[0];
-    const max = numeric[numeric.length - 1];
-    const label = min === max ? `GNOME ${min}` : `GNOME ${min}-${max}`;
-    const badgeValue = min === max ? `${min}` : `${min}--${max}`;
+    const uniqueVersions = [...new Set(numeric)];
+    const formattedVersions = formatVersionRanges(uniqueVersions);
+    const label = `GNOME ${formattedVersions}`;
+    const badgeValue = encodeURIComponent(formattedVersions.replace(/, /g, ',')).replace(/-/g, '--');
 
     return `[![${label}](https://img.shields.io/badge/GNOME-${badgeValue}-blue.svg)](https://www.gnome.org/)`;
+}
+
+function formatVersionRanges(versions) {
+    const ranges = [];
+    let start = versions[0];
+    let end = versions[0];
+
+    for (let index = 1; index < versions.length; index += 1) {
+        const value = versions[index];
+        if (value === end + 1) {
+            end = value;
+            continue;
+        }
+
+        ranges.push(start === end ? `${start}` : `${start}-${end}`);
+        start = value;
+        end = value;
+    }
+
+    ranges.push(start === end ? `${start}` : `${start}-${end}`);
+    return ranges.join(', ');
 }
 
 function syncGnomeBadge() {

@@ -28,7 +28,7 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-15 14:47:46 UTC  
+> **Last Updated**: 2026-04-15 15:44:48 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
@@ -70,9 +70,13 @@ LINT_DONE
 | Setting | Default | Description |
 | :--- | :--- | :--- |
 | **Interval** | `10` | Refresh rate in seconds. |
+| **Battery Bar Orientation** | `portrait` | Use `portrait` or `landscape` for the battery bar. |
+| **Indicator Position** | `right` | Place the indicator on the left, right, or default slot. |
 | **Show Icon** | `true` | Toggle the panel icon. |
 | **Use Circular Indicator** | `false` | Replace battery icon with a circular meter. |
+| **Use GNOME Stock Icon** | `false` | Use the stock GNOME battery icon instead of custom indicators. |
 | **Show Colored** | `false` | Enable colored ring/text. Disable for monochrome. |
+| **Text Stroke** | `true` | Draw a dark outline around text and the charging bolt. |
 | **Show Percentage** | `true` | Show battery percentage text. |
 | **Percentage Outside** | `false` | Show percentage text adjacent to the icon. |
 | **Time Remaining** | `true` | Show time to full/empty. |
@@ -87,9 +91,9 @@ LINT_DONE
 
 | Setting | Default | Description |
 | :--- | :--- | :--- |
-| **Battery Width** | `27` | Width of the battery icon (Bar mode). |
-| **Battery Height** | `33` | Height of the battery icon (Bar mode). |
-| **Circular Size** | `27` | Diameter of the circular indicator (Circular mode). |
+| **Battery Width** | `34` | Width of the battery icon (Bar mode). |
+| **Battery Height** | `40` | Height of the battery icon (Bar mode). |
+| **Circular Size** | `36` | Diameter of the circular indicator (Circular mode). |
 
 ### Debug
 
