@@ -1,13 +1,17 @@
 # Changelog
 
-## v22 (2026-04-13) - STOCK ICON MODE & CHARGING COLOR TUNING
+## v22 (2026-04-13/2026-04-15) - TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
-> **VISUAL FLEXIBILITY & PANEL COHERENCE**
+> **VISUAL POLISH & CODE QUALITY**
 
 - **Stock Icon Mode**: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
 - **Charging Color Tuning**: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.
 - **Panel Sync**: The stock icon path now respects the same panel visibility flow as the custom indicators.
 - **Version Art**: Added a dedicated `v22` SVG concept icon under `assets/`.
+- **Text Stroke Setting**: Added a global "Text Stroke" preference that toggles a dark outline around percentage text and the charging bolt SVG across all indicator modes (bar, landscape, circular).
+- **DRY Stroke Helpers**: Extracted duplicated stroke-rendering logic into reusable `drawTextStroke()` and `drawBoltStroke()` helpers in `drawing.js`, eliminating ~150 lines of inline duplicate code across indicator modules.
+- **Circular Font Size**: Increased `CIRCLE.FONT_SIZE_RATIO` from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
+- **Bolt Stroke Fix**: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
 
 ## v21 (2026-01-29) - PREFERENCES & LOGGING REFINEMENTS
 

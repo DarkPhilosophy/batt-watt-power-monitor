@@ -334,3 +334,54 @@ export function clearCairoContext(context) {
     context.paint();
     context.setOperator(Cairo.Operator.OVER);
 }
+
+/**
+ * Draw text with a dark stroke outline (nested loop approach).
+ * Used by all indicators for consistent stroke rendering.
+ *
+ * @param {object} context - Cairo context
+ * @param {string} text - Text to draw
+ * @param {number} textX - X position of text
+ * @param {number} textY - Y position of text
+ * @param {number} strokeWidth - Stroke width in pixels (default 2)
+ */
+export function drawTextStroke(context, text, textX, textY, strokeWidth = 2) {
+    context.setSourceRGB(0, 0, 0);
+    for (let dx = -strokeWidth; dx <= strokeWidth; dx++) {
+        for (let dy = -strokeWidth; dy <= strokeWidth; dy++) {
+            if (dx !== 0 || dy !== 0) {
+                context.moveTo(textX + dx, textY + dy);
+                context.showText(text);
+            }
+        }
+    }
+}
+
+/**
+ * Draw bolt icon with dark stroke outline (nested loop approach).
+ * Used by all indicators for consistent bolt stroke rendering.
+ *
+ * @param {object} context - Cairo context
+ * @param {string} extensionPath - Path to extension directory
+ * @param {number} iconX - X position of icon
+ * @param {number} iconY - Y position of icon
+ * @param {number} scale - Scale factor
+ * @param {number} strokeWidth - Stroke width in pixels (default 2)
+ */
+export function drawBoltStroke(context, extensionPath, iconX, iconY, scale, strokeWidth = 2) {
+    const blackSurface = loadChargingSvg(extensionPath, 0, 0, 0);
+    if (!blackSurface) return;
+
+    const step = 1 / scale;
+    const scaledIconX = iconX / scale;
+    const scaledIconY = iconY / scale;
+
+    for (let dx = -strokeWidth; dx <= strokeWidth; dx++) {
+        for (let dy = -strokeWidth; dy <= strokeWidth; dy++) {
+            if (dx !== 0 || dy !== 0) {
+                context.setSourceSurface(blackSurface, scaledIconX + dx * step, scaledIconY + dy * step);
+                context.paint();
+            }
+        }
+    }
+}

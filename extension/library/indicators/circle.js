@@ -6,7 +6,7 @@ import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as Logger from '../logger.js';
 import { CIRCLE } from '../constants.js';
 import { getIndicatorRgb } from '../utils.js';
-import { loadChargingSvg, drawBatteryIcon, clearCairoContext } from '../drawing.js';
+import { loadChargingSvg, drawBatteryIcon, clearCairoContext, drawTextStroke, drawBoltStroke } from '../drawing.js';
 import { getCircleSize, buildIndicatorStatus } from '../settings.js';
 
 const CircleIndicator = GObject.registerClass(
@@ -52,6 +52,13 @@ const CircleIndicator = GObject.registerClass(
 
             context.save();
             context.scale(scale, scale);
+
+            // Stroke (if textStroke enabled)
+            if (this._status.textStroke) {
+                drawBoltStroke(context, this._extensionPath, iconX, iconY, scale);
+            }
+
+            // Colored bolt on top
             context.setSourceSurface(svgSurface, iconX / scale, iconY / scale);
             context.paint();
             context.restore();
@@ -92,10 +99,6 @@ const CircleIndicator = GObject.registerClass(
 
                 const fontSize = Math.round(targetSize * CIRCLE.FONT_SIZE_RATIO);
 
-                // Proportional Scale Factor based on REQUESTED size
-                const refSize = 24.0;
-                const propScale = targetSize / refSize;
-
                 // Removed font reduction to fix "very little" size issue.
                 // if (this._status.isCharging || this._status.forceBolt) {
                 //    fontSize = Math.round(fontSize * 0.75);
@@ -114,29 +117,12 @@ const CircleIndicator = GObject.registerClass(
                 }
 
                 // LAYER 2: Draw Text (Foreground)
-                // Text is always centered now.
-
-                // Draw Text (Updated Logic: Simulated Stroke to match Bolt - Proportional)
-
-                // Draw Stroke (Black)
-                context.setSourceRGB(0, 0, 0);
-                // "Reduce stroke... to half": changed multiplier from 2 to 0.8 (approx half visual weight)
-                const strokeWidth = Math.max(1, Math.round(0.8 * propScale)); // Proportional stroke
-                const step = 1;
-
-                // Optimize loop?
-                for (let dx = -strokeWidth; dx <= strokeWidth; dx += step) {
-                    for (let dy = -strokeWidth; dy <= strokeWidth; dy += step) {
-                        if (dx !== 0 || dy !== 0) {
-                            if (dx * dx + dy * dy >= step * step) {
-                                context.moveTo(textX + dx, textY + dy);
-                                context.showText(text);
-                            }
-                        }
-                    }
+                // Stroke first (if enabled), then fill on top
+                if (this._status.textStroke) {
+                    drawTextStroke(context, text, textX, textY, 2);
                 }
 
-                // Fill (Text Color)
+                // Fill (Text Color) - on top
                 context.setSourceRGB(red, green, blue);
                 context.moveTo(textX, textY);
                 context.showText(text);
@@ -170,22 +156,9 @@ const CircleIndicator = GObject.registerClass(
                         context.save();
                         context.scale(bScale, bScale);
 
-                        // Draw Simulated Stroke (Black Bolt)
-                        const blackSurface = loadChargingSvg(this._extensionPath, 0, 0, 0);
-                        if (blackSurface) {
-                            const step = 1 / bScale;
-                            for (let dx = -2; dx <= 2; dx++) {
-                                for (let dy = -2; dy <= 2; dy++) {
-                                    if (dx !== 0 || dy !== 0) {
-                                        context.setSourceSurface(
-                                            blackSurface,
-                                            bX / bScale + dx * step,
-                                            bY / bScale + dy * step,
-                                        );
-                                        context.paint();
-                                    }
-                                }
-                            }
+                        // Bolt stroke (if textStroke enabled)
+                        if (this._status.textStroke) {
+                            drawBoltStroke(context, this._extensionPath, bX, bY, bScale);
                         }
 
                         // Draw Colored Bolt
@@ -402,6 +375,7 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         showBolt,
         showText,
         useColor,
+        textStroke,
         forceBolt,
         hideCharging,
         hideFull,
@@ -416,6 +390,7 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         showBolt,
         showText,
         useColor,
+        textStroke,
         forceBolt,
         hideCharging,
         hideFull,

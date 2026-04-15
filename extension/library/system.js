@@ -80,28 +80,6 @@ export function cachePowerToggleStyles() {
     }
 }
 
-const _originalLabelColor = null;
-
-/**
- * Cache default label color from theme
- */
-export function cacheDefaultLabelColor() {
-    const system = panel.statusArea.quickSettings?._system;
-    // This logic mirrors the power toggle style caching but for label color context
-    // if needed later. For now, we stub it or implement basic caching if the original needed it.
-    // In original sync logic, it was called but implementation details were in closure scope likely.
-    // We will implement a safe no-op or actual caching if we can access the label.
-
-    // Original usage implies it saves the color to restore it.
-    // Let's cache the percentageLabel style/color if available.
-    const indicator = system?._indicator;
-    if (indicator && indicator._percentageLabel && !_originalLabelColor) {
-        // _originalLabelColor = indicator._percentageLabel.get_theme_node().get_foreground_color();
-        // But we are dealing with styles (strings mostly in this ext).
-        // So maybe just checking if we need to save 'null' style?
-    }
-}
-
 /**
  * Reset power toggle styles on disable.
  */
@@ -111,12 +89,11 @@ export function resetPowerToggleStyles() {
         const powerToggle = system.quickSettingsItems[0].child;
         if (powerToggle) {
             powerToggle.remove_style_class_name('forcing-battery-icon');
-            powerToggle.style = null;
+            powerToggle.style = _originalPowerToggleStyle;
         }
     }
+    _originalPowerToggleStyle = null;
 }
-
-const _stockBatteryWasVisible = null;
 
 /**
  * Hide the default GNOME Shell battery icon.
@@ -168,9 +145,6 @@ export function setStockBatteryStyle(style) {
     }
 }
 
-// Deprecated or unused helpers can be kept if needed by other modules,
-// or removed if clean-up is desired.
-// For now, keeping only format helper required by others.
 /**
  * Format seconds into HH:MM string.
  *

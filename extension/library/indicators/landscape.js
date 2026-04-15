@@ -6,7 +6,14 @@ import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as Logger from '../logger.js';
 import { BATTERY } from '../constants.js';
 import { getIndicatorRgb, applyWidgetSize } from '../utils.js';
-import { loadChargingSvg, drawBatteryIconLandscape, clearCairoContext, purgeSvgCache } from '../drawing.js';
+import {
+    loadChargingSvg,
+    drawBatteryIconLandscape,
+    clearCairoContext,
+    purgeSvgCache,
+    drawTextStroke,
+    drawBoltStroke,
+} from '../drawing.js';
 import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
 
 const LandscapeIndicator = GObject.registerClass(
@@ -96,21 +103,9 @@ const LandscapeIndicator = GObject.registerClass(
                 context.save();
                 context.scale(boltScale, boltScale);
 
-                const blackSurface = loadChargingSvg(this._extensionPath, 0, 0, 0);
-                if (blackSurface) {
-                    const step = 1 / boltScale;
-                    for (let dx = -2; dx <= 2; dx++) {
-                        for (let dy = -2; dy <= 2; dy++) {
-                            if (dx !== 0 || dy !== 0) {
-                                context.setSourceSurface(
-                                    blackSurface,
-                                    iconX / boltScale + dx * step,
-                                    iconY / boltScale + dy * step,
-                                );
-                                context.paint();
-                            }
-                        }
-                    }
+                // Bolt stroke (if textStroke enabled)
+                if (this._status.textStroke) {
+                    drawBoltStroke(context, this._extensionPath, iconX, iconY, boltScale);
                 }
 
                 context.setSourceSurface(svgSurface, iconX / boltScale, iconY / boltScale);
@@ -135,14 +130,9 @@ const LandscapeIndicator = GObject.registerClass(
                 const textX = centerX - textExtents.width / 2;
                 const textY = centerY + textExtents.height / 2;
 
-                context.setSourceRGB(0, 0, 0);
-                for (let dx = -2; dx <= 2; dx++) {
-                    for (let dy = -2; dy <= 2; dy++) {
-                        if (dx !== 0 || dy !== 0) {
-                            context.moveTo(textX + dx, textY + dy);
-                            context.showText(text);
-                        }
-                    }
+                // Text stroke (if enabled)
+                if (this._status.textStroke) {
+                    drawTextStroke(context, text, textX, textY, 2);
                 }
 
                 context.setSourceRGB(red, green, blue);
@@ -327,7 +317,7 @@ export function ensureLandscapeIndicator(settings, extensionPath) {
 export function updateLandscapeIndicatorStatus(proxy, settings) {
     if (!landscapeIndicatorEnabled(settings) || !landscapeIndicator || !proxy) return;
 
-    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, forceBolt } =
+    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, textStroke, forceBolt } =
         buildIndicatorStatus(proxy, settings);
     Logger.debug(`Landscape status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
@@ -340,6 +330,7 @@ export function updateLandscapeIndicatorStatus(proxy, settings) {
         percentage,
         useColor,
         showText,
+        textStroke,
         isCharging,
         useChargingColor,
         showBolt,
