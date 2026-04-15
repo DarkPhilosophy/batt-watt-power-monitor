@@ -7,11 +7,11 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-14T03:49:30.496Z';
+const BUILD_DATE = '2026-04-15T15:44:48.964Z';
 const CHANGELOG = `
-STOCK ICON MODE & CHARGING COLOR TUNING
+TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
-VISUAL FLEXIBILITY & PANEL COHERENCE
+VISUAL POLISH & CODE QUALITY
 
 Stock Icon Mode: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
 
@@ -19,7 +19,15 @@ Charging Color Tuning: Colored mode now falls back to the theme foreground while
 
 Panel Sync: The stock icon path now respects the same panel visibility flow as the custom indicators.
 
-Version Art: Added a dedicated v22 SVG concept icon under assets/.`;
+Version Art: Added a dedicated v22 SVG concept icon under assets/.
+
+Text Stroke Setting: Added a global "Text Stroke" preference that toggles a dark outline around percentage text and the charging bolt SVG across all indicator modes (bar, landscape, circular).
+
+DRY Stroke Helpers: Extracted duplicated stroke-rendering logic into reusable drawTextStroke() and drawBoltStroke() helpers in drawing.js, eliminating ~150 lines of inline duplicate code across indicator modules.
+
+Circular Font Size: Increased CIRCLE.FONT_SIZE_RATIO from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
+
+Bolt Stroke Fix: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {
@@ -375,6 +383,19 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('showcolored', showColoredSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showColoredRow.add_suffix(showColoredSwitch);
         styleGroup.add(showColoredRow);
+
+        const textStrokeRow = new Adw.ActionRow({
+            title: _('Text Stroke'),
+            subtitle: _('Draw dark outline around text for better visibility'),
+        });
+        addIcon(textStrokeRow, 'format-text-strikethrough-symbolic');
+        const textStrokeSwitch = new Gtk.Switch({
+            active: settings.get_boolean('textstroke'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('textstroke', textStrokeSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        textStrokeRow.add_suffix(textStrokeSwitch);
+        styleGroup.add(textStrokeRow);
 
         // Group: Dimensions (Dynamic visibility)
         const dimensionsGroup = new Adw.PreferencesGroup({

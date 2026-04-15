@@ -85,6 +85,11 @@
       <summary>Show colored indicator</summary>
       <description>Enable colored ring/text for the circular indicator. Disable to force monochrome (loses the color).</description>
     </key>
+    <key type="b" name="textstroke">
+      <default>true</default>
+      <summary>Show text stroke/outline</summary>
+      <description>Draw a dark outline around text for better visibility against similar backgrounds.</description>
+    </key>
     <key type="b" name="use-stock-icon">
       <default>false</default>
       <summary>Use GNOME stock battery icon</summary>
