@@ -16,6 +16,7 @@ try {
     console.log('Reading package.json...');
     const pkg = require(PACKAGE_JSON_PATH);
     const newVersion = pkg.version.split('.')[0]; // Major version as the extension version
+    const repoUrl = pkg.url || pkg.repository?.url?.replace(/^git\+/, '').replace(/\.git$/, '') || null;
     console.log(`Detected version: ${newVersion}`);
 
     // 1b. Update package-lock.json to keep name/version in sync
@@ -97,8 +98,10 @@ ${entries.join('\n')}
                 let newContent = readmeContent.replace(regex, latestBlock);
                 const badgeRegex =
                     /\[!\[Version [^\]]+\]\(https:\/\/img\.shields\.io\/badge\/Version-[^-]+-green\.svg\)\]\([^)]+\)/;
-                const badge = `[![Version ${newVersion}](https://img.shields.io/badge/Version-${newVersion}-green.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor)`;
-                if (badgeRegex.test(newContent)) newContent = newContent.replace(badgeRegex, badge);
+                if (repoUrl) {
+                    const badge = `[![Version ${newVersion}](https://img.shields.io/badge/Version-${newVersion}-green.svg)](${repoUrl})`;
+                    if (badgeRegex.test(newContent)) newContent = newContent.replace(badgeRegex, badge);
+                }
                 fs.writeFileSync(README_PATH, newContent);
                 console.log('✅ Updated README latest update block');
             } else {
