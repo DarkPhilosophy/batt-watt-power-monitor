@@ -19,12 +19,12 @@
     "url": "git+https://github.com/DarkPhilosophy/batt-watt-power-monitor.git"
   },
   "scripts": {
-    "sync:gnome-badge": "node .scripts/sync-gnome-badge.js",
     "lint": "eslint extension .scripts --format stylish || true; echo LINT_DONE",
     "lint:fix": "eslint --fix extension .scripts --format stylish || true; echo LINT_DONE",
     "lint:status": "node .scripts/update-lint-status.js",
     "package": "./package.sh",
     "prepare": "husky install",
+    "sync:gnome-badge": "node .scripts/sync-gnome-badge.js",
     "validate": "node .scripts/validate-build.js && node .scripts/scan-leaks.js"
   },
   "version": "22.0.0"
