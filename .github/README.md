@@ -34,7 +34,7 @@
 <details>
 <summary>Click to view full lint output</summary>
 
-```
+```text
 > batt-watt-power-monitor@22.0.0 lint
 > eslint extension .scripts --format stylish || true; echo LINT_DONE
 

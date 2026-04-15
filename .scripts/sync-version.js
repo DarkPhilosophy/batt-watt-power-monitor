@@ -9,6 +9,7 @@ const VERSION_FILE_PATH = path.join(PROJECT_DIR, 'VERSION');
 const PREFS_PATH = path.join(PROJECT_DIR, 'extension', 'prefs.js');
 const CHANGELOG_PATH = path.join(PROJECT_DIR, '.github', 'CHANGELOG.md');
 const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
+const syncGnomeBadge = require('./sync-gnome-badge.js');
 
 try {
     // Read source of truth: package.json
@@ -109,6 +110,9 @@ ${entries.join('\n')}
     } catch (error) {
         console.log(`ℹ️  Failed to update README latest update block: ${error.message}`);
     }
+
+    console.log('Syncing GNOME badge...');
+    syncGnomeBadge();
 
     console.log('✅ Version sync complete!');
 } catch (error) {

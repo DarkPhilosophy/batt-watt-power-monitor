@@ -276,8 +276,6 @@ export function destroyCircleIndicator() {
     circleIndicator.destroy();
     circleIndicator = null;
 
-    circleIndicator = null;
-
     circleIndicatorParent = null;
     circleIndicatorStockIcon = null;
     circleIndicatorDefaultParent = null;
