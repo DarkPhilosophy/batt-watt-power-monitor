@@ -14,7 +14,7 @@ import {
     drawTextStroke,
     drawBoltStroke,
 } from '../drawing.js';
-import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
+import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus, getSettingsSnapshot } from '../settings.js';
 
 const LandscapeIndicator = GObject.registerClass(
     class LandscapeIndicator extends St.DrawingArea {
@@ -42,7 +42,14 @@ const LandscapeIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
+            return getIndicatorRgb(
+                this,
+                this._status.percentage,
+                this._status.useColor,
+                this._status.isCharging,
+                this._status.chargingColorSource,
+                this._status.chargingCustomColor,
+            );
         }
 
         _onRepaint(area) {
@@ -257,12 +264,15 @@ export function ensureLandscapeIndicator(settings, extensionPath) {
     if (landscapeIndicator) {
         const desiredWidth = getBatteryWidth(settings);
         const desiredHeight = getBatteryHeight(settings);
+        const snapshot = getSettingsSnapshot(settings);
         applyWidgetSize(landscapeIndicator, desiredWidth, desiredHeight);
         landscapeIndicator.update({
             percentage: landscapeIndicator._status?.percentage ?? 0,
             isCharging: landscapeIndicator._status?.isCharging ?? false,
             showText: landscapeIndicator._status?.showText ?? false,
             useColor: landscapeIndicator._status?.useColor ?? false,
+            chargingColorSource: snapshot.chargingIconColorSource,
+            chargingCustomColor: snapshot.chargingCustomColor,
             extensionPath: landscapeIndicator._extensionPath,
             width: desiredWidth,
             height: desiredHeight,
@@ -317,8 +327,18 @@ export function ensureLandscapeIndicator(settings, extensionPath) {
 export function updateLandscapeIndicatorStatus(proxy, settings) {
     if (!landscapeIndicatorEnabled(settings) || !landscapeIndicator || !proxy) return;
 
-    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, textStroke, forceBolt } =
-        buildIndicatorStatus(proxy, settings);
+    const {
+        percentage,
+        state,
+        isCharging,
+        showBolt,
+        showText,
+        useColor,
+        chargingColorSource,
+        chargingCustomColor,
+        textStroke,
+        forceBolt,
+    } = buildIndicatorStatus(proxy, settings);
     Logger.debug(`Landscape status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
@@ -332,7 +352,8 @@ export function updateLandscapeIndicatorStatus(proxy, settings) {
         showText,
         textStroke,
         isCharging,
-        useChargingColor,
+        chargingColorSource,
+        chargingCustomColor,
         showBolt,
         forceBolt,
         width: desiredWidth,

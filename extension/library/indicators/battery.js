@@ -14,7 +14,7 @@ import {
     drawTextStroke,
     drawBoltStroke,
 } from '../drawing.js';
-import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
+import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus, getSettingsSnapshot } from '../settings.js';
 
 const BatteryIndicator = GObject.registerClass(
     class BatteryIndicator extends St.DrawingArea {
@@ -42,7 +42,14 @@ const BatteryIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
+            return getIndicatorRgb(
+                this,
+                this._status.percentage,
+                this._status.useColor,
+                this._status.isCharging,
+                this._status.chargingColorSource,
+                this._status.chargingCustomColor,
+            );
         }
 
         _onRepaint(area) {
@@ -262,12 +269,15 @@ export function ensureBatteryIndicator(settings, extensionPath) {
     if (batteryIndicator) {
         const desiredWidth = getBatteryWidth(settings);
         const desiredHeight = getBatteryHeight(settings);
+        const snapshot = getSettingsSnapshot(settings);
         applyWidgetSize(batteryIndicator, desiredWidth, desiredHeight);
         batteryIndicator.update({
             percentage: batteryIndicator._status?.percentage ?? 0,
             isCharging: batteryIndicator._status?.isCharging ?? false,
             showText: batteryIndicator._status?.showText ?? false,
             useColor: batteryIndicator._status?.useColor ?? false,
+            chargingColorSource: snapshot.chargingIconColorSource,
+            chargingCustomColor: snapshot.chargingCustomColor,
             extensionPath: batteryIndicator._extensionPath,
             width: desiredWidth,
             height: desiredHeight,
@@ -322,8 +332,18 @@ export function ensureBatteryIndicator(settings, extensionPath) {
 export function updateBatteryIndicatorStatus(proxy, settings) {
     if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy) return;
 
-    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, textStroke, forceBolt } =
-        buildIndicatorStatus(proxy, settings);
+    const {
+        percentage,
+        state,
+        isCharging,
+        showBolt,
+        showText,
+        useColor,
+        chargingColorSource,
+        chargingCustomColor,
+        textStroke,
+        forceBolt,
+    } = buildIndicatorStatus(proxy, settings);
     Logger.debug(`Bar status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
@@ -337,7 +357,8 @@ export function updateBatteryIndicatorStatus(proxy, settings) {
         showText,
         textStroke,
         isCharging,
-        useChargingColor,
+        chargingColorSource,
+        chargingCustomColor,
         showBolt,
         forceBolt,
         width: desiredWidth,

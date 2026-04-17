@@ -3,11 +3,12 @@
 import Gio from 'gi://Gio';
 import Gtk from 'gi://Gtk';
 import Adw from 'gi://Adw';
+import Gdk from 'gi://Gdk';
 import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-15T17:41:58.119Z';
+const BUILD_DATE = '2026-04-17T19:51:41.833Z';
 const CHANGELOG = `
 TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
@@ -15,7 +16,7 @@ VISUAL POLISH & CODE QUALITY
 
 Stock Icon Mode: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
 
-Charging Color Tuning: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.
+~~Charging Color Tuning: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.~~
 
 Panel Sync: The stock icon path now respects the same panel visibility flow as the custom indicators.
 
@@ -29,7 +30,15 @@ Circular Font Size: Increased CIRCLE.FONT_SIZE_RATIO from 0.42 to 0.5 for better
 
 Bolt Stroke Fix: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
 
-Preferences Cleanup: Added close-request handler to destroy Gtk.ListBox and Adw.ToastOverlay objects when the preferences window closes, fixing EGO-L-006 warning.`;
+Preferences Cleanup: Added close-request handler to destroy Gtk.ListBox and Adw.ToastOverlay objects when the preferences window closes, fixing EGO-L-006 warning.
+
+Charging Color Refactor: Removed the invalid implicit charging fallback and restored Gradient as the default color logic for both charging and discharging.
+
+Explicit Charging Overrides: Added Charging Icon Color and Charging Text Color modes with explicit Gradient, Theme Foreground, and Custom Color behavior.
+
+Defaults Update: Color Gradient Icon and Color Gradient Text now default to true.
+
+Preferences Polish: Cleaned up inconsistent preferences icons and replaced invalid symbolic icon names with working ones.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {
@@ -149,6 +158,18 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
                 icon_name: iconName,
             });
             row.add_prefix(icon);
+        };
+        const rgbaFromHex = hex => {
+            const rgba = new Gdk.RGBA();
+            if (!rgba.parse(hex || '#ffffff')) rgba.parse('#ffffff');
+            return rgba;
+        };
+        const rgbaToHex = rgba => {
+            const toHex = value =>
+                Math.round(Math.max(0, Math.min(1, value)) * 255)
+                    .toString(16)
+                    .padStart(2, '0');
+            return `#${toHex(rgba.red)}${toHex(rgba.green)}${toHex(rgba.blue)}`;
         };
 
         const logBaseName = 'Batt Watt Power Monitor'.replace(/[^a-z0-9]/gi, '_').toLowerCase();
@@ -385,11 +406,48 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         useStockIconRow.add_suffix(useStockIconSwitch);
         styleGroup.add(useStockIconRow);
 
+        const colorModeModel = Gtk.StringList.new([_('Gradient'), _('Theme Foreground'), _('Custom Color')]);
+        const colorModeMap = { gradient: 0, theme: 1, custom: 2 };
+        const colorModeValues = ['gradient', 'theme', 'custom'];
+        const makeColorModeDropDown = settingKey => {
+            const dropDown = new Gtk.DropDown({
+                valign: Gtk.Align.CENTER,
+                model: colorModeModel,
+            });
+            dropDown.set_selected(colorModeMap[settings.get_string(settingKey)] ?? 0);
+            dropDown.connect('notify::selected', widget => {
+                settings.set_string(settingKey, colorModeValues[widget.get_selected()] ?? 'gradient');
+            });
+            settings.connect(`changed::${settingKey}`, () => {
+                dropDown.set_selected(colorModeMap[settings.get_string(settingKey)] ?? 0);
+            });
+            return dropDown;
+        };
+        const makeColorButton = (settingKey, title) => {
+            const dialog = new Gtk.ColorDialog({
+                modal: true,
+                title,
+                with_alpha: false,
+            });
+            const button = new Gtk.ColorDialogButton({
+                dialog,
+                valign: Gtk.Align.CENTER,
+            });
+            button.set_rgba(rgbaFromHex(settings.get_string(settingKey)));
+            button.connect('notify::rgba', widget => {
+                settings.set_string(settingKey, rgbaToHex(widget.get_rgba()));
+            });
+            settings.connect(`changed::${settingKey}`, () => {
+                button.set_rgba(rgbaFromHex(settings.get_string(settingKey)));
+            });
+            return button;
+        };
+
         const showColoredRow = new Adw.ActionRow({
-            title: _('Colored Ring'),
-            subtitle: _('Use colors to indicate charge level'),
+            title: _('Color Gradient Icon'),
+            subtitle: _('Apply the normal red-to-green gradient to the icon'),
         });
-        addIcon(showColoredRow, 'applications-graphics-symbolic');
+        addIcon(showColoredRow, 'image-x-generic-symbolic');
         const showColoredSwitch = new Gtk.Switch({
             active: settings.get_boolean('showcolored'),
             valign: Gtk.Align.CENTER,
@@ -397,6 +455,55 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.bind('showcolored', showColoredSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showColoredRow.add_suffix(showColoredSwitch);
         styleGroup.add(showColoredRow);
+
+        const chargingIconColorRow = new Adw.ActionRow({
+            title: _('Charging Icon Color'),
+            subtitle: _('Choose how the icon is colored while charging'),
+        });
+        addIcon(chargingIconColorRow, 'battery-full-charging-symbolic');
+        const chargingIconColorDropDown = makeColorModeDropDown('charging-icon-color-source');
+        chargingIconColorRow.add_suffix(chargingIconColorDropDown);
+        styleGroup.add(chargingIconColorRow);
+
+        const customIconColorRow = new Adw.ActionRow({
+            title: _('Custom Charging Icon Color'),
+            subtitle: _('Used only when Charging Icon Color is set to Custom'),
+        });
+        addIcon(customIconColorRow, 'color-select-symbolic');
+        const customIconColorButton = makeColorButton('charging-icon-custom-color', _('Select Charging Icon Color'));
+        customIconColorRow.add_suffix(customIconColorButton);
+        styleGroup.add(customIconColorRow);
+
+        const showColoredTextRow = new Adw.ActionRow({
+            title: _('Color Gradient Text'),
+            subtitle: _('Apply the normal red-to-green gradient to text'),
+        });
+        addIcon(showColoredTextRow, 'font-x-generic-symbolic');
+        const showColoredTextSwitch = new Gtk.Switch({
+            active: settings.get_boolean('showcoloredtext'),
+            valign: Gtk.Align.CENTER,
+        });
+        settings.bind('showcoloredtext', showColoredTextSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        showColoredTextRow.add_suffix(showColoredTextSwitch);
+        styleGroup.add(showColoredTextRow);
+
+        const textColorSourceRow = new Adw.ActionRow({
+            title: _('Charging Text Color'),
+            subtitle: _('Choose the color used by text while the battery is charging'),
+        });
+        addIcon(textColorSourceRow, 'battery-full-charging-symbolic');
+        const textColorSourceDropDown = makeColorModeDropDown('charging-text-color-source');
+        textColorSourceRow.add_suffix(textColorSourceDropDown);
+        styleGroup.add(textColorSourceRow);
+
+        const customTextColorRow = new Adw.ActionRow({
+            title: _('Custom Charging Text Color'),
+            subtitle: _('Used only when Charging Text Color is set to Custom'),
+        });
+        addIcon(customTextColorRow, 'color-select-symbolic');
+        const customTextColorButton = makeColorButton('charging-text-custom-color', _('Select Charging Text Color'));
+        customTextColorRow.add_suffix(customTextColorButton);
+        styleGroup.add(customTextColorRow);
 
         const textStrokeRow = new Adw.ActionRow({
             title: _('Text Stroke'),
@@ -473,14 +580,42 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         const updateDimensionVisibility = () => {
             const isCircle = settings.get_boolean('usecircleindicator');
             const isStock = settings.get_boolean('use-stock-icon');
+            const iconGradientEnabled = settings.get_boolean('showcolored');
+            const textGradientEnabled = settings.get_boolean('showcoloredtext');
+            const useCustomIconColor = settings.get_string('charging-icon-color-source') === 'custom';
+            const useCustomTextColor = settings.get_string('charging-text-color-source') === 'custom';
             barOrientationRow.visible = !isCircle && !isStock;
             batteryWidthRow.visible = !isCircle && !isStock;
             batteryHeightRow.visible = !isCircle && !isStock;
             circleSizeRow.visible = isCircle && !isStock;
             circleIndicatorRow.sensitive = !isStock;
+            chargingIconColorRow.visible = iconGradientEnabled;
+            customIconColorRow.visible = iconGradientEnabled;
+            textColorSourceRow.visible = textGradientEnabled;
+            customTextColorRow.visible = textGradientEnabled;
+            customIconColorButton.set_sensitive(iconGradientEnabled && useCustomIconColor);
+            customTextColorButton.set_sensitive(textGradientEnabled && useCustomTextColor);
+            const iconDisabledTooltip = !iconGradientEnabled
+                ? _('Disabled while Color Gradient Icon is off.')
+                : _('Disabled while Charging Icon Color is not set to Custom.');
+            const textDisabledTooltip = !textGradientEnabled
+                ? _('Disabled while Color Gradient Text is off.')
+                : _('Disabled while Charging Text Color is not set to Custom.');
+            customIconColorRow.set_tooltip_text(useCustomIconColor && iconGradientEnabled ? null : iconDisabledTooltip);
+            customIconColorButton.set_tooltip_text(
+                useCustomIconColor && iconGradientEnabled ? null : iconDisabledTooltip,
+            );
+            customTextColorRow.set_tooltip_text(useCustomTextColor && textGradientEnabled ? null : textDisabledTooltip);
+            customTextColorButton.set_tooltip_text(
+                useCustomTextColor && textGradientEnabled ? null : textDisabledTooltip,
+            );
         };
         settings.connect('changed::usecircleindicator', updateDimensionVisibility);
         settings.connect('changed::use-stock-icon', updateDimensionVisibility);
+        settings.connect('changed::showcolored', updateDimensionVisibility);
+        settings.connect('changed::showcoloredtext', updateDimensionVisibility);
+        settings.connect('changed::charging-icon-color-source', updateDimensionVisibility);
+        settings.connect('changed::charging-text-color-source', updateDimensionVisibility);
         updateDimensionVisibility();
 
         // Group: Auto-Hide Rules
