@@ -128,7 +128,7 @@ export function updateLabel(proxy, settings) {
 
         powerToggle._percentageLabel.set_text(labelText);
         powerToggle._percentageLabel.visible = showLabel;
-        powerToggle._percentageLabel.set_style(style);
+        powerToggle._percentageLabel.set_style(style || null);
     }
 }
 

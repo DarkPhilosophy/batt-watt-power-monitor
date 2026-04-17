@@ -8,7 +8,7 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-17T13:58:16.559Z';
+const BUILD_DATE = '2026-04-17T14:51:07.800Z';
 const CHANGELOG = `
 TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
@@ -418,6 +418,9 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             dropDown.connect('notify::selected', widget => {
                 settings.set_string(settingKey, colorModeValues[widget.get_selected()] ?? 'gradient');
             });
+            settings.connect(`changed::${settingKey}`, () => {
+                dropDown.set_selected(colorModeMap[settings.get_string(settingKey)] ?? 0);
+            });
             return dropDown;
         };
         const makeColorButton = (settingKey, title) => {
@@ -466,8 +469,8 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('Custom Charging Icon Color'),
             subtitle: _('Used only when Charging Icon Color is set to Custom'),
         });
-        addIcon(customIconColorRow, 'battery-full-charging-symbolic');
-        const customIconColorButton = makeColorButton('icon-custom-color', _('Select Charging Icon Color'));
+        addIcon(customIconColorRow, 'color-select-symbolic');
+        const customIconColorButton = makeColorButton('charging-icon-custom-color', _('Select Charging Icon Color'));
         customIconColorRow.add_suffix(customIconColorButton);
         styleGroup.add(customIconColorRow);
 
@@ -489,7 +492,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             subtitle: _('Choose the color used by text while the battery is charging'),
         });
         addIcon(textColorSourceRow, 'battery-full-charging-symbolic');
-        const textColorSourceDropDown = makeColorModeDropDown('text-color-source');
+        const textColorSourceDropDown = makeColorModeDropDown('charging-text-color-source');
         textColorSourceRow.add_suffix(textColorSourceDropDown);
         styleGroup.add(textColorSourceRow);
 
@@ -497,8 +500,8 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('Custom Charging Text Color'),
             subtitle: _('Used only when Charging Text Color is set to Custom'),
         });
-        addIcon(customTextColorRow, 'font-x-generic-symbolic');
-        const customTextColorButton = makeColorButton('text-custom-color', _('Select Charging Text Color'));
+        addIcon(customTextColorRow, 'color-select-symbolic');
+        const customTextColorButton = makeColorButton('charging-text-custom-color', _('Select Charging Text Color'));
         customTextColorRow.add_suffix(customTextColorButton);
         styleGroup.add(customTextColorRow);
 
@@ -580,7 +583,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             const iconGradientEnabled = settings.get_boolean('showcolored');
             const textGradientEnabled = settings.get_boolean('showcoloredtext');
             const useCustomIconColor = settings.get_string('charging-icon-color-source') === 'custom';
-            const useCustomTextColor = settings.get_string('text-color-source') === 'custom';
+            const useCustomTextColor = settings.get_string('charging-text-color-source') === 'custom';
             barOrientationRow.visible = !isCircle && !isStock;
             batteryWidthRow.visible = !isCircle && !isStock;
             batteryHeightRow.visible = !isCircle && !isStock;
@@ -612,7 +615,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         settings.connect('changed::showcolored', updateDimensionVisibility);
         settings.connect('changed::showcoloredtext', updateDimensionVisibility);
         settings.connect('changed::charging-icon-color-source', updateDimensionVisibility);
-        settings.connect('changed::text-color-source', updateDimensionVisibility);
+        settings.connect('changed::charging-text-color-source', updateDimensionVisibility);
         updateDimensionVisibility();
 
         // Group: Auto-Hide Rules

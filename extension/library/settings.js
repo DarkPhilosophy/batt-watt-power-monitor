@@ -109,7 +109,7 @@ export function getSettingsSnapshot(settings) {
     const showColoredIcon = settings.get_boolean('showcolored');
     const showColoredText = settings.get_boolean('showcoloredtext');
     const chargingIconColorSource = settings.get_string('charging-icon-color-source');
-    const chargingTextColorSource = settings.get_string('text-color-source');
+    const textColorSource = settings.get_string('charging-text-color-source');
     const textStroke = settings.get_boolean('textstroke');
     const forceBolt = settings.get_boolean('forcebolt');
     const hideCharging = settings.get_boolean('hidecharging');
@@ -127,9 +127,9 @@ export function getSettingsSnapshot(settings) {
         showColoredIcon,
         showColoredText,
         chargingIconColorSource,
-        iconCustomColor: settings.get_string('icon-custom-color'),
-        textColorSource: chargingTextColorSource,
-        textCustomColor: settings.get_string('text-custom-color'),
+        chargingCustomColor: settings.get_string('charging-icon-custom-color'),
+        textColorSource,
+        textCustomColor: settings.get_string('charging-text-custom-color'),
         textStroke,
         fakeCharging: settings.get_boolean('debug') && settings.get_boolean('fakecharging'),
         fakeDischarging: settings.get_boolean('debug') && settings.get_boolean('fakedischarging'),
@@ -163,7 +163,7 @@ export function buildIndicatorStatus(proxy, settings) {
         showText: snapshot.showText,
         useColor: snapshot.showColoredIcon,
         chargingColorSource: snapshot.chargingIconColorSource,
-        chargingCustomColor: snapshot.iconCustomColor,
+        chargingCustomColor: snapshot.chargingCustomColor,
         textStroke: snapshot.textStroke,
         forceBolt: snapshot.forceBolt,
         hideCharging: snapshot.hideCharging,

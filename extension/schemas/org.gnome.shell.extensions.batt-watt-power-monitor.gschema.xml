@@ -91,21 +91,31 @@
       <description>Enable the charge-level gradient for panel text. Disable to force monochrome themed rendering.</description>
     </key>
     <key type="s" name="charging-icon-color-source">
+      <choices>
+        <choice value='gradient'/>
+        <choice value='theme'/>
+        <choice value='custom'/>
+      </choices>
       <default>'gradient'</default>
       <summary>Charging icon color source</summary>
       <description>Controls which color mode is used for the icon while charging.</description>
     </key>
-    <key type="s" name="icon-custom-color">
+    <key type="s" name="charging-icon-custom-color">
       <default>'#ffffff'</default>
       <summary>Custom charging icon color</summary>
       <description>Custom hex color used for the icon while charging when the custom charging color option is selected.</description>
     </key>
-    <key type="s" name="text-color-source">
+    <key type="s" name="charging-text-color-source">
+      <choices>
+        <choice value='gradient'/>
+        <choice value='theme'/>
+        <choice value='custom'/>
+      </choices>
       <default>'gradient'</default>
       <summary>Charging text color source</summary>
       <description>Controls which color mode is used for text while charging.</description>
     </key>
-    <key type="s" name="text-custom-color">
+    <key type="s" name="charging-text-custom-color">
       <default>'#ffffff'</default>
       <summary>Custom charging text color</summary>
       <description>Custom hex color used for text while charging when the custom charging color option is selected.</description>

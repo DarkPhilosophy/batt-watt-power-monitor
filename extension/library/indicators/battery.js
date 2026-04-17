@@ -14,7 +14,7 @@ import {
     drawTextStroke,
     drawBoltStroke,
 } from '../drawing.js';
-import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
+import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus, getSettingsSnapshot } from '../settings.js';
 
 const BatteryIndicator = GObject.registerClass(
     class BatteryIndicator extends St.DrawingArea {
@@ -269,12 +269,15 @@ export function ensureBatteryIndicator(settings, extensionPath) {
     if (batteryIndicator) {
         const desiredWidth = getBatteryWidth(settings);
         const desiredHeight = getBatteryHeight(settings);
+        const snapshot = getSettingsSnapshot(settings);
         applyWidgetSize(batteryIndicator, desiredWidth, desiredHeight);
         batteryIndicator.update({
             percentage: batteryIndicator._status?.percentage ?? 0,
             isCharging: batteryIndicator._status?.isCharging ?? false,
             showText: batteryIndicator._status?.showText ?? false,
             useColor: batteryIndicator._status?.useColor ?? false,
+            chargingColorSource: snapshot.chargingIconColorSource,
+            chargingCustomColor: snapshot.chargingCustomColor,
             extensionPath: batteryIndicator._extensionPath,
             width: desiredWidth,
             height: desiredHeight,
