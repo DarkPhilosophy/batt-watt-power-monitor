@@ -42,7 +42,14 @@ const LandscapeIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
+            return getIndicatorRgb(
+                this,
+                this._status.percentage,
+                this._status.useColor,
+                this._status.isCharging,
+                this._status.chargingColorSource,
+                this._status.chargingCustomColor,
+            );
         }
 
         _onRepaint(area) {
@@ -317,8 +324,18 @@ export function ensureLandscapeIndicator(settings, extensionPath) {
 export function updateLandscapeIndicatorStatus(proxy, settings) {
     if (!landscapeIndicatorEnabled(settings) || !landscapeIndicator || !proxy) return;
 
-    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, textStroke, forceBolt } =
-        buildIndicatorStatus(proxy, settings);
+    const {
+        percentage,
+        state,
+        isCharging,
+        showBolt,
+        showText,
+        useColor,
+        chargingColorSource,
+        chargingCustomColor,
+        textStroke,
+        forceBolt,
+    } = buildIndicatorStatus(proxy, settings);
     Logger.debug(`Landscape status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
@@ -332,7 +349,8 @@ export function updateLandscapeIndicatorStatus(proxy, settings) {
         showText,
         textStroke,
         isCharging,
-        useChargingColor,
+        chargingColorSource,
+        chargingCustomColor,
         showBolt,
         forceBolt,
         width: desiredWidth,

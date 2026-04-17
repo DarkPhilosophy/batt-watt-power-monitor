@@ -81,9 +81,34 @@
       <description>If enabled, displays wattage like 15.75W. If disabled, displays 16W.</description>
     </key>
     <key type="b" name="showcolored">
-      <default>false</default>
+      <default>true</default>
       <summary>Show colored indicator</summary>
-      <description>Enable colored ring/text for the circular indicator. Disable to force monochrome (loses the color).</description>
+      <description>Enable the charge-level gradient for the battery icon. Disable to force monochrome themed rendering.</description>
+    </key>
+    <key type="b" name="showcoloredtext">
+      <default>true</default>
+      <summary>Show gradient text</summary>
+      <description>Enable the charge-level gradient for panel text. Disable to force monochrome themed rendering.</description>
+    </key>
+    <key type="s" name="charging-icon-color-source">
+      <default>'gradient'</default>
+      <summary>Charging icon color source</summary>
+      <description>Controls which color mode is used for the icon while charging.</description>
+    </key>
+    <key type="s" name="icon-custom-color">
+      <default>'#ffffff'</default>
+      <summary>Custom charging icon color</summary>
+      <description>Custom hex color used for the icon while charging when the custom charging color option is selected.</description>
+    </key>
+    <key type="s" name="text-color-source">
+      <default>'gradient'</default>
+      <summary>Charging text color source</summary>
+      <description>Controls which color mode is used for text while charging.</description>
+    </key>
+    <key type="s" name="text-custom-color">
+      <default>'#ffffff'</default>
+      <summary>Custom charging text color</summary>
+      <description>Custom hex color used for text while charging when the custom charging color option is selected.</description>
     </key>
     <key type="b" name="textstroke">
       <default>true</default>

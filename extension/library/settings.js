@@ -106,7 +106,10 @@ export function getSettingsSnapshot(settings) {
     const showWatts = settings.get_boolean('showwatts');
     const showIcon = settings.get_boolean('showicon');
     const showCircle = settings.get_boolean('usecircleindicator') && !useStockIcon;
-    const showColored = settings.get_boolean('showcolored');
+    const showColoredIcon = settings.get_boolean('showcolored');
+    const showColoredText = settings.get_boolean('showcoloredtext');
+    const chargingIconColorSource = settings.get_string('charging-icon-color-source');
+    const chargingTextColorSource = settings.get_string('text-color-source');
     const textStroke = settings.get_boolean('textstroke');
     const forceBolt = settings.get_boolean('forcebolt');
     const hideCharging = settings.get_boolean('hidecharging');
@@ -121,7 +124,12 @@ export function getSettingsSnapshot(settings) {
         showIcon,
         showCircle,
         useStockIcon,
-        showColored,
+        showColoredIcon,
+        showColoredText,
+        chargingIconColorSource,
+        iconCustomColor: settings.get_string('icon-custom-color'),
+        textColorSource: chargingTextColorSource,
+        textCustomColor: settings.get_string('text-custom-color'),
         textStroke,
         fakeCharging: settings.get_boolean('debug') && settings.get_boolean('fakecharging'),
         fakeDischarging: settings.get_boolean('debug') && settings.get_boolean('fakedischarging'),
@@ -150,11 +158,12 @@ export function buildIndicatorStatus(proxy, settings) {
         percentage,
         state,
         isCharging: fakeCharging || realCharging,
-        useChargingColor: fakeCharging || realCharging,
         showBolt: snapshot.forceBolt || fakeCharging || realCharging,
         fakeDischarging,
         showText: snapshot.showText,
-        useColor: snapshot.showColored,
+        useColor: snapshot.showColoredIcon,
+        chargingColorSource: snapshot.chargingIconColorSource,
+        chargingCustomColor: snapshot.iconCustomColor,
         textStroke: snapshot.textStroke,
         forceBolt: snapshot.forceBolt,
         hideCharging: snapshot.hideCharging,

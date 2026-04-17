@@ -29,7 +29,14 @@ const CircleIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
+            return getIndicatorRgb(
+                this,
+                this._status.percentage,
+                this._status.useColor,
+                this._status.isCharging,
+                this._status.chargingColorSource,
+                this._status.chargingCustomColor,
+            );
         }
 
         _drawChargingIcon(context, centerX, centerY, textExtents, red, green, blue) {
@@ -369,10 +376,11 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         percentage,
         state,
         isCharging,
-        useChargingColor,
         showBolt,
         showText,
         useColor,
+        chargingColorSource,
+        chargingCustomColor,
         textStroke,
         forceBolt,
         hideCharging,
@@ -384,10 +392,11 @@ export function updateCircleIndicatorStatus(proxy, settings) {
         percentage,
         state,
         isCharging,
-        useChargingColor,
         showBolt,
         showText,
         useColor,
+        chargingColorSource,
+        chargingCustomColor,
         textStroke,
         forceBolt,
         hideCharging,

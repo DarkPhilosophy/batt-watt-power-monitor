@@ -100,6 +100,45 @@ function rgbToHex(rgb) {
 }
 
 /**
+ * Normalize a CSS hex color string.
+ *
+ * @param {string} value - Raw color value.
+ * @param {string} fallback - Fallback hex color.
+ * @returns {string} Normalized #rrggbb color.
+ */
+function normalizeHexColor(value, fallback = '#ffffff') {
+    const trimmed = String(value ?? '').trim();
+    const expanded = trimmed.match(/^#?([0-9a-fA-F]{3})$/u);
+    if (expanded) {
+        return `#${expanded[1]
+            .split('')
+            .map(channel => channel + channel)
+            .join('')
+            .toLowerCase()}`;
+    }
+
+    const full = trimmed.match(/^#?([0-9a-fA-F]{6})$/u);
+    if (full) return `#${full[1].toLowerCase()}`;
+    return fallback;
+}
+
+/**
+ * Resolve an explicit color mode to CSS text color.
+ *
+ * @param {number} percentage - Battery percentage.
+ * @param {string} colorSource - gradient|theme|custom
+ * @param {string} customColor - Custom color string.
+ * @returns {string} CSS color declaration.
+ */
+function resolveTextStyle(percentage, colorSource, customColor) {
+    if (colorSource === 'custom') return `color: ${normalizeHexColor(customColor)};`;
+    if (colorSource === 'theme') return 'color: var(--theme-fg-color);';
+
+    const rgb = getGradientRGB(percentage);
+    return `color: ${rgbToHex(rgb)};`;
+}
+
+/**
  * Get color values (0-1) for a given percentage using a Red->Green gradient.
  *
  * @param {number} percentage - Battery percentage (0-100)
@@ -123,16 +162,20 @@ function getGradientRGB(percentage) {
  *
  * @param {number} percentage - Battery percentage.
  * @param {boolean} useColor - Whether to apply color.
- * @param {boolean} _isCharging - When true, use theme foreground instead of gradient.
+ * @param {boolean} isCharging - Whether the device is charging.
+ * @param {string} chargingColorSource - Charging text color source.
+ * @param {string} chargingCustomColor - Custom charging text color.
  * @returns {string|null} CSS string or null.
  */
-export function getLabelStyleFromPercentage(percentage, useColor, _isCharging = false) {
-    if (!useColor) return null;
-    if (_isCharging) {
-        return 'color: var(--theme-fg-color);';
-    }
-    const rgb = getGradientRGB(percentage);
-    return `color: ${rgbToHex(rgb)};`;
+export function getLabelStyleFromPercentage(
+    percentage,
+    useColor,
+    isCharging = false,
+    chargingColorSource = 'theme',
+    chargingCustomColor = '#ffffff',
+) {
+    if (!useColor) return 'color: var(--theme-fg-color);';
+    return resolveTextStyle(percentage, isCharging ? chargingColorSource : 'gradient', chargingCustomColor);
 }
 
 /**
@@ -166,13 +209,37 @@ export function getRingColor(percentage) {
  * @param {object} actor - St widget
  * @param {number} percentage - Battery percentage
  * @param {boolean} useColor - Whether colored mode is enabled
- * @param {boolean} _isCharging - Unused. Kept for call-site compatibility.
+ * @param {boolean} isCharging - Whether the device is charging.
+ * @param {string} chargingColorSource - gradient|theme|custom charging override.
+ * @param {string} chargingCustomColor - Custom color for charging override.
  * @returns {Array<number>} [r, g, b]
  */
-export function getIndicatorRgb(actor, percentage, useColor, _isCharging) {
+export function getIndicatorRgb(
+    actor,
+    percentage,
+    useColor,
+    isCharging,
+    chargingColorSource = 'gradient',
+    chargingCustomColor,
+) {
     if (!useColor) {
         const fg = getForegroundColor(actor);
         return [fg.red / 255, fg.green / 255, fg.blue / 255];
+    }
+
+    if (isCharging) {
+        if (chargingColorSource === 'custom') {
+            const color = normalizeHexColor(chargingCustomColor);
+            const red = Number.parseInt(color.slice(1, 3), 16) / 255;
+            const green = Number.parseInt(color.slice(3, 5), 16) / 255;
+            const blue = Number.parseInt(color.slice(5, 7), 16) / 255;
+            return [red, green, blue];
+        }
+
+        if (chargingColorSource === 'theme') {
+            const fg = getForegroundColor(actor);
+            return [fg.red / 255, fg.green / 255, fg.blue / 255];
+        }
     }
 
     return getGradientRGB(percentage);

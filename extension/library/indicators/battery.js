@@ -42,7 +42,14 @@ const BatteryIndicator = GObject.registerClass(
         }
 
         _calculateColor() {
-            return getIndicatorRgb(this, this._status.percentage, this._status.useColor, this._status.useChargingColor);
+            return getIndicatorRgb(
+                this,
+                this._status.percentage,
+                this._status.useColor,
+                this._status.isCharging,
+                this._status.chargingColorSource,
+                this._status.chargingCustomColor,
+            );
         }
 
         _onRepaint(area) {
@@ -322,8 +329,18 @@ export function ensureBatteryIndicator(settings, extensionPath) {
 export function updateBatteryIndicatorStatus(proxy, settings) {
     if (!batteryIndicatorEnabled(settings) || !batteryIndicator || !proxy) return;
 
-    const { percentage, state, isCharging, useChargingColor, showBolt, showText, useColor, textStroke, forceBolt } =
-        buildIndicatorStatus(proxy, settings);
+    const {
+        percentage,
+        state,
+        isCharging,
+        showBolt,
+        showText,
+        useColor,
+        chargingColorSource,
+        chargingCustomColor,
+        textStroke,
+        forceBolt,
+    } = buildIndicatorStatus(proxy, settings);
     Logger.debug(`Bar status: state=${proxy.State} status=${state} charging=${isCharging} pct=${percentage}`);
 
     const batteryW = getBatteryWidth(settings);
@@ -337,7 +354,8 @@ export function updateBatteryIndicatorStatus(proxy, settings) {
         showText,
         textStroke,
         isCharging,
-        useChargingColor,
+        chargingColorSource,
+        chargingCustomColor,
         showBolt,
         forceBolt,
         width: desiredWidth,
