@@ -227,8 +227,10 @@ export function enableSyncOverride(settings) {
         const effective = getEffectiveBatteryValues(this._proxy ?? powerToggle?._proxy, settings);
         const labelStyle = getLabelStyleFromPercentage(
             effective.percentage,
-            settings.get_boolean('showcolored'),
+            snapshot.showColoredText,
             effective.state === UPower.DeviceState.CHARGING,
+            snapshot.textColorSource,
+            snapshot.textCustomColor,
         );
 
         // Removed local targeting logic as it was flaky.

@@ -1,7 +1,7 @@
 import { panel } from 'resource:///org/gnome/shell/ui/main.js';
 import * as Logger from './logger.js';
 import { formatTimeRemaining, formatWatts, getLabelStyleFromPercentage } from './utils.js';
-import { getSettingsSnapshot } from './settings.js';
+import { getSettingsSnapshot, getEffectiveBatteryValues } from './settings.js';
 import { getPower } from './upower.js';
 
 let _originalLabelStyle = null;
@@ -44,8 +44,7 @@ export function updateLabel(proxy, settings) {
     const parts = [];
 
     // Handle properties
-    const pct = proxy.percentage ?? proxy.Percentage;
-    const state = proxy.state ?? proxy.State;
+    const { percentage: pct, state } = getEffectiveBatteryValues(proxy, settings);
     const timeEmpty = proxy.time_to_empty ?? proxy.TimeToEmpty;
     const timeFull = proxy.time_to_full ?? proxy.TimeToFull;
     const energyRate = proxy.energy_rate ?? proxy.EnergyRate; // Watts
@@ -91,7 +90,13 @@ export function updateLabel(proxy, settings) {
 
     const labelText = parts.join(' ');
     const showLabel = parts.length > 0;
-    const style = getLabelStyleFromPercentage(pct, snapshot.showColored, state === 1);
+    const style = getLabelStyleFromPercentage(
+        pct,
+        snapshot.showColoredText,
+        state === 1,
+        snapshot.textColorSource,
+        snapshot.textCustomColor,
+    );
 
     Logger.debug(`Label Update: text="${labelText}" visible=${showLabel}`);
 
@@ -123,7 +128,7 @@ export function updateLabel(proxy, settings) {
 
         powerToggle._percentageLabel.set_text(labelText);
         powerToggle._percentageLabel.visible = showLabel;
-        if (style) powerToggle._percentageLabel.set_style(style);
+        powerToggle._percentageLabel.set_style(style);
     }
 }
 

@@ -5,7 +5,7 @@
 > **VISUAL POLISH & CODE QUALITY**
 
 - **Stock Icon Mode**: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
-- **Charging Color Tuning**: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.
+- ~~**Charging Color Tuning**: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.~~
 - **Panel Sync**: The stock icon path now respects the same panel visibility flow as the custom indicators.
 - **Version Art**: Added a dedicated `v22` SVG concept icon under `assets/`.
 - **Text Stroke Setting**: Added a global "Text Stroke" preference that toggles a dark outline around percentage text and the charging bolt SVG across all indicator modes (bar, landscape, circular).
@@ -13,6 +13,10 @@
 - **Circular Font Size**: Increased `CIRCLE.FONT_SIZE_RATIO` from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
 - **Bolt Stroke Fix**: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
 - **Preferences Cleanup**: Added `close-request` handler to destroy `Gtk.ListBox` and `Adw.ToastOverlay` objects when the preferences window closes, fixing EGO-L-006 warning.
+- **Charging Color Refactor**: Removed the invalid implicit charging fallback and restored `Gradient` as the default color logic for both charging and discharging.
+- **Explicit Charging Overrides**: Added `Charging Icon Color` and `Charging Text Color` modes with explicit `Gradient`, `Theme Foreground`, and `Custom Color` behavior.
+- **Defaults Update**: `Color Gradient Icon` and `Color Gradient Text` now default to `true`.
+- **Preferences Polish**: Cleaned up inconsistent preferences icons and replaced invalid symbolic icon names with working ones.
 
 ## v21 (2026-01-29) - PREFERENCES & LOGGING REFINEMENTS
 
