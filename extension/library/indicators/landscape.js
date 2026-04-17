@@ -14,7 +14,7 @@ import {
     drawTextStroke,
     drawBoltStroke,
 } from '../drawing.js';
-import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus } from '../settings.js';
+import { getBatteryWidth, getBatteryHeight, buildIndicatorStatus, getSettingsSnapshot } from '../settings.js';
 
 const LandscapeIndicator = GObject.registerClass(
     class LandscapeIndicator extends St.DrawingArea {
@@ -264,12 +264,15 @@ export function ensureLandscapeIndicator(settings, extensionPath) {
     if (landscapeIndicator) {
         const desiredWidth = getBatteryWidth(settings);
         const desiredHeight = getBatteryHeight(settings);
+        const snapshot = getSettingsSnapshot(settings);
         applyWidgetSize(landscapeIndicator, desiredWidth, desiredHeight);
         landscapeIndicator.update({
             percentage: landscapeIndicator._status?.percentage ?? 0,
             isCharging: landscapeIndicator._status?.isCharging ?? false,
             showText: landscapeIndicator._status?.showText ?? false,
             useColor: landscapeIndicator._status?.useColor ?? false,
+            chargingColorSource: snapshot.chargingIconColorSource,
+            chargingCustomColor: snapshot.chargingCustomColor,
             extensionPath: landscapeIndicator._extensionPath,
             width: desiredWidth,
             height: desiredHeight,

@@ -171,7 +171,7 @@ export function getLabelStyleFromPercentage(
     percentage,
     useColor,
     isCharging = false,
-    chargingColorSource = 'theme',
+    chargingColorSource = 'gradient',
     chargingCustomColor = '#ffffff',
 ) {
     if (!useColor) return 'color: var(--theme-fg-color);';
