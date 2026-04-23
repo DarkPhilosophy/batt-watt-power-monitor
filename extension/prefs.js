@@ -8,7 +8,7 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-23T04:03:57.985Z';
+const BUILD_DATE = '2026-04-23T04:55:05.941Z';
 const CHANGELOG = `
 TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
