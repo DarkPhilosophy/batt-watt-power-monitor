@@ -43,10 +43,14 @@ SHEXLI_PATH="$PROJECT_DIR/venv/bin/shexli"
 if [ -f "$SHEXLI_PATH" ]; then
     # Shexli requires a temp copy to avoid path resolution issues
     TEMP_SHEXLI=$(mktemp -d)
+    trap 'rm -rf "$TEMP_SHEXLI"' RETURN
     cp -r "$PROJECT_DIR/extension/"* "$TEMP_SHEXLI/"
+    set +e
     shexli_output=$("$SHEXLI_PATH" "$TEMP_SHEXLI" 2>&1)
     shexli_status=$?
+    set -e
     rm -rf "$TEMP_SHEXLI"
+    trap - RETURN
     if [ $shexli_status -ne 0 ]; then
         echo "$shexli_output"
         echo "❌ Shexli found issues." >&2
