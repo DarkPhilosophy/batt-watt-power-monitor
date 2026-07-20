@@ -1,5 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
 const PACKAGE_JSON_PATH = path.join(PROJECT_DIR, 'package.json');
@@ -9,12 +12,12 @@ const VERSION_FILE_PATH = path.join(PROJECT_DIR, 'VERSION');
 const PREFS_PATH = path.join(PROJECT_DIR, 'extension', 'prefs.js');
 const CHANGELOG_PATH = path.join(PROJECT_DIR, '.github', 'CHANGELOG.md');
 const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
-const syncGnomeBadge = require('./sync-gnome-badge.js');
+import syncGnomeBadge from './sync-gnome-badge.mjs';
 
 try {
     // Read source of truth: package.json
     console.log('Reading package.json...');
-    const pkg = require(PACKAGE_JSON_PATH);
+    const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf8'));
     const newVersion = pkg.version.split('.')[0]; // Major version as the extension version
     const repoUrl = pkg.url || pkg.repository?.url?.replace(/^git\+/, '').replace(/\.git$/, '') || null;
     console.log(`Detected version: ${newVersion}`);
@@ -48,23 +51,14 @@ try {
 
     // Update metadata.json
     console.log('Updating extension/metadata.json...');
-    const meta = require(METADATA_PATH);
+    const meta = JSON.parse(fs.readFileSync(METADATA_PATH, 'utf8'));
     meta.version = parseInt(newVersion, 10);
     meta['version-name'] = newVersion;
     fs.writeFileSync(METADATA_PATH, `${JSON.stringify(meta, null, 2)}\n`);
 
-    // Update prefs.js - Update BUILD_DATE constant + changelog
+    // Update prefs.js - Update CHANGELOG constant (BUILD_DATE/BUILD_ID are injected by build.sh)
     console.log('Updating extension/prefs.js...');
     let prefsContent = fs.readFileSync(PREFS_PATH, 'utf8');
-    const buildDate = new Date().toISOString();
-    const buildDateRegex = /const BUILD_DATE = ['"][^'"]*['"];/;
-    if (buildDateRegex.test(prefsContent)) {
-        prefsContent = prefsContent.replace(buildDateRegex, `const BUILD_DATE = '${buildDate}';`);
-        fs.writeFileSync(PREFS_PATH, prefsContent);
-        console.log(`✅ Updated BUILD_DATE to ${buildDate}`);
-    } else {
-        console.log('ℹ️  No BUILD_DATE constant found in prefs.js, skipping');
-    }
 
     try {
         const changelogMd = fs.readFileSync(CHANGELOG_PATH, 'utf8');

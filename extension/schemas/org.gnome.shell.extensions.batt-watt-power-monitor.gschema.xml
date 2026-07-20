@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="gnome-shell-extensions">
-  <schema id="org.gnome.shell.extensions.batt-watt-power-monitor" 
+  <schema id="org.gnome.shell.extensions.batt-watt-power-monitor"
         path="/org/gnome/shell/extensions/batt-watt-power-monitor/">
     <!-- See also: https://docs.gtk.org/glib/gvariant-format-strings.html -->
     <key type="i" name="battery">
       <default>0</default>
-      <summary></summary>
-      <description></description>
-    </key> 
+      <summary>Battery device index</summary>
+      <description>Index of the battery device to monitor.</description>
+    </key>
     <key type="i" name="interval">
       <default>10</default>
-      <summary></summary>
-      <description></description>
-    </key>   
-    <key type="b" name="showicon">
+      <summary>Refresh interval</summary>
+      <description>Seconds between battery status polls.</description>
+    </key>
+    <key type="b" name="percentage">
       <default>true</default>
-      <summary></summary>
-      <description></description>
+      <summary>Show percentage</summary>
+      <description>Display the battery level as text.</description>
+    </key>
+    <key type="b" name="debug">
+      <default>false</default>
+      <summary>Enable debug mode</summary>
+      <description>Verbose logging and build information.</description>
     </key>
     <key type="s" name="bar-orientation">
       <default>'portrait'</default>
@@ -27,68 +32,6 @@
       <default>'right'</default>
       <summary>Indicator position</summary>
       <description>Where to place the panel indicator: 'left', 'right', or 'default'.</description>
-    </key>
-    <key type="i" name="batterysize">
-      <range min="25" max="50"/>
-      <default>34</default>
-      <summary>Battery icon width</summary>
-      <description>Pixel width for the battery icon.</description>
-    </key>
-    <key type="i" name="batteryheight">
-      <range min="25" max="50"/>
-      <default>40</default>
-      <summary>Battery icon height</summary>
-      <description>Pixel height for the battery icon.</description>
-    </key>
-    <key type="b" name="percentage">
-      <default>true</default>
-      <summary></summary>
-      <description></description>
-    </key> 
-    <key type="b" name="showpercentageoutside">
-      <default>false</default>
-      <summary>Show percentage outside icons</summary>
-      <description>When enabled, shows percentage as text outside the icon.</description>
-    </key>
-    <key type="b" name="timeremaining">
-      <default>true</default>
-      <summary></summary>
-      <description></description>
-    </key>
-    <key type="b" name="hidecharging">
-      <default>false</default>
-      <summary></summary>
-      <description></description>
-    </key>
-    <key type="b" name="hidefull">
-      <default>false</default>
-      <summary></summary>
-      <description></description>
-    </key>
-    <key type="b" name="hideidle">
-      <default>false</default>
-      <summary></summary>
-      <description></description>
-    </key>
-    <key type="b" name="showwatts">
-      <default>true</default>
-      <summary></summary>
-      <description></description>
-    </key>
-    <key type="b" name="showdecimals">
-      <default>false</default>
-      <summary>Show wattage with 2 decimal places</summary>
-      <description>If enabled, displays wattage like 15.75W. If disabled, displays 16W.</description>
-    </key>
-    <key type="b" name="showcolored">
-      <default>true</default>
-      <summary>Show colored indicator</summary>
-      <description>Enable the charge-level gradient for the battery icon. Disable to force monochrome themed rendering.</description>
-    </key>
-    <key type="b" name="showcoloredtext">
-      <default>true</default>
-      <summary>Show gradient text</summary>
-      <description>Enable the charge-level gradient for panel text. Disable to force monochrome themed rendering.</description>
     </key>
     <key type="s" name="charging-icon-color-source">
       <choices>
@@ -120,73 +63,135 @@
       <summary>Custom charging text color</summary>
       <description>Custom hex color used for text while charging when the custom charging color option is selected.</description>
     </key>
-    <key type="b" name="textstroke">
-      <default>true</default>
-      <summary>Show text stroke/outline</summary>
-      <description>Draw a dark outline around text for better visibility against similar backgrounds.</description>
-    </key>
     <key type="b" name="use-stock-icon">
       <default>false</default>
       <summary>Use GNOME stock battery icon</summary>
       <description>Use the native GNOME battery icon instead of the custom drawn bar or circular indicator.</description>
     </key>
-    <key type="b" name="usecircleindicator">
+    <key type="b" name="show-icon">
+      <default>true</default>
+      <summary>Show battery icon</summary>
+      <description>Toggle visibility of the panel battery icon.</description>
+    </key>
+    <key type="i" name="battery-size">
+      <range min="25" max="50"/>
+      <default>34</default>
+      <summary>Battery icon width</summary>
+      <description>Pixel width for the battery icon.</description>
+    </key>
+    <key type="i" name="battery-height">
+      <range min="25" max="50"/>
+      <default>40</default>
+      <summary>Battery icon height</summary>
+      <description>Pixel height for the battery icon.</description>
+    </key>
+    <key type="b" name="show-percentage-outside">
+      <default>false</default>
+      <summary>Show percentage outside icons</summary>
+      <description>When enabled, shows percentage as text outside the icon.</description>
+    </key>
+    <key type="b" name="time-remaining">
+      <default>true</default>
+      <summary>Show time remaining</summary>
+      <description>Estimated time to empty or full.</description>
+    </key>
+    <key type="b" name="hide-charging">
+      <default>false</default>
+      <summary>Hide when charging</summary>
+      <description>Hide the indicator while charging.</description>
+    </key>
+    <key type="b" name="hide-full">
+      <default>false</default>
+      <summary>Hide when full</summary>
+      <description>Hide the indicator when the battery is full.</description>
+    </key>
+    <key type="b" name="hide-idle">
+      <default>false</default>
+      <summary>Hide when idle</summary>
+      <description>Hide the indicator when idle or no battery is present.</description>
+    </key>
+    <key type="b" name="show-watts">
+      <default>true</default>
+      <summary>Show power (watts)</summary>
+      <description>Show current power consumption or charging rate.</description>
+    </key>
+    <key type="b" name="show-decimals">
+      <default>false</default>
+      <summary>Show wattage with 2 decimal places</summary>
+      <description>If enabled, displays wattage like 15.75W. If disabled, displays 16W.</description>
+    </key>
+    <key type="b" name="show-colored">
+      <default>true</default>
+      <summary>Show colored indicator</summary>
+      <description>Enable the charge-level gradient for the battery icon. Disable to force monochrome themed rendering.</description>
+    </key>
+    <key type="b" name="show-colored-text">
+      <default>true</default>
+      <summary>Show gradient text</summary>
+      <description>Enable the charge-level gradient for panel text. Disable to force monochrome themed rendering.</description>
+    </key>
+    <key type="b" name="text-stroke">
+      <default>true</default>
+      <summary>Show text stroke/outline</summary>
+      <description>Draw a dark outline around text for better visibility against similar backgrounds.</description>
+    </key>
+    <key type="b" name="use-circle-indicator">
       <default>false</default>
       <summary>Use circular battery indicator</summary>
       <description>Replaces the default battery icon with a circular meter indicator.</description>
     </key>
-    <key type="i" name="circlesize">
+    <key type="i" name="circle-size">
       <range min="25" max="50"/>
       <default>36</default>
       <summary>Circular indicator size</summary>
       <description>Pixel size for the circular indicator.</description>
     </key>
-    <key type="b" name="debug">
-      <default>false</default>
-      <summary></summary>
-      <description></description>
-    </key>
-    <key type="b" name="forcebolt">
+    <key type="b" name="force-bolt">
       <default>false</default>
       <summary>Force bolt icon</summary>
       <description>Always show the charging bolt for testing.</description>
     </key>
-    <key type="b" name="fakecharging">
+    <key type="b" name="fake-charging">
       <default>false</default>
       <summary>Fake charging mode</summary>
       <description>Force charging state and animate a synthetic percentage for testing visual behavior.</description>
     </key>
-    <key type="b" name="fakedischarging">
+    <key type="b" name="fake-discharging">
       <default>false</default>
       <summary>Fake discharging mode</summary>
       <description>Force discharging state and animate a synthetic percentage for testing visual behavior.</description>
     </key>
-    <key type="i" name="fakechargemin">
+    <key type="i" name="fake-charge-min">
       <range min="0" max="100"/>
       <default>20</default>
       <summary>Fake charge minimum</summary>
       <description>Lower bound for the synthetic charging percentage in debug mode.</description>
     </key>
-    <key type="i" name="fakechargemax">
+    <key type="i" name="fake-charge-max">
       <range min="0" max="100"/>
       <default>80</default>
       <summary>Fake charge maximum</summary>
       <description>Upper bound for the synthetic charging percentage in debug mode.</description>
     </key>
-    <key type="i" name="loglevel">
+    <key type="i" name="log-level">
       <default>1</default>
       <summary>Log level</summary>
       <description>Verbosity for debug logging: 0=Verbose, 1=Debug, 2=Info, 3=Warn, 4=Error.</description>
     </key>
-    <key type="b" name="logtofile">
+    <key type="b" name="log-to-file">
       <default>true</default>
       <summary>Log to file</summary>
       <description>When enabled, debug logs are written to a file.</description>
     </key>
-    <key type="s" name="logfilepath">
+    <key type="s" name="log-file-path">
       <default>''</default>
       <summary>Log file path</summary>
       <description>Path to write debug logs. Leave empty for default cache path.</description>
+    </key>
+    <key type="i" name="settings-version">
+      <default>0</default>
+      <summary>Internal settings migration version</summary>
+      <description>Tracks one-time settings migrations. Do not edit manually.</description>
     </key>
   </schema>
 </schemalist>

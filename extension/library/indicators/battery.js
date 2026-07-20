@@ -247,8 +247,8 @@ export function destroyBatteryIndicator() {
 function batteryIndicatorEnabled(settings) {
     return (
         settings &&
-        settings.get_boolean('showicon') &&
-        !settings.get_boolean('usecircleindicator') &&
+        settings.get_boolean('show-icon') &&
+        !settings.get_boolean('use-circle-indicator') &&
         !settings.get_boolean('use-stock-icon')
     );
 }
@@ -302,8 +302,8 @@ export function ensureBatteryIndicator(settings, extensionPath) {
         percentage: 0,
         isCharging: false,
         showText: false,
-        useColor: settings.get_boolean('showcolored'),
-        forceBolt: settings.get_boolean('forcebolt'),
+        useColor: settings.get_boolean('show-colored'),
+        forceBolt: settings.get_boolean('force-bolt'),
         width: batteryW,
         batteryWidth: batteryW,
         settings, // Pass settings for direct access

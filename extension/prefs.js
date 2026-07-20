@@ -8,37 +8,36 @@ import GLib from 'gi://GLib';
 
 import { ExtensionPreferences, gettext as _ } from 'resource:///org/gnome/Shell/Extensions/js/extensions/prefs.js';
 
-const BUILD_DATE = '2026-04-23T04:03:57.985Z';
+import { formatRecentLogEvents, resolveLogFilePath } from './library/logging-model.js';
+import { safeErrorMessage } from './library/sanitize.js';
+
+Gio._promisify(Gio.File.prototype, 'load_contents_async', 'load_contents_finish');
+
+const BUILD_DATE = null;
+const BUILD_ID = 'development';
+const PROJECT_URL = 'https://github.com/DarkPhilosophy/batt-watt-power-monitor';
+const ISSUE_URL = `${PROJECT_URL}/issues`;
+const RECENT_LOG_LINE_LIMIT = 80;
 const CHANGELOG = `
-TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
+SETTINGS MIGRATION, POWER FIX & TEST SUITE
 
-VISUAL POLISH & CODE QUALITY
+RELIABILITY, IDIOMATIC CLEANUP & TEST COVERAGE
 
-Stock Icon Mode: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
+Power Reading Fix (#10): Fixed wattage getting stuck at a constant, bogus value (e.g. -7.7 W) on batteries that expose power_now but not current_now. The power source is now re-evaluated every cycle (computePower) instead of caching a one-shot detection that could be poisoned by the async file-cache race at boot. It falls back to current_now * voltage_now only when both are readable, otherwise reports 0 instead of a negative sentinel, and self-corrects once power_now resolves.
 
-~~Charging Color Tuning: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.~~
+Kebab-case Settings Schema: Renamed all flat GSettings keys to idiomatic kebab-case (e.g. showicon to show-icon, loglevel to log-level). A one-time migration at first enable copies any existing user values straight from dconf into the new keys and then removes the legacy keys, so upgrades keep your configuration.
 
-Panel Sync: The stock icon path now respects the same panel visibility flow as the custom indicators.
+Sanitized Logging: Every log line is now redacted (Bearer tokens, JWT-like values, access/refresh tokens) and length-capped before being written to the console or a file.
 
-Version Art: Added a dedicated v22 SVG concept icon under assets/.
+Refined About Page: Dedicated rows with icons for Extension version, Build date, Build ID (debug-gated), Data source, Project Homepage, and Report an Issue.
 
-Text Stroke Setting: Added a global "Text Stroke" preference that toggles a dark outline around percentage text and the charging bolt SVG across all indicator modes (bar, landscape, circular).
+Refined Debug Page: Added a Diagnostics group - copy sanitized configuration as JSON, and a Recent Log Events viewer showing the last 80 sanitized log lines.
 
-DRY Stroke Helpers: Extracted duplicated stroke-rendering logic into reusable drawTextStroke() and drawBoltStroke() helpers in drawing.js, eliminating ~150 lines of inline duplicate code across indicator modules.
+Live Debug Toggle: Changing debug or logging settings now reconfigures the logger immediately instead of requiring a re-enable.
 
-Circular Font Size: Increased CIRCLE.FONT_SIZE_RATIO from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
+Build Tooling Modernized: Migrated all .scripts to ES modules (.mjs), made linting blocking, and switched build-metadata injection (BUILD_DATE / BUILD_ID) to value-agnostic regex so it never depends on a hardcoded placeholder value.
 
-Bolt Stroke Fix: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
-
-Preferences Cleanup: Added close-request handler to destroy Gtk.ListBox and Adw.ToastOverlay objects when the preferences window closes, fixing EGO-L-006 warning.
-
-Charging Color Refactor: Removed the invalid implicit charging fallback and restored Gradient as the default color logic for both charging and discharging.
-
-Explicit Charging Overrides: Added Charging Icon Color and Charging Text Color modes with explicit Gradient, Theme Foreground, and Custom Color behavior.
-
-Defaults Update: Color Gradient Icon and Color Gradient Text now default to true.
-
-Preferences Polish: Cleaned up inconsistent preferences icons and replaced invalid symbolic icon names with working ones.`;
+Test Suite: Added Node (node --test) and GJS test modules covering credential redaction, log path resolution and formatting, the #10 power selection, constants, utility formatting and colors, plus structural regression guards.`;
 
 export default class BattConsumptionPreferences extends ExtensionPreferences {
     _switchToNavigationSplitViews(window) {
@@ -172,24 +171,20 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             return `#${toHex(rgba.red)}${toHex(rgba.green)}${toHex(rgba.blue)}`;
         };
 
-        const logBaseName = 'Batt Watt Power Monitor'.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const resolveLogPath = () => {
-            const configured = (settings.get_string('logfilepath') || '').trim();
-            let fullPath = '';
-            if (configured.length === 0) {
-                fullPath = `${GLib.get_user_cache_dir()}/${logBaseName}.log`;
-            } else if (configured.startsWith('/')) {
-                fullPath = configured;
-            } else {
-                fullPath = `${GLib.get_home_dir()}/${configured}`;
-            }
-
-            if (GLib.file_test(fullPath, GLib.FileTest.IS_DIR)) {
-                const base = fullPath.replace(/\/$/, '');
-                return `${base}/${logBaseName}.log`;
-            }
-
-            return fullPath;
+        const resolveLogPath = () =>
+            resolveLogFilePath(settings.get_string('log-file-path'), {
+                cacheDir: GLib.get_user_cache_dir(),
+                homeDir: GLib.get_home_dir(),
+                isDirectory: candidate => GLib.file_test(candidate, GLib.FileTest.IS_DIR),
+            });
+        const loadRecentLogEvents = async path => {
+            const [contents] = await Gio.File.new_for_path(path).load_contents_async(null);
+            return formatRecentLogEvents(new TextDecoder().decode(contents), RECENT_LOG_LINE_LIMIT);
+        };
+        const copyText = text => {
+            const clipboard = Gdk.Display.get_default()?.get_clipboard();
+            if (!clipboard) throw new Error(_('Clipboard is unavailable'));
+            clipboard.set(text);
         };
         const openFolderChooser = () => {
             const dialog = new Gtk.FileChooserNative({
@@ -202,7 +197,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
                 if (response === Gtk.ResponseType.ACCEPT) {
                     const file = d.get_file();
                     const folderPath = file ? file.get_path() : null;
-                    if (folderPath) settings.set_string('logfilepath', folderPath);
+                    if (folderPath) settings.set_string('log-file-path', folderPath);
                 }
                 d.destroy();
             });
@@ -271,10 +266,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(showIconRow, 'image-x-generic-symbolic');
         const showIconSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showicon'),
+            active: settings.get_boolean('show-icon'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('showicon', showIconSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('show-icon', showIconSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showIconRow.add_suffix(showIconSwitch);
         elementsGroup.add(showIconRow);
 
@@ -319,10 +314,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(percentageOutsideRow, 'format-justify-left-symbolic');
         const percentageOutsideSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showpercentageoutside'),
+            active: settings.get_boolean('show-percentage-outside'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('showpercentageoutside', percentageOutsideSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('show-percentage-outside', percentageOutsideSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         percentageOutsideRow.add_suffix(percentageOutsideSwitch);
         elementsGroup.add(percentageOutsideRow);
 
@@ -333,10 +328,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(timeRemainingRow, 'alarm-symbolic');
         const timeRemainingSwitch = new Gtk.Switch({
-            active: settings.get_boolean('timeremaining'),
+            active: settings.get_boolean('time-remaining'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('timeremaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('time-remaining', timeRemainingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         timeRemainingRow.add_suffix(timeRemainingSwitch);
         elementsGroup.add(timeRemainingRow);
 
@@ -347,10 +342,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(showWattsRow, 'thunderbolt-symbolic');
         const showWattsSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showwatts'),
+            active: settings.get_boolean('show-watts'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('showwatts', showWattsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('show-watts', showWattsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showWattsRow.add_suffix(showWattsSwitch);
         elementsGroup.add(showWattsRow);
 
@@ -360,10 +355,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(showDecimalsRow, 'input-dialpad-symbolic');
         const showDecimalsSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showdecimals'),
+            active: settings.get_boolean('show-decimals'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('showdecimals', showDecimalsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('show-decimals', showDecimalsSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showDecimalsRow.add_suffix(showDecimalsSwitch);
         elementsGroup.add(showDecimalsRow);
 
@@ -386,10 +381,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(circleIndicatorRow, 'media-record-symbolic');
         const circleIndicatorSwitch = new Gtk.Switch({
-            active: settings.get_boolean('usecircleindicator'),
+            active: settings.get_boolean('use-circle-indicator'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('usecircleindicator', circleIndicatorSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('use-circle-indicator', circleIndicatorSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         circleIndicatorRow.add_suffix(circleIndicatorSwitch);
         styleGroup.add(circleIndicatorRow);
 
@@ -449,10 +444,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(showColoredRow, 'image-x-generic-symbolic');
         const showColoredSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showcolored'),
+            active: settings.get_boolean('show-colored'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('showcolored', showColoredSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('show-colored', showColoredSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showColoredRow.add_suffix(showColoredSwitch);
         styleGroup.add(showColoredRow);
 
@@ -480,10 +475,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(showColoredTextRow, 'font-x-generic-symbolic');
         const showColoredTextSwitch = new Gtk.Switch({
-            active: settings.get_boolean('showcoloredtext'),
+            active: settings.get_boolean('show-colored-text'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('showcoloredtext', showColoredTextSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('show-colored-text', showColoredTextSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         showColoredTextRow.add_suffix(showColoredTextSwitch);
         styleGroup.add(showColoredTextRow);
 
@@ -511,10 +506,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(textStrokeRow, 'format-text-strikethrough-symbolic');
         const textStrokeSwitch = new Gtk.Switch({
-            active: settings.get_boolean('textstroke'),
+            active: settings.get_boolean('text-stroke'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('textstroke', textStrokeSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('text-stroke', textStrokeSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         textStrokeRow.add_suffix(textStrokeSwitch);
         styleGroup.add(textStrokeRow);
 
@@ -548,7 +543,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             adjustment: new Gtk.Adjustment({ lower: 25, upper: 50, step_increment: 1 }),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('batterysize', batteryWidthSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('battery-size', batteryWidthSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         batteryWidthRow.add_suffix(batteryWidthSpin);
         dimensionsGroup.add(batteryWidthRow);
 
@@ -558,7 +553,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             adjustment: new Gtk.Adjustment({ lower: 25, upper: 50, step_increment: 1 }),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('batteryheight', batteryHeightSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('battery-height', batteryHeightSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         batteryHeightRow.add_suffix(batteryHeightSpin);
         dimensionsGroup.add(batteryHeightRow);
 
@@ -569,7 +564,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             adjustment: new Gtk.Adjustment({ lower: 25, upper: 50, step_increment: 1 }),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('circlesize', circleSizeSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('circle-size', circleSizeSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         circleSizeRow.add_suffix(circleSizeSpin);
         dimensionsGroup.add(circleSizeRow);
 
@@ -578,10 +573,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         // Visibility Logic for Dimensions
         const updateDimensionVisibility = () => {
-            const isCircle = settings.get_boolean('usecircleindicator');
+            const isCircle = settings.get_boolean('use-circle-indicator');
             const isStock = settings.get_boolean('use-stock-icon');
-            const iconGradientEnabled = settings.get_boolean('showcolored');
-            const textGradientEnabled = settings.get_boolean('showcoloredtext');
+            const iconGradientEnabled = settings.get_boolean('show-colored');
+            const textGradientEnabled = settings.get_boolean('show-colored-text');
             const useCustomIconColor = settings.get_string('charging-icon-color-source') === 'custom';
             const useCustomTextColor = settings.get_string('charging-text-color-source') === 'custom';
             barOrientationRow.visible = !isCircle && !isStock;
@@ -626,30 +621,30 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         const hideChargingRow = new Adw.ActionRow({ title: _('Hide When Charging') });
         addIcon(hideChargingRow, 'battery-full-charging-symbolic');
         const hideChargingSwitch = new Gtk.Switch({
-            active: settings.get_boolean('hidecharging'),
+            active: settings.get_boolean('hide-charging'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('hidecharging', hideChargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('hide-charging', hideChargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideChargingRow.add_suffix(hideChargingSwitch);
         visibilityGroup.add(hideChargingRow);
 
         const hideFullRow = new Adw.ActionRow({ title: _('Hide When Full') });
         addIcon(hideFullRow, 'battery-full-symbolic');
         const hideFullSwitch = new Gtk.Switch({
-            active: settings.get_boolean('hidefull'),
+            active: settings.get_boolean('hide-full'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('hidefull', hideFullSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('hide-full', hideFullSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideFullRow.add_suffix(hideFullSwitch);
         visibilityGroup.add(hideFullRow);
 
         const hideIdleRow = new Adw.ActionRow({ title: _('Hide When Idle/Not Present') });
         addIcon(hideIdleRow, 'battery-missing-symbolic');
         const hideIdleSwitch = new Gtk.Switch({
-            active: settings.get_boolean('hideidle'),
+            active: settings.get_boolean('hide-idle'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('hideidle', hideIdleSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('hide-idle', hideIdleSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         hideIdleRow.add_suffix(hideIdleSwitch);
         visibilityGroup.add(hideIdleRow);
 
@@ -661,7 +656,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             icon_name: 'applications-engineering-symbolic',
         });
 
-        const debugGroup = new Adw.PreferencesGroup({ title: _('Advanced') });
+        const debugGroup = new Adw.PreferencesGroup({
+            title: _('Advanced'),
+            description: _('Structured diagnostics with credential redaction.'),
+        });
         const debugRow = new Adw.ActionRow({
             title: _('Enable Debug Mode'),
             subtitle: _('Verbose logging and build info'),
@@ -681,10 +679,10 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(forceBoltRow, 'emblem-important-symbolic');
         const forceBoltSwitch = new Gtk.Switch({
-            active: settings.get_boolean('forcebolt'),
+            active: settings.get_boolean('force-bolt'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('forcebolt', forceBoltSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('force-bolt', forceBoltSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         forceBoltRow.add_suffix(forceBoltSwitch);
         debugGroup.add(forceBoltRow);
 
@@ -694,13 +692,13 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(fakeChargingRow, 'battery-full-charging-symbolic');
         const fakeChargingSwitch = new Gtk.Switch({
-            active: settings.get_boolean('fakecharging'),
+            active: settings.get_boolean('fake-charging'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('fakecharging', fakeChargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('fake-charging', fakeChargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         fakeChargingRow.add_suffix(fakeChargingSwitch);
         fakeChargingSwitch.connect('notify::active', widget => {
-            if (widget.active) settings.set_boolean('fakedischarging', false);
+            if (widget.active) settings.set_boolean('fake-discharging', false);
         });
         debugGroup.add(fakeChargingRow);
 
@@ -710,13 +708,13 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         });
         addIcon(fakeDischargingRow, 'battery-level-40-symbolic');
         const fakeDischargingSwitch = new Gtk.Switch({
-            active: settings.get_boolean('fakedischarging'),
+            active: settings.get_boolean('fake-discharging'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('fakedischarging', fakeDischargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('fake-discharging', fakeDischargingSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         fakeDischargingRow.add_suffix(fakeDischargingSwitch);
         fakeDischargingSwitch.connect('notify::active', widget => {
-            if (widget.active) settings.set_boolean('fakecharging', false);
+            if (widget.active) settings.set_boolean('fake-charging', false);
         });
         debugGroup.add(fakeDischargingRow);
 
@@ -729,7 +727,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             adjustment: new Gtk.Adjustment({ lower: 0, upper: 100, step_increment: 1 }),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('fakechargemin', fakeChargeMinSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('fake-charge-min', fakeChargeMinSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         fakeChargeMinRow.add_suffix(fakeChargeMinSpin);
         debugGroup.add(fakeChargeMinRow);
 
@@ -742,7 +740,7 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             adjustment: new Gtk.Adjustment({ lower: 0, upper: 100, step_increment: 1 }),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('fakechargemax', fakeChargeMaxSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('fake-charge-max', fakeChargeMaxSpin, 'value', Gio.SettingsBindFlags.DEFAULT);
         fakeChargeMaxRow.add_suffix(fakeChargeMaxSpin);
         debugGroup.add(fakeChargeMaxRow);
 
@@ -751,27 +749,33 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         // Logging Group
         const loggingGroup = new Adw.PreferencesGroup({ title: _('Logging') });
 
-        const logLevelRow = new Adw.ActionRow({ title: _('Log Level') });
+        const logLevelRow = new Adw.ActionRow({
+            title: _('Log Level'),
+            subtitle: _('Credentials and bearer values are always redacted'),
+        });
         addIcon(logLevelRow, 'view-list-symbolic');
         const logLevelModel = Gtk.StringList.new([_('Verbose'), _('Debug'), _('Info'), _('Warn'), _('Error')]);
         const logLevelDropDown = new Gtk.DropDown({
             valign: Gtk.Align.CENTER,
             model: logLevelModel,
         });
-        logLevelDropDown.set_selected(settings.get_int('loglevel'));
+        logLevelDropDown.set_selected(settings.get_int('log-level'));
         logLevelDropDown.connect('notify::selected', widget => {
-            settings.set_int('loglevel', widget.get_selected());
+            settings.set_int('log-level', widget.get_selected());
         });
         logLevelRow.add_suffix(logLevelDropDown);
         loggingGroup.add(logLevelRow);
 
-        const logToFileRow = new Adw.ActionRow({ title: _('Save Logs to File') });
+        const logToFileRow = new Adw.ActionRow({
+            title: _('Save Logs to File'),
+            subtitle: _('Credentials and bearer values are always redacted'),
+        });
         addIcon(logToFileRow, 'document-save-symbolic');
         const logToFileSwitch = new Gtk.Switch({
-            active: settings.get_boolean('logtofile'),
+            active: settings.get_boolean('log-to-file'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('logtofile', logToFileSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('log-to-file', logToFileSwitch, 'active', Gio.SettingsBindFlags.DEFAULT);
         logToFileRow.add_suffix(logToFileSwitch);
         loggingGroup.add(logToFileRow);
 
@@ -779,12 +783,12 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('Log File Path'),
             subtitle: _('Default: Cache Directory'),
         });
-        addIcon(logPathRow, 'folder-symbolic');
+        addIcon(logPathRow, 'text-x-generic-symbolic');
         const logPathEntry = new Gtk.Entry({
-            text: settings.get_string('logfilepath'),
+            text: settings.get_string('log-file-path'),
             valign: Gtk.Align.CENTER,
         });
-        settings.bind('logfilepath', logPathEntry, 'text', Gio.SettingsBindFlags.DEFAULT);
+        settings.bind('log-file-path', logPathEntry, 'text', Gio.SettingsBindFlags.DEFAULT);
         logPathRow.add_suffix(logPathEntry);
         const browseBtn = new Gtk.Button({
             label: _('Browse'),
@@ -820,8 +824,12 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
         clearBtn.connect('clicked', () => {
             try {
                 Gio.File.new_for_path(resolveLogPath()).delete(null);
-            } catch (_e) {
-                /* ignore */
+                this._contentToastOverlay?.add_toast(new Adw.Toast({ title: _('Log file cleared') }));
+            } catch (error) {
+                const message = error.matches?.(Gio.IOErrorEnum, Gio.IOErrorEnum.NOT_FOUND)
+                    ? _('The log file is already empty')
+                    : safeErrorMessage(error);
+                this._contentToastOverlay?.add_toast(new Adw.Toast({ title: message }));
             }
         });
         clearReq.add_suffix(clearBtn);
@@ -829,11 +837,130 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
 
         debugPage.add(loggingGroup);
 
+        // Diagnostics
+        const diagnosticsGroup = new Adw.PreferencesGroup({ title: _('Diagnostics') });
+
+        const diagnosticsRow = new Adw.ActionRow({
+            title: _('Sanitized diagnostics'),
+            subtitle: _('Copy configuration only; no file paths or personal data'),
+        });
+        addIcon(diagnosticsRow, 'edit-copy-symbolic');
+        const copyDiagnosticsButton = new Gtk.Button({
+            label: _('Copy'),
+            icon_name: 'edit-copy-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        copyDiagnosticsButton.connect('clicked', () => {
+            const diagnostics = {
+                version: this.metadata['version-name'] ?? this.metadata.version ?? 'unknown',
+                interval: settings.get_int('interval'),
+                indicator: {
+                    circular: settings.get_boolean('use-circle-indicator'),
+                    stockIcon: settings.get_boolean('use-stock-icon'),
+                    barOrientation: settings.get_string('bar-orientation'),
+                    position: settings.get_string('indicator-position'),
+                },
+                display: {
+                    percentage: settings.get_boolean('percentage'),
+                    timeRemaining: settings.get_boolean('time-remaining'),
+                    watts: settings.get_boolean('show-watts'),
+                    decimals: settings.get_boolean('show-decimals'),
+                },
+                debug: {
+                    enabled: settings.get_boolean('debug'),
+                    level: settings.get_int('log-level'),
+                    logToFile: settings.get_boolean('log-to-file'),
+                },
+            };
+            try {
+                copyText(JSON.stringify(diagnostics, null, 2));
+                this._contentToastOverlay?.add_toast(new Adw.Toast({ title: _('Sanitized diagnostics copied') }));
+            } catch (error) {
+                this._contentToastOverlay?.add_toast(new Adw.Toast({ title: safeErrorMessage(error) }));
+            }
+        });
+        diagnosticsRow.add_suffix(copyDiagnosticsButton);
+        diagnosticsGroup.add(diagnosticsRow);
+
+        const recentLogsRow = new Adw.ActionRow({
+            title: _('Recent Log Events'),
+            subtitle: _('View the last 80 sanitized file-log lines'),
+        });
+        addIcon(recentLogsRow, 'utilities-terminal-symbolic');
+        const viewRecentLogsButton = new Gtk.Button({
+            label: _('View'),
+            icon_name: 'view-list-symbolic',
+            valign: Gtk.Align.CENTER,
+        });
+        viewRecentLogsButton.connect('clicked', () => {
+            const logWindow = new Adw.Window({
+                title: _('Recent Log Events'),
+                transient_for: window,
+                modal: true,
+                default_width: 760,
+                default_height: 480,
+            });
+            const toolbarView = new Adw.ToolbarView();
+            const headerBar = new Adw.HeaderBar();
+            const refreshLogsButton = new Gtk.Button({
+                label: _('Refresh'),
+                icon_name: 'view-refresh-symbolic',
+                tooltip_text: _('Reload recent sanitized log events'),
+            });
+            headerBar.pack_end(refreshLogsButton);
+            toolbarView.add_top_bar(headerBar);
+            const logView = new Gtk.TextView({
+                editable: false,
+                cursor_visible: false,
+                monospace: true,
+                wrap_mode: Gtk.WrapMode.WORD_CHAR,
+                left_margin: 16,
+                right_margin: 16,
+                top_margin: 16,
+                bottom_margin: 16,
+            });
+            const logBuffer = logView.get_buffer();
+            const scrolled = new Gtk.ScrolledWindow({
+                hexpand: true,
+                vexpand: true,
+                hscrollbar_policy: Gtk.PolicyType.NEVER,
+            });
+            scrolled.set_child(logView);
+            toolbarView.set_content(scrolled);
+            logWindow.set_content(toolbarView);
+
+            const refreshRecentLogs = async () => {
+                refreshLogsButton.sensitive = false;
+                logBuffer.set_text(_('Loading recent sanitized log events…'), -1);
+                try {
+                    let message;
+                    if (!settings.get_boolean('debug')) message = _('Enable Debug Mode to record diagnostic events.');
+                    else if (!settings.get_boolean('log-to-file'))
+                        message = _('Enable Save Logs to File to view recent events.');
+                    else
+                        message =
+                            (await loadRecentLogEvents(resolveLogPath())) ||
+                            _('No diagnostic events have been recorded yet.');
+                    logBuffer.set_text(message, -1);
+                } catch (error) {
+                    logBuffer.set_text(`${_('Unable to read the sanitized log')}: ${safeErrorMessage(error)}`, -1);
+                } finally {
+                    refreshLogsButton.sensitive = true;
+                }
+            };
+            refreshLogsButton.connect('clicked', () => void refreshRecentLogs());
+            logWindow.present();
+            void refreshRecentLogs();
+        });
+        recentLogsRow.add_suffix(viewRecentLogsButton);
+        diagnosticsGroup.add(recentLogsRow);
+        debugPage.add(diagnosticsGroup);
+
         // Visibility Logic for Debug
         const updateDebugVisibility = () => {
             const isDebug = settings.get_boolean('debug');
-            const logToFile = settings.get_boolean('logtofile');
-            const fakeCharging = settings.get_boolean('fakecharging') || settings.get_boolean('fakedischarging');
+            const logToFile = settings.get_boolean('log-to-file');
+            const fakeCharging = settings.get_boolean('fake-charging') || settings.get_boolean('fake-discharging');
             loggingGroup.visible = isDebug;
             fakeChargingRow.visible = isDebug;
             fakeDischargingRow.visible = isDebug;
@@ -845,9 +972,9 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             clearReq.visible = isDebug && logToFile;
         };
         settings.connect('changed::debug', updateDebugVisibility);
-        settings.connect('changed::fakecharging', updateDebugVisibility);
-        settings.connect('changed::fakedischarging', updateDebugVisibility);
-        settings.connect('changed::logtofile', updateDebugVisibility);
+        settings.connect('changed::fake-charging', updateDebugVisibility);
+        settings.connect('changed::fake-discharging', updateDebugVisibility);
+        settings.connect('changed::log-to-file', updateDebugVisibility);
         updateDebugVisibility();
 
         // === PAGE 5: CHANGELOG ===
@@ -876,47 +1003,80 @@ export default class BattConsumptionPreferences extends ExtensionPreferences {
             title: _('About'),
             icon_name: 'help-about-symbolic',
         });
-        const versionName = this.metadata['version-name'] ?? this.metadata.version ?? 'Unknown';
+        const versionName = this.metadata['version-name'] ?? this.metadata.version ?? _('Unknown');
         const projectGroup = new Adw.PreferencesGroup({
             title: _('Project Information'),
-            description: _(`Version: ${versionName}`), // Initial value
         });
 
-        // Dynamic update for Build Date
+        const versionRow = new Adw.ActionRow({
+            title: _('Extension version'),
+            subtitle: String(versionName),
+        });
+        addIcon(versionRow, 'application-x-addon-symbolic');
+        projectGroup.add(versionRow);
+
+        const buildDateRow = new Adw.ActionRow({
+            title: _('Build date'),
+            subtitle: BUILD_DATE ?? _('Development source'),
+        });
+        addIcon(buildDateRow, 'x-office-calendar-symbolic');
+        projectGroup.add(buildDateRow);
+
+        const buildIdRow = new Adw.ActionRow({
+            title: _('Build ID'),
+            subtitle: BUILD_ID,
+        });
+        addIcon(buildIdRow, 'emblem-system-symbolic');
+        projectGroup.add(buildIdRow);
+
         const updateAboutInfo = () => {
-            let descriptionText = `Version: ${versionName}`;
-            if (settings.get_boolean('debug')) {
-                descriptionText += `\nBuild Date: ${BUILD_DATE}`;
-            }
-            projectGroup.set_description(_(descriptionText));
+            const isDebug = settings.get_boolean('debug');
+            buildDateRow.visible = isDebug;
+            buildIdRow.visible = isDebug;
         };
         settings.connect('changed::debug', updateAboutInfo);
-        updateAboutInfo(); // Set initial state correctly
+        updateAboutInfo();
+
+        const dataSourceRow = new Adw.ActionRow({
+            title: _('Data source'),
+            subtitle: _('Battery status is read from UPower and /sys/class/power_supply.'),
+        });
+        addIcon(dataSourceRow, 'security-high-symbolic');
+        projectGroup.add(dataSourceRow);
+
+        const descriptionRow = new Adw.ActionRow({
+            title: _('About this extension'),
+            subtitle: _('Battery percentage, time remaining, and real-time power draw in the GNOME panel.'),
+        });
+        addIcon(descriptionRow, 'application-x-addon-symbolic');
+        projectGroup.add(descriptionRow);
 
         const linkRow = new Adw.ActionRow({
             title: _('Project Homepage'),
-            subtitle: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
+            subtitle: PROJECT_URL,
         });
         addIcon(linkRow, 'web-browser-symbolic');
-        const linkButton = new Gtk.LinkButton({
-            uri: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor',
-            icon_name: 'external-link-symbolic',
-            valign: Gtk.Align.CENTER,
-        });
-        linkRow.add_suffix(linkButton);
+        linkRow.add_suffix(
+            new Gtk.LinkButton({
+                uri: PROJECT_URL,
+                icon_name: 'external-link-symbolic',
+                valign: Gtk.Align.CENTER,
+            }),
+        );
         projectGroup.add(linkRow);
 
         const reportRow = new Adw.ActionRow({
             title: _('Report an Issue'),
-            subtitle: _('Found a bug? Let us know!'),
+            subtitle: _('Found a bug? Let us know.'),
         });
-        addIcon(reportRow, 'tools-check-spelling-symbolic'); // Bug/Report equivalent
-        const reportButton = new Gtk.LinkButton({
-            uri: 'https://github.com/DarkPhilosophy/batt-watt-power-monitor/issues',
-            icon_name: 'external-link-symbolic',
-            valign: Gtk.Align.CENTER,
-        });
-        reportRow.add_suffix(reportButton);
+        addIcon(reportRow, 'tools-check-spelling-symbolic');
+        reportRow.add_suffix(
+            new Gtk.LinkButton({
+                uri: ISSUE_URL,
+                icon_name: 'external-link-symbolic',
+                valign: Gtk.Align.CENTER,
+            }),
+        );
         projectGroup.add(reportRow);
 
         aboutPage.add(projectGroup);

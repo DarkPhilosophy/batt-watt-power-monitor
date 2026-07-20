@@ -8,7 +8,6 @@
     "eslint-plugin-jsdoc": "^62.0.0",
     "eslint-plugin-prettier": "^5.5.5",
     "globals": "^17.0.0",
-    "husky": "^9.1.7",
     "prettier": "^3.8.0"
   },
   "keywords": ["gnome", "extension", "battery", "power", "monitor"],
@@ -19,13 +18,15 @@
     "url": "git+https://github.com/DarkPhilosophy/batt-watt-power-monitor.git"
   },
   "scripts": {
-    "lint": "eslint extension .scripts --format stylish || true; echo LINT_DONE",
-    "lint:fix": "eslint --fix extension .scripts --format stylish || true; echo LINT_DONE",
-    "lint:status": "node .scripts/update-lint-status.js",
+    "lint": "eslint extension .scripts .github/scripts test --format stylish",
+    "lint:fix": "eslint --fix extension .scripts .github/scripts test --format stylish",
+    "lint:status": "node .scripts/update-lint-status.mjs",
     "package": "./package.sh",
-    "prepare": "husky install",
-    "sync:gnome-badge": "node .scripts/sync-gnome-badge.js",
-    "validate": "node .scripts/validate-build.js && node .scripts/scan-leaks.js"
+    "sync:gnome-badge": "node .scripts/sync-gnome-badge.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:gjs": "gjs -m test/utils.gjs.mjs",
+    "validate": "node .scripts/validate-build.mjs && node .scripts/scan-leaks.mjs && node .scripts/detect-duplicate-symbols.mjs"
   },
-  "version": "22.0.0"
+  "type": "module",
+  "version": "23.0.0"
 }

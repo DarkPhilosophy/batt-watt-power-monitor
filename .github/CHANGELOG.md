@@ -1,5 +1,18 @@
 # Changelog
 
+## v23 (2026-07-20) - SETTINGS MIGRATION, POWER FIX & TEST SUITE
+
+> **RELIABILITY, IDIOMATIC CLEANUP & TEST COVERAGE**
+
+- **Power Reading Fix (#10)**: Fixed wattage getting stuck at a constant, bogus value (e.g. `-7.7 W`) on batteries that expose `power_now` but not `current_now`. The power source is now re-evaluated every cycle (`computePower`) instead of caching a one-shot detection that could be poisoned by the async file-cache race at boot. It falls back to `current_now * voltage_now` only when both are readable, otherwise reports `0` instead of a negative sentinel, and self-corrects once `power_now` resolves.
+- **Kebab-case Settings Schema**: Renamed all flat GSettings keys to idiomatic kebab-case (e.g. `showicon` to `show-icon`, `loglevel` to `log-level`). A one-time migration at first enable copies any existing user values straight from dconf into the new keys and then removes the legacy keys, so upgrades keep your configuration.
+- **Sanitized Logging**: Every log line is now redacted (Bearer tokens, JWT-like values, access/refresh tokens) and length-capped before being written to the console or a file.
+- **Refined About Page**: Dedicated rows with icons for Extension version, Build date, Build ID (debug-gated), Data source, Project Homepage, and Report an Issue.
+- **Refined Debug Page**: Added a Diagnostics group - copy sanitized configuration as JSON, and a Recent Log Events viewer showing the last 80 sanitized log lines.
+- **Live Debug Toggle**: Changing debug or logging settings now reconfigures the logger immediately instead of requiring a re-enable.
+- **Build Tooling Modernized**: Migrated all `.scripts` to ES modules (`.mjs`), made linting blocking, and switched build-metadata injection (`BUILD_DATE` / `BUILD_ID`) to value-agnostic regex so it never depends on a hardcoded placeholder value.
+- **Test Suite**: Added Node (`node --test`) and GJS test modules covering credential redaction, log path resolution and formatting, the #10 power selection, constants, utility formatting and colors, plus structural regression guards.
+
 ## v22 (2026-04-13/2026-04-15) - TEXT STROKE, DRY REFACTOR & CIRCULAR FONT REFRESH
 
 > **VISUAL POLISH & CODE QUALITY**

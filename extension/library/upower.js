@@ -1,28 +1,28 @@
 import { BATTERIES } from './constants.js';
 import * as Logger from './logger.js';
 import { readFileSafely } from './system.js';
+import { computePower } from './power-model.js';
 
 let batteryCorrection = null;
 
 /**
  * Auto-detect battery path from available sysfs power supply entries.
  *
- * @returns {object} Object with path and isTP (True Power) flag
+ * Only resolves WHICH battery path to use. Whether power_now or
+ * current_now/voltage_now is readable is re-checked on every getPower() call
+ * (see computePower), because system.js's async file cache may not have
+ * resolved power_now yet on the first probe. Caching that decision here would
+ * lock in a wrong value permanently (issue #10).
+ *
+ * @returns {object} Object with the resolved sysfs path (path: -1 if none found)
  */
 function getAutopath() {
     for (const path of [BATTERIES.BAT0, BATTERIES.BAT1, BATTERIES.BAT2]) {
         if (readFileSafely(`${path}status`, 'none') !== 'none') {
-            const isTP = readFileSafely(`${path}power_now`, 'none') !== 'none';
-            return {
-                path,
-                isTP,
-            };
+            return { path };
         }
     }
-    return {
-        path: -1,
-        isTP: false,
-    };
+    return { path: -1 };
 }
 
 /**
@@ -84,14 +84,14 @@ export function getPower(correction) {
         if (!correction || !correction['path']) return 0;
     }
     const path = correction['path'];
-    let val;
-    if (correction['isTP'] === false) val = getValue(`${path}current_now`) * getValue(`${path}voltage_now`);
-    else val = getValue(`${path}power_now`);
+    const val = computePower(
+        getValue(`${path}power_now`),
+        getValue(`${path}current_now`),
+        getValue(`${path}voltage_now`),
+    );
 
-    {
-        const energyNow = getValue(`${path}energy_now`);
-        Logger.debug(`Raw Power: ${val} W | Energy Now: ${energyNow} Wh`);
-    }
+    const energyNow = getValue(`${path}energy_now`);
+    Logger.debug(`Raw Power: ${val} W | Energy Now: ${energyNow} Wh`);
 
     return val;
 }

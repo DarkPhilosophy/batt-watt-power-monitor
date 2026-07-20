@@ -296,14 +296,14 @@ export function destroyCircleIndicator() {
  * @param {string} extensionPath - Path to extension directory
  */
 export function ensureCircleIndicator(settings, extensionPath) {
-    if (!settings.get_boolean('usecircleindicator') || settings.get_boolean('use-stock-icon')) {
+    if (!settings.get_boolean('use-circle-indicator') || settings.get_boolean('use-stock-icon')) {
         destroyCircleIndicator();
         return;
     }
 
     // New Requirement: "Show Battery Icon" acts as a master visibility switch for the icon/indicator?
     // User says: "logic for bar is there we disable 'Show battery icon' the bar icon disappear, same logic should follow for circular"
-    if (!settings.get_boolean('showicon')) {
+    if (!settings.get_boolean('show-icon')) {
         destroyCircleIndicator();
         return;
     }
@@ -334,8 +334,8 @@ export function ensureCircleIndicator(settings, extensionPath) {
             percentage: 0,
             isCharging: false,
             showText: true,
-            useColor: settings.get_boolean('showcolored'),
-            forceBolt: settings.get_boolean('forcebolt'),
+            useColor: settings.get_boolean('show-colored'),
+            forceBolt: settings.get_boolean('force-bolt'),
             size: getCircleSize(settings),
         },
         extensionPath,
@@ -364,7 +364,7 @@ import { destroyBatteryIndicator } from './battery.js';
  */
 export function updateCircleIndicatorStatus(proxy, settings) {
     if (
-        !settings.get_boolean('usecircleindicator') ||
+        !settings.get_boolean('use-circle-indicator') ||
         settings.get_boolean('use-stock-icon') ||
         !circleIndicator ||
         !proxy

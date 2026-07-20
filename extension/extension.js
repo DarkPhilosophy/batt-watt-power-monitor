@@ -39,6 +39,9 @@ export default class BatteryPowerMonitor extends Extension {
     enable() {
         this._settings = this.getSettings();
 
+        // One-time migration of legacy flat setting keys to kebab-case
+        this._migrateSettings();
+
         // Initialize Logger
         Logger.init('Batt-Watt Power Monitor');
         Logger.updateSettings(this._settings);
@@ -53,6 +56,9 @@ export default class BatteryPowerMonitor extends Extension {
 
         this._settingsSignalId = this._settings.connect('changed', (_settings, key) => {
             Logger.debug('Settings changed');
+            if (key === 'debug' || key === 'log-level' || key === 'log-to-file' || key === 'log-file-path') {
+                Logger.updateSettings(this._settings);
+            }
             if (key === 'interval') {
                 const refreshInterval = this._settings.get_int('interval') || 3;
                 this._updateInterval(refreshInterval);
@@ -90,6 +96,78 @@ export default class BatteryPowerMonitor extends Extension {
         enableSyncOverride(this._settings, this.path);
 
         Logger.info('Batt-Watt enabled.');
+    }
+
+    _migrateSettings() {
+        const settings = this._settings;
+        if (settings.get_int('settings-version') >= 1) return;
+
+        // The legacy flat keys were removed from the schema, so their stored
+        // values can only be read straight from dconf. For each one we copy the
+        // value into the new kebab-case key and then delete the legacy key from
+        // dconf. Deletion happens ONLY after a successful copy. [old, new, type]
+        const base = '/org/gnome/shell/extensions/batt-watt-power-monitor/';
+        const renames = [
+            ['showicon', 'show-icon', 'b'],
+            ['batterysize', 'battery-size', 'i'],
+            ['batteryheight', 'battery-height', 'i'],
+            ['showpercentageoutside', 'show-percentage-outside', 'b'],
+            ['timeremaining', 'time-remaining', 'b'],
+            ['hidecharging', 'hide-charging', 'b'],
+            ['hidefull', 'hide-full', 'b'],
+            ['hideidle', 'hide-idle', 'b'],
+            ['showwatts', 'show-watts', 'b'],
+            ['showdecimals', 'show-decimals', 'b'],
+            ['showcolored', 'show-colored', 'b'],
+            ['showcoloredtext', 'show-colored-text', 'b'],
+            ['textstroke', 'text-stroke', 'b'],
+            ['usecircleindicator', 'use-circle-indicator', 'b'],
+            ['circlesize', 'circle-size', 'i'],
+            ['forcebolt', 'force-bolt', 'b'],
+            ['fakecharging', 'fake-charging', 'b'],
+            ['fakedischarging', 'fake-discharging', 'b'],
+            ['fakechargemin', 'fake-charge-min', 'i'],
+            ['fakechargemax', 'fake-charge-max', 'i'],
+            ['loglevel', 'log-level', 'i'],
+            ['logtofile', 'log-to-file', 'b'],
+            ['logfilepath', 'log-file-path', 's'],
+        ];
+
+        let migrated = 0;
+        for (const [oldKey, newKey, vtype] of renames) {
+            let raw;
+            try {
+                const [ok, stdout] = GLib.spawn_command_line_sync(`dconf read ${base}${oldKey}`);
+                if (!ok) continue;
+                raw = new TextDecoder().decode(stdout).trim();
+            } catch (error) {
+                Logger.warn(`Migration read failed for ${oldKey}: ${error.message}`);
+                continue;
+            }
+            if (!raw) continue; // never customized by the user
+
+            try {
+                const value = GLib.Variant.parse(new GLib.VariantType(vtype), raw, null, null).unpack();
+                if (vtype === 'b') settings.set_boolean(newKey, value);
+                else if (vtype === 'i') settings.set_int(newKey, value);
+                else settings.set_string(newKey, value);
+            } catch (error) {
+                // Copy failed -> keep the legacy value untouched, do NOT delete it.
+                Logger.warn(`Migration parse failed for ${oldKey}=${raw}: ${error.message}`);
+                continue;
+            }
+
+            // Value carried over -> remove the legacy key from dconf entirely.
+            try {
+                GLib.spawn_command_line_sync(`dconf reset ${base}${oldKey}`);
+                migrated += 1;
+            } catch (error) {
+                Logger.warn(`Migration cleanup failed for ${oldKey}: ${error.message}`);
+            }
+        }
+
+        settings.set_int('settings-version', 1);
+        if (migrated > 0) Logger.info(`Migrated ${migrated} legacy setting(s) from dconf to kebab-case.`);
     }
 
     disable() {
@@ -210,7 +288,7 @@ export default class BatteryPowerMonitor extends Extension {
 
             setStockBatteryStyle(null);
 
-            if (this._settings.get_boolean('showicon')) {
+            if (this._settings.get_boolean('show-icon')) {
                 restoreStockBattery();
             } else {
                 hideStockBattery();
@@ -227,7 +305,7 @@ export default class BatteryPowerMonitor extends Extension {
         ensureCircleIndicator(this._settings, extPath);
 
         // If "Show Battery Icon" is disabled, destroy it if it exists and return.
-        if (!this._settings.get_boolean('showicon')) {
+        if (!this._settings.get_boolean('show-icon')) {
             destroyPortraitIndicator();
             destroyLandscapeIndicator();
         } else {

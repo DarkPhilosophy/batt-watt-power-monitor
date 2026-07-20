@@ -19,8 +19,8 @@ function clampPercent(value) {
  * @returns {[number, number]} [min, max] range
  */
 function getFakeChargeRange(settings) {
-    const first = clampPercent(settings.get_int('fakechargemin'));
-    const second = clampPercent(settings.get_int('fakechargemax'));
+    const first = clampPercent(settings.get_int('fake-charge-min'));
+    const second = clampPercent(settings.get_int('fake-charge-max'));
     return first <= second ? [first, second] : [second, first];
 }
 
@@ -63,8 +63,8 @@ export function getEffectiveBatteryValues(proxy, settings) {
     const rawPercentage = proxy.percentage ?? proxy.Percentage ?? 0;
     const rawState = proxy.state ?? proxy.State;
     const debug = settings.get_boolean('debug');
-    const fakeCharging = debug && settings.get_boolean('fakecharging');
-    const fakeDischarging = debug && settings.get_boolean('fakedischarging');
+    const fakeCharging = debug && settings.get_boolean('fake-charging');
+    const fakeDischarging = debug && settings.get_boolean('fake-discharging');
 
     if (!fakeCharging && !fakeDischarging) {
         return {
@@ -101,20 +101,20 @@ export function getEffectiveBatteryValues(proxy, settings) {
 export function getSettingsSnapshot(settings) {
     const useStockIcon = settings.get_boolean('use-stock-icon');
     const showPercentage = settings.get_boolean('percentage');
-    const showPercentageOutside = settings.get_boolean('showpercentageoutside') && showPercentage;
-    const showTimeRemaining = settings.get_boolean('timeremaining');
-    const showWatts = settings.get_boolean('showwatts');
-    const showIcon = settings.get_boolean('showicon');
-    const showCircle = settings.get_boolean('usecircleindicator') && !useStockIcon;
-    const showColoredIcon = settings.get_boolean('showcolored');
-    const showColoredText = settings.get_boolean('showcoloredtext');
+    const showPercentageOutside = settings.get_boolean('show-percentage-outside') && showPercentage;
+    const showTimeRemaining = settings.get_boolean('time-remaining');
+    const showWatts = settings.get_boolean('show-watts');
+    const showIcon = settings.get_boolean('show-icon');
+    const showCircle = settings.get_boolean('use-circle-indicator') && !useStockIcon;
+    const showColoredIcon = settings.get_boolean('show-colored');
+    const showColoredText = settings.get_boolean('show-colored-text');
     const chargingIconColorSource = settings.get_string('charging-icon-color-source');
     const textColorSource = settings.get_string('charging-text-color-source');
-    const textStroke = settings.get_boolean('textstroke');
-    const forceBolt = settings.get_boolean('forcebolt');
-    const hideCharging = settings.get_boolean('hidecharging');
-    const hideFull = settings.get_boolean('hidefull');
-    const hideIdle = settings.get_boolean('hideidle');
+    const textStroke = settings.get_boolean('text-stroke');
+    const forceBolt = settings.get_boolean('force-bolt');
+    const hideCharging = settings.get_boolean('hide-charging');
+    const hideFull = settings.get_boolean('hide-full');
+    const hideIdle = settings.get_boolean('hide-idle');
     return {
         showPercentage,
         showPercentageOutside,
@@ -131,8 +131,8 @@ export function getSettingsSnapshot(settings) {
         textColorSource,
         textCustomColor: settings.get_string('charging-text-custom-color'),
         textStroke,
-        fakeCharging: settings.get_boolean('debug') && settings.get_boolean('fakecharging'),
-        fakeDischarging: settings.get_boolean('debug') && settings.get_boolean('fakedischarging'),
+        fakeCharging: settings.get_boolean('debug') && settings.get_boolean('fake-charging'),
+        fakeDischarging: settings.get_boolean('debug') && settings.get_boolean('fake-discharging'),
         forceBolt,
         hideCharging,
         hideFull,
@@ -182,7 +182,7 @@ const BATTERY_MIN_SIZE = 24;
  * @returns {number} Size in pixels
  */
 export function getCircleSize(settings) {
-    const rawSize = settings.get_int('circlesize');
+    const rawSize = settings.get_int('circle-size');
     // User requested "sweet spot" limit: 25 to 50.
     // < 25 is too small, > 50 doesn't grow (panel constraint) but adds width.
     return Math.max(25, Math.min(rawSize, 50));
@@ -195,7 +195,7 @@ export function getCircleSize(settings) {
  * @returns {number} Width in pixels
  */
 export function getBatteryWidth(settings) {
-    return settings.get_int('batterysize') || BATTERY_MIN_SIZE;
+    return settings.get_int('battery-size') || BATTERY_MIN_SIZE;
 }
 
 /**
@@ -205,5 +205,5 @@ export function getBatteryWidth(settings) {
  * @returns {number} Height in pixels
  */
 export function getBatteryHeight(settings) {
-    return settings.get_int('batteryheight') || BATTERY_MIN_SIZE;
+    return settings.get_int('battery-height') || BATTERY_MIN_SIZE;
 }

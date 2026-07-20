@@ -9,9 +9,9 @@ set -e
 
 # Sync version from package.json
 echo "Syncing version..."
-node .scripts/sync-version.js
+node .scripts/sync-version.mjs
 echo "Formatting JSON..."
-node .scripts/format-json.js
+node .scripts/format-json.mjs
 
 # Lint check (for status update)
 echo "Checking code quality..."
@@ -32,34 +32,10 @@ fi
 
 # Update lint status in README
 echo "Updating lint status..."
-node .scripts/update-lint-status.js
+node .scripts/update-lint-status.mjs
 
 # Validate File Structure
-node .scripts/validate-build.js
-
-# Shexli validation (EGO review check)
-echo "🔍 Running shexli static analysis..."
-SHEXLI_PATH="$PROJECT_DIR/venv/bin/shexli"
-if [ -f "$SHEXLI_PATH" ]; then
-    # Shexli requires a temp copy to avoid path resolution issues
-    TEMP_SHEXLI=$(mktemp -d)
-    trap 'rm -rf "$TEMP_SHEXLI"' RETURN
-    cp -r "$PROJECT_DIR/extension/"* "$TEMP_SHEXLI/"
-    set +e
-    shexli_output=$("$SHEXLI_PATH" "$TEMP_SHEXLI" 2>&1)
-    shexli_status=$?
-    set -e
-    rm -rf "$TEMP_SHEXLI"
-    trap - RETURN
-    if [ $shexli_status -ne 0 ]; then
-        echo "$shexli_output"
-        echo "❌ Shexli found issues." >&2
-        exit 1
-    fi
-    echo "✅ Shexli passed."
-else
-    echo "⚠️  Shexli not found at $SHEXLI_PATH. Install with: pip install shexli"
-fi
+node .scripts/validate-build.mjs
 
 echo "🏗️  Building Batt-Watt Power Monitor extension package..."
 
@@ -88,6 +64,10 @@ cp "$PROJECT_DIR/extension/bolt.svg" "$TEMP_DIR/"
 mkdir -p "$TEMP_DIR/library"
 cp -r "$PROJECT_DIR/extension/library/"* "$TEMP_DIR/library/"
 cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$TEMP_DIR/schemas/" 2>/dev/null || true
+
+# SHEXLI static analysis against the staged extension (EGO review check)
+echo "🔍 Running SHEXLI against the staged extension..."
+"$PROJECT_DIR/.scripts/run-shexli.sh" "$TEMP_DIR"
 
 # Create zip package - files at root level, not in subdirectory
 echo "ZIP: Creating package..."

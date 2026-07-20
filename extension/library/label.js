@@ -115,11 +115,6 @@ export function updateLabel(proxy, settings) {
         }
     } else {
         Logger.debug('updateLabel: indicator._percentageLabel is MISSING');
-        if (indicator) {
-            // Debug introspection
-            const keys = Object.keys(indicator).join(',');
-            Logger.debug(`updateLabel: indicator keys: ${keys}`);
-        }
     }
 
     // Apply to Power Toggle Label (Quick Settings Menu)

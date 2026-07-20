@@ -1,5 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
 const METADATA_PATH = path.join(PROJECT_DIR, 'extension', 'metadata.json');
@@ -66,9 +69,9 @@ function syncGnomeBadge() {
     console.log('✅ Updated GNOME badge in README.md');
 }
 
-module.exports = syncGnomeBadge;
+export default syncGnomeBadge;
 
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
     try {
         syncGnomeBadge();
     } catch (error) {

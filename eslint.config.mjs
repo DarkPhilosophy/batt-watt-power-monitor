@@ -3,7 +3,7 @@ import js from '@eslint/js';
 import jsdoc from 'eslint-plugin-jsdoc';
 import prettier from 'eslint-config-prettier';
 import pluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
-import noDecorativeComments from './.scripts/eslint-rules/no-decorative-comments.js';
+import noDecorativeComments from './.scripts/eslint-rules/no-decorative-comments.mjs';
 
 export default [
     js.configs.recommended,
@@ -106,9 +106,9 @@ export default [
     },
     // Configuration for Scripts (Node.js)
     {
-        files: ['.scripts/**/*.js', '*.js'],
+        files: ['.scripts/**/*.mjs', '.github/scripts/**/*.mjs'],
         languageOptions: {
-            sourceType: 'commonjs',
+            sourceType: 'module',
             globals: {
                 ...globals.node,
             },

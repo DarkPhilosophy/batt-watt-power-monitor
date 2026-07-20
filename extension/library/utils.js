@@ -39,7 +39,7 @@ export function formatTimeRemaining(seconds) {
  * @returns {string} Formatted watts string.
  */
 export function formatWatts(watts, settings) {
-    const decimals = settings?.get_boolean('showdecimals') ? 2 : 0;
+    const decimals = settings?.get_boolean('show-decimals') ? 2 : 0;
     return watts.toFixed(decimals);
 }
 

@@ -1,6 +1,9 @@
-const https = require('https');
-const fs = require('fs');
-const path = require('path');
+import https from 'node:https';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PROJECT_DIR = path.resolve(__dirname, '..');
 const README_PATH = path.join(PROJECT_DIR, '.github', 'README.md');
@@ -14,7 +17,7 @@ console.log('Fetching published version from GNOME Extensions...');
 // Read GitHub version from package.json
 let githubVersion;
 try {
-    const pkg = require(PACKAGE_JSON_PATH);
+    const pkg = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, 'utf8'));
     githubVersion = parseInt(pkg.version.split('.')[0], 10); // Get major version
     console.log(`📦 GitHub version: ${githubVersion}`);
 } catch (error) {

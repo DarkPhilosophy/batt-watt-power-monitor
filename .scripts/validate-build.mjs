@@ -1,5 +1,8 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SCHEMA_PATH = path.join(__dirname, '../.build-schema.json');
 const EXTENSION_DIR = path.join(__dirname, '../extension');
@@ -73,7 +76,7 @@ function validateBuild() {
     if (backupItems.length > 0) {
         console.error(`${RED}❌ Backup files found inside extension/:${RESET}`);
         backupItems.forEach(i => console.error(`   - ${i}`));
-        console.error(`${RED}Move backups to ./backup (e.g. node .scripts/move-backups.js).${RESET}`);
+        console.error(`${RED}Move backups to ./backup (e.g. node .scripts/move-backups.mjs).${RESET}`);
         hasError = true;
     }
 

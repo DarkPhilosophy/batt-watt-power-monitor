@@ -27,6 +27,9 @@ jobs:
                   cache: 'npm'
                   cache-dependency-path: package-lock.json
 
+            - name: Install system dependencies
+              run: sudo apt-get update && sudo apt-get install -y libglib2.0-bin gjs gir1.2-upowerglib-1.0
+
             - name: Install dependencies
               run: npm install
 
@@ -35,6 +38,15 @@ jobs:
 
             - name: Validate Schemas
               run: glib-compile-schemas --strict --dry-run extension/schemas/
+
+            - name: Run unit tests
+              run: npm test
+
+            - name: Run GJS tests
+              run: npm run test:gjs
+
+            - name: Run validation gate
+              run: npm run validate
 
             - name: Validate Metadata Template
               run: |
@@ -76,10 +88,10 @@ jobs:
               run: npm install
 
             - name: Sync Version
-              run: node .scripts/sync-version.js
+              run: node .scripts/sync-version.mjs
 
             - name: Fetch GNOME Extensions Version
-              run: node .scripts/fetch-ego-version.js
+              run: node .scripts/fetch-ego-version.mjs
 
             - name: Lint JavaScript (for status)
               run: |
@@ -94,8 +106,14 @@ jobs:
             - name: Update Lint Status
               run: npm run lint:status
 
+            - name: Install system dependencies
+              run: sudo apt-get update && sudo apt-get install -y python3-venv zip unzip
+
+            - name: Provision SHEXLI
+              run: python3 -m venv venv && venv/bin/pip install --quiet shexli==0.2.1 tree-sitter==0.25.2
+
             - name: Build Extension Package
-              run: ./package.sh
+              run: SHEXLI_AUTO_UPDATE=0 ./package.sh
 
             - name: Commit Changes
               if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}

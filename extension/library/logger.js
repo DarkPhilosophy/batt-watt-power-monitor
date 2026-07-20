@@ -2,6 +2,9 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 
+import { sanitizeText } from './sanitize.js';
+import { resolveLogFilePath as resolveModelLogPath } from './logging-model.js';
+
 export const LogLevel = {
     VERBOSE: 0,
     DEBUG: 1,
@@ -42,9 +45,9 @@ export function init(prefix) {
 export function updateSettings(settings) {
     if (!settings) return;
     _debug = settings.get_boolean('debug');
-    _logLevel = settings.get_int('loglevel');
-    _logToFile = settings.get_boolean('logtofile');
-    const newPath = settings.get_string('logfilepath');
+    _logLevel = settings.get_int('log-level');
+    _logToFile = settings.get_boolean('log-to-file');
+    const newPath = settings.get_string('log-file-path');
 
     // Reset initialization if path changes
     if (_logInitialized && _logPath !== newPath) {
@@ -59,23 +62,11 @@ export function updateSettings(settings) {
  * @returns {string} Absolute path to log file
  */
 function resolveLogFilePath() {
-    const configured = (_logPath || '').trim();
-    const baseName = _prefix.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    let fullPath = '';
-    if (configured.length === 0) {
-        fullPath = `${GLib.get_user_cache_dir()}/${baseName}.log`;
-    } else if (configured.startsWith('/')) {
-        fullPath = configured;
-    } else {
-        fullPath = `${GLib.get_home_dir()}/${configured}`;
-    }
-
-    if (GLib.file_test(fullPath, GLib.FileTest.IS_DIR)) {
-        const base = fullPath.replace(/\/$/, '');
-        return `${base}/${baseName}.log`;
-    }
-
-    return fullPath;
+    return resolveModelLogPath(_logPath, {
+        cacheDir: GLib.get_user_cache_dir(),
+        homeDir: GLib.get_home_dir(),
+        isDirectory: candidate => GLib.file_test(candidate, GLib.FileTest.IS_DIR),
+    });
 }
 
 /**
@@ -156,7 +147,7 @@ function logMessage(msg, level) {
 
     const timestamp = new Date().toISOString();
     const levelName = LOG_LEVEL_NAMES[level] || '[UNKNOWN]';
-    const output = `${timestamp} ${levelName} ${_prefix} ${msg}`;
+    const output = `${timestamp} ${levelName} ${_prefix} ${sanitizeText(msg)}`;
 
     if (level >= LogLevel.WARN) console.error(output);
     else console.log(output);

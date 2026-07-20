@@ -2,7 +2,9 @@
 
 [![Extension CI](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DarkPhilosophy/batt-watt-power-monitor/actions/workflows/ci.yml)
 ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/DarkPhilosophy/batt-watt-power-monitor?utm_source=oss&utm_medium=github&utm_campaign=DarkPhilosophy%2Fbatt-watt-power-monitor&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
-[![GNOME Extensions](https://img.shields.io/badge/GNOME-Extensions-orange.svg)](https://extensions.gnome.org/extension/9023/battery-power-monitor/) <!-- GNOME-SHELL-VERSIONS-START --> [![GNOME 45-50](https://img.shields.io/badge/GNOME-45--50-blue.svg)](https://www.gnome.org/) <!-- GNOME-SHELL-VERSIONS-END -->
+[![GNOME Extensions](https://img.shields.io/badge/GNOME-Extensions-orange.svg)](https://extensions.gnome.org/extension/9023/battery-power-monitor/) <!-- GNOME-SHELL-VERSIONS-START -->
+[![GNOME 45-50](https://img.shields.io/badge/GNOME-45--50-blue.svg)](https://www.gnome.org/)
+<!-- GNOME-SHELL-VERSIONS-END -->
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 **Battery Power Monitor** - A GNOME Shell extension showing battery percentage, time remaining, and real-time power consumption.
@@ -10,7 +12,7 @@
 **Status**: **Live** on GNOME Extensions (ID: 9023).
 
 <!-- EGO-VERSION-START -->
-[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v22-blue) ![GNOME](https://img.shields.io/badge/GNOME-v21-green)
+[![Status: Pending](https://img.shields.io/badge/Status-Pending-yellow)](https://extensions.gnome.org/extension/9023/batt-watt-power-monitor/) ![GitHub](https://img.shields.io/badge/GitHub-v23-blue) ![GNOME](https://img.shields.io/badge/GNOME-v22-green)
 <!-- EGO-VERSION-END -->
 
 ## Features
@@ -26,17 +28,15 @@
 <!-- LINT-RESULT-START -->
 ### Linting Status
 > **Status**: ✅ **Passing**  
-> **Last Updated**: 2026-04-23 04:04:00 UTC  
+> **Last Updated**: 2026-07-20 21:57:27 UTC  
 > **Summary**: 0 errors, 0 warnings
 
 <details>
 <summary>Click to view full lint output</summary>
 
 ```text
-> batt-watt-power-monitor@22.0.0 lint:fix
-> eslint --fix extension .scripts --format stylish || true; echo LINT_DONE
-
-LINT_DONE
+> batt-watt-power-monitor@23.0.0 lint
+> eslint extension .scripts test --format stylish
 ```
 
 </details>
@@ -44,21 +44,16 @@ LINT_DONE
 
 <!-- LATEST-VERSION-START -->
 <details open>
-<summary><strong>Latest Update (v22)</strong></summary>
+<summary><strong>Latest Update (v23)</strong></summary>
 
-- **Stock Icon Mode**: Added a new preference to use the native GNOME battery icon instead of the custom bar or circular indicator.
-- ~~**Charging Color Tuning**: Colored mode now falls back to the theme foreground while charging, avoiding misleading low-battery red/orange states.~~
-- **Panel Sync**: The stock icon path now respects the same panel visibility flow as the custom indicators.
-- **Version Art**: Added a dedicated `v22` SVG concept icon under `assets/`.
-- **Text Stroke Setting**: Added a global "Text Stroke" preference that toggles a dark outline around percentage text and the charging bolt SVG across all indicator modes (bar, landscape, circular).
-- **DRY Stroke Helpers**: Extracted duplicated stroke-rendering logic into reusable `drawTextStroke()` and `drawBoltStroke()` helpers in `drawing.js`, eliminating ~150 lines of inline duplicate code across indicator modules.
-- **Circular Font Size**: Increased `CIRCLE.FONT_SIZE_RATIO` from 0.42 to 0.5 for better legibility at typical panel sizes (e.g., 37px diameter).
-- **Bolt Stroke Fix**: Fixed bolt SVG stroke not respecting the textStroke toggle in circular mode (with text displayed), ensuring stroke is disabled consistently when the setting is off.
-- **Preferences Cleanup**: Added `close-request` handler to destroy `Gtk.ListBox` and `Adw.ToastOverlay` objects when the preferences window closes, fixing EGO-L-006 warning.
-- **Charging Color Refactor**: Removed the invalid implicit charging fallback and restored `Gradient` as the default color logic for both charging and discharging.
-- **Explicit Charging Overrides**: Added `Charging Icon Color` and `Charging Text Color` modes with explicit `Gradient`, `Theme Foreground`, and `Custom Color` behavior.
-- **Defaults Update**: `Color Gradient Icon` and `Color Gradient Text` now default to `true`.
-- **Preferences Polish**: Cleaned up inconsistent preferences icons and replaced invalid symbolic icon names with working ones.
+- **Power Reading Fix (#10)**: Fixed wattage getting stuck at a constant, bogus value (e.g. `-7.7 W`) on batteries that expose `power_now` but not `current_now`. The power source is now re-evaluated every cycle (`computePower`) instead of caching a one-shot detection that could be poisoned by the async file-cache race at boot. It falls back to `current_now * voltage_now` only when both are readable, otherwise reports `0` instead of a negative sentinel, and self-corrects once `power_now` resolves.
+- **Kebab-case Settings Schema**: Renamed all flat GSettings keys to idiomatic kebab-case (e.g. `showicon` to `show-icon`, `loglevel` to `log-level`). A one-time migration at first enable copies any existing user values straight from dconf into the new keys and then removes the legacy keys, so upgrades keep your configuration.
+- **Sanitized Logging**: Every log line is now redacted (Bearer tokens, JWT-like values, access/refresh tokens) and length-capped before being written to the console or a file.
+- **Refined About Page**: Dedicated rows with icons for Extension version, Build date, Build ID (debug-gated), Data source, Project Homepage, and Report an Issue.
+- **Refined Debug Page**: Added a Diagnostics group - copy sanitized configuration as JSON, and a Recent Log Events viewer showing the last 80 sanitized log lines.
+- **Live Debug Toggle**: Changing debug or logging settings now reconfigures the logger immediately instead of requiring a re-enable.
+- **Build Tooling Modernized**: Migrated all `.scripts` to ES modules (`.mjs`), made linting blocking, and switched build-metadata injection (`BUILD_DATE` / `BUILD_ID`) to value-agnostic regex so it never depends on a hardcoded placeholder value.
+- **Test Suite**: Added Node (`node --test`) and GJS test modules covering credential redaction, log path resolution and formatting, the #10 power selection, constants, utility formatting and colors, plus structural regression guards.
 
 </details>
 <!-- LATEST-VERSION-END -->

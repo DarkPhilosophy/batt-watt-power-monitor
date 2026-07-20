@@ -23,7 +23,7 @@ jobs:
                   node-version: '20'
 
             - name: Fetch EGO Version & Update README
-              run: node .scripts/fetch-ego-version.js
+              run: node .scripts/fetch-ego-version.mjs
 
             - name: Commit Status Update
               run: |

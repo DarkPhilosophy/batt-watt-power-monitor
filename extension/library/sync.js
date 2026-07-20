@@ -27,7 +27,7 @@ function formatWatts(power, settings) {
     // Hide if effectively zero (charging/discharging calculation pending)
     if (power <= 0.01 && power >= -0.01) return '';
 
-    if (settings && settings.get_boolean('showdecimals')) return Math.abs(power).toFixed(2);
+    if (settings && settings.get_boolean('show-decimals')) return Math.abs(power).toFixed(2);
 
     // Default behavior: Round to integer
     return Math.round(Math.abs(power)).toString();
@@ -97,11 +97,6 @@ function _powerToggleSyncOverride(settings) {
         if (snapshot.hideCharging && isCharging) shouldHide = true;
         if (snapshot.hideFull && isFull) shouldHide = true;
         if (snapshot.hideIdle && isIdle) shouldHide = true;
-
-        // ForceBolt overrides visibility (matches circle.js logic now? No, circle.js logic was valid: forceBolt implies showing)
-        // BUT user complained about usage of forceBolt.
-        // If forceBolt is meant to DEBUG the ICON, maybe it shouldn't force text?
-        // Let's assume if hidden, we hide text.
 
         // Build display string
         const displayParts = [];

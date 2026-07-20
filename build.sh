@@ -74,29 +74,29 @@ fi
 
 # Sync version from package.json
 echo "Syncing version..."
-node .scripts/sync-version.js
+node .scripts/sync-version.mjs
 
 # Format all JSON files (sorted keys, 2 spaces)
 echo "Formatting JSON..."
-node .scripts/format-json.js
+node .scripts/format-json.mjs
 
 # Update EGO published version badge
 echo "Updating EGO published version badge..."
-node .scripts/fetch-ego-version.js
+node .scripts/fetch-ego-version.mjs
 
 # Update lint status in README
 echo "Updating lint status..."
-node .scripts/update-lint-status.js
+node .scripts/update-lint-status.mjs
 
 # Move backup artifacts to /backup
 echo "Moving backup artifacts..."
-node .scripts/move-backups.js
+node .scripts/move-backups.mjs
 
 # Detect duplicate unique symbols
-node .scripts/detect-duplicate-symbols.js
+node .scripts/detect-duplicate-symbols.mjs
 
 # Validate File Structure
-node .scripts/validate-build.js
+node .scripts/validate-build.mjs
 
 EXTENSION_ID="batt-watt-power-monitor@DarkPhilosophy"
 EXTENSION_DIR="$HOME/.local/share/gnome-shell/extensions/$EXTENSION_ID"
@@ -155,7 +155,14 @@ cp "$PROJECT_DIR/extension/schemas"/*.gschema.xml "$EXTENSION_DIR/schemas/"
 
 BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 echo "Build date: $BUILD_DATE"
-sed -i "s|^const BUILD_DATE = null;|const BUILD_DATE = '$BUILD_DATE';|" "$EXTENSION_DIR/prefs.js"
+sed -i -E "s|^const BUILD_DATE = .*;|const BUILD_DATE = '$BUILD_DATE';|" "$EXTENSION_DIR/prefs.js"
+
+VERSION=$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$PROJECT_DIR/package.json" | head -n1)
+GIT_REV=$(git -C "$PROJECT_DIR" rev-parse --short=7 HEAD 2>/dev/null || echo "uncommitted")
+BUILD_TS=$(date -u +"%Y%m%dT%H%M%SZ")
+BUILD_ID="${VERSION:-0.0.0}-${BUILD_TS}-${GIT_REV}"
+echo "Build ID: $BUILD_ID"
+sed -i -E "s|^const BUILD_ID = .*;|const BUILD_ID = '$BUILD_ID';|" "$EXTENSION_DIR/prefs.js"
 
 # Compile schemas in the extension directory
 echo "Compiling schemas..."

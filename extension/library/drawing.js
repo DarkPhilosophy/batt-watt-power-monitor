@@ -205,16 +205,12 @@ export function drawBatteryIcon(
     context.fill();
 
     if (showText) {
-        Logger.debug(`drawBatteryIcon: rendering text, pct=${pct}, centerX=${centerX}, centerY=${centerY}`);
         context.selectFontFace('Sans', Cairo.FontSlant.NORMAL, Cairo.FontWeight.BOLD);
         context.setFontSize(Math.round(height * 0.28));
         const text = String(pct);
         const textExtents = context.textExtents(text);
         const textX = centerX - textExtents.width / 2;
         const textY = centerY + textExtents.height / 2;
-        Logger.debug(
-            `drawBatteryIcon: text="${text}", textX=${textX}, textY=${textY}, fontSize=${Math.round(height * 0.28)}`,
-        );
         context.setSourceRGB(red, green, blue);
         context.moveTo(textX, textY);
         context.showText(text);

@@ -9,6 +9,10 @@ reviews:
   auto_review:
     enabled: true
     drafts: false
+  path_filters:
+    - "!.screenshot/**"
+    - "!backup/**"
+    - "!venv/**"
   path_instructions:
     - path: ".github/**"
       instructions: "Treat .github/README.md as generated-by-blocks documentation. Prefer script-driven updates over manual hardcoded status or badge edits."
