@@ -1,12 +1,5 @@
 {
   "ignoreNames": [],
   "uniqueNamePatterns": ["^get.*Snapshot$", "^build.*Status$", "^compute[A-Z]", "^getEffective[A-Z]"],
-  "uniqueNames": [
-    "getBatteryCorrection",
-    "getSettingsSnapshot",
-    "computePower",
-    "sanitizeText",
-    "safeErrorMessage",
-    "formatRecentLogEvents"
-  ]
+  "uniqueNames": ["getBatteryCorrection", "getSettingsSnapshot", "computePower", "sanitizeText", "safeErrorMessage", "formatRecentLogEvents"]
 }
