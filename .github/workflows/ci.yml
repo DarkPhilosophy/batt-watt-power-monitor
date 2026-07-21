@@ -1,6 +1,7 @@
 name: Extension CI
 
 on:
+    workflow_dispatch:
     push:
         branches: [main]
     pull_request:
@@ -118,8 +119,8 @@ jobs:
             - name: Commit Changes
               if: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) }}
               run: |
-                  git config --global user.name 'GitHub Action'
-                  git config --global user.email 'action@github.com'
+                  git config --global user.name 'DarkPhilosophy'
+                  git config --global user.email '19309990+DarkPhilosophy@users.noreply.github.com'
                   if [[ -n $(git status --porcelain) ]]; then
                     target_ref='${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref_name }}'
                     git add .
@@ -134,3 +135,27 @@ jobs:
               with:
                   name: extension-package
                   path: batt-watt-power-monitor@DarkPhilosophy.zip
+
+
+            - name: Publish GitHub release
+              if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  version=$(< VERSION)
+                  tag="v${version}"
+                  package="batt-watt-power-monitor@DarkPhilosophy.zip"
+                  notes="$RUNNER_TEMP/release-notes.md"
+                  node .scripts/release-notes.mjs "$version" > "$notes"
+                  if gh release view "$tag" >/dev/null 2>&1; then
+                    gh release edit "$tag" \
+                      --title "Batt-Watt Power Monitor $tag" \
+                      --notes-file "$notes" \
+                      --latest
+                  else
+                    gh release create "$tag" "$package" \
+                      --target "$(git rev-parse HEAD)" \
+                      --title "Batt-Watt Power Monitor $tag" \
+                      --notes-file "$notes" \
+                      --latest
+                  fi
